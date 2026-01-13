@@ -5,6 +5,7 @@ import {
   Bed, 
   Facility, 
   ActivityReservation,
+  FacilityReservation,
   BedStatus,
   CleaningStatus,
   WorkingStatus,
@@ -36,6 +37,11 @@ interface VillageContextType {
   updateFacilityCleaningStatus: (facilityId: string, status: CleaningStatus) => void;
   updateFacilityWorkingStatus: (facilityId: string, status: WorkingStatus) => void;
   updateFacilityNotes: (facilityId: string, notes: string) => void;
+  
+  // Facility reservation operations
+  addFacilityReservation: (reservation: Omit<FacilityReservation, 'id' | 'createdAt'>) => boolean;
+  removeFacilityReservation: (reservationId: string) => void;
+  getFacilityReservations: (facilityId: string) => FacilityReservation[];
   
   // Activity operations
   addActivityReservation: (reservation: Omit<ActivityReservation, 'id' | 'createdAt'>) => boolean;
@@ -273,6 +279,63 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // ============================================================
+  // FACILITY RESERVATION OPERATIONS
+  // ============================================================
+
+  const addFacilityReservation = (reservation: Omit<FacilityReservation, 'id' | 'createdAt'>): boolean => {
+    if (!state) return false;
+
+    // Check for overlapping reservations
+    const existingReservations = Object.values(state.facilityReservations || {}).filter(
+      r => r.facilityId === reservation.facilityId && r.date === reservation.date
+    );
+
+    const newStart = reservation.startTime;
+    const newEnd = reservation.endTime;
+
+    for (const existing of existingReservations) {
+      // Check if times overlap
+      if (
+        (newStart >= existing.startTime && newStart < existing.endTime) ||
+        (newEnd > existing.startTime && newEnd <= existing.endTime) ||
+        (newStart <= existing.startTime && newEnd >= existing.endTime)
+      ) {
+        return false; // Overlap detected
+      }
+    }
+
+    const newReservation: FacilityReservation = {
+      ...reservation,
+      id: Math.random().toString(36).substring(2, 11),
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedReservations = {
+      ...state.facilityReservations,
+      [newReservation.id]: newReservation,
+    };
+
+    saveState({ ...state, facilityReservations: updatedReservations });
+    return true;
+  };
+
+  const removeFacilityReservation = (reservationId: string) => {
+    if (!state) return;
+
+    const updatedReservations = { ...(state.facilityReservations || {}) };
+    delete updatedReservations[reservationId];
+
+    saveState({ ...state, facilityReservations: updatedReservations });
+  };
+
+  const getFacilityReservations = (facilityId: string): FacilityReservation[] => {
+    if (!state) return [];
+    return Object.values(state.facilityReservations || {}).filter(
+      r => r.facilityId === facilityId
+    );
+  };
+
+  // ============================================================
   // ACTIVITY OPERATIONS
   // ============================================================
 
@@ -447,6 +510,9 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
     updateFacilityNotes,
+    addFacilityReservation,
+    removeFacilityReservation,
+    getFacilityReservations,
     addActivityReservation,
     removeActivityReservation,
     getNeighborhoodSummary,

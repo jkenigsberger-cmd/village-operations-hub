@@ -3,13 +3,17 @@ import { useParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FacilityCard, FacilityTile } from '@/components/FacilityCard';
+import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { Facility } from '@/types/village';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Loader2, 
   Bath, 
   ChevronDown,
   ChevronUp,
-  AlertTriangle
+  AlertTriangle,
+  CalendarDays,
+  Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +24,10 @@ const Facilities = () => {
     isLoading,
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
-    updateFacilityNotes
+    updateFacilityNotes,
+    addFacilityReservation,
+    removeFacilityReservation,
+    getFacilityReservations,
   } = useVillage();
 
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(areaId || null);
@@ -66,7 +73,7 @@ const Facilities = () => {
             Bathrooms & Showers
           </h1>
           <p className="text-muted-foreground text-lg mt-2">
-            Manage cleaning and working status for all facilities
+            Manage cleaning, status, and reservations for all facilities
           </p>
         </div>
       </header>
@@ -134,10 +141,10 @@ const Facilities = () => {
           })}
         </div>
 
-        {/* Facility Detail Modal */}
+        {/* Facility Detail Modal with Tabs */}
         {selectedFacility && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-background rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
+            <div className="bg-background rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold">{selectedFacility.label}</h2>
@@ -148,22 +155,47 @@ const Facilities = () => {
                     ✕
                   </button>
                 </div>
-                
-                <FacilityCard
-                  facility={selectedFacility}
-                  onCleaningChange={(status) => {
-                    updateFacilityCleaningStatus(selectedFacility.id, status);
-                    setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
-                  }}
-                  onWorkingChange={(status) => {
-                    updateFacilityWorkingStatus(selectedFacility.id, status);
-                    setSelectedFacility({ ...selectedFacility, workingStatus: status });
-                  }}
-                  onNotesChange={(notes) => {
-                    updateFacilityNotes(selectedFacility.id, notes);
-                    setSelectedFacility({ ...selectedFacility, notes });
-                  }}
-                />
+
+                <Tabs defaultValue="status" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="status" className="flex items-center gap-2">
+                      <Settings2 className="w-4 h-4" />
+                      Status
+                    </TabsTrigger>
+                    <TabsTrigger value="reservations" className="flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4" />
+                      Reservations
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="status">
+                    <FacilityCard
+                      facility={selectedFacility}
+                      onCleaningChange={(status) => {
+                        updateFacilityCleaningStatus(selectedFacility.id, status);
+                        setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
+                      }}
+                      onWorkingChange={(status) => {
+                        updateFacilityWorkingStatus(selectedFacility.id, status);
+                        setSelectedFacility({ ...selectedFacility, workingStatus: status });
+                      }}
+                      onNotesChange={(notes) => {
+                        updateFacilityNotes(selectedFacility.id, notes);
+                        setSelectedFacility({ ...selectedFacility, notes });
+                      }}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="reservations">
+                    <FacilityReservationCalendar
+                      facilityId={selectedFacility.id}
+                      facilityLabel={selectedFacility.label}
+                      reservations={getFacilityReservations(selectedFacility.id)}
+                      onAddReservation={addFacilityReservation}
+                      onRemoveReservation={removeFacilityReservation}
+                    />
+                  </TabsContent>
+                </Tabs>
 
                 <button
                   onClick={closeFacilityDetail}
