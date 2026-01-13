@@ -4,6 +4,7 @@ import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { TentCard } from '@/components/TentCard';
 import NeighborhoodMap, { TentNode } from '@/components/NeighborhoodMap';
+import VIPNeighborhoodMap from '@/components/VIPNeighborhoodMap';
 import { NeighborhoodId } from '@/types/village';
 import { 
   Search, 
@@ -281,12 +282,16 @@ const Neighborhood = () => {
             <p className="text-xl text-muted-foreground">No tents match your search</p>
           </div>
         ) : viewMode === 'map' ? (
-          // Map view
+          // Map view - use VIP rectangular map for VIP neighborhood
           <div className="tile p-6 overflow-x-auto">
-            <NeighborhoodMap
-              title={neighborhood.displayName}
-              nodes={mapNodes}
-            />
+            {neighborhoodId === 'VIP' ? (
+              <VIPNeighborhoodMap nodes={mapNodes} />
+            ) : (
+              <NeighborhoodMap
+                title={neighborhood.displayName}
+                nodes={mapNodes}
+              />
+            )}
           </div>
         ) : groupByDouble && groupedTents ? (
           // Grouped view

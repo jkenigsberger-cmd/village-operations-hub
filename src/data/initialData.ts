@@ -145,25 +145,22 @@ const createN4Neighborhood = (): { tents: Tent[]; beds: Bed[]; neighborhood: Nei
   };
 };
 
-// N5 & N6: White tents with 6 single beds each
-const createWhiteTentNeighborhood = (
-  neighborhoodNum: 5 | 6
-): { tents: Tent[]; beds: Bed[]; neighborhood: Neighborhood } => {
-  const id = `N${neighborhoodNum}` as NeighborhoodId;
+// N5: White tents with 5 tents (51-55), 6 single beds each
+const createN5Neighborhood = (): { tents: Tent[]; beds: Bed[]; neighborhood: Neighborhood } => {
   const tents: Tent[] = [];
   const beds: Bed[] = [];
   const tentIds: string[] = [];
 
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const tentId = generateId();
-    const tentCode = `${neighborhoodNum}${i}`;
+    const tentCode = `5${i}`;
     
     const tentBeds = createSingleBeds(tentId, 6);
 
     tents.push({
       id: tentId,
       code: tentCode,
-      neighborhoodId: id,
+      neighborhoodId: 'N5',
       beds: tentBeds,
       cleaningStatus: 'CLEAN',
       lastUpdated: now(),
@@ -177,9 +174,48 @@ const createWhiteTentNeighborhood = (
     tents,
     beds,
     neighborhood: {
-      id,
-      name: id,
-      displayName: `Neighborhood ${neighborhoodNum}`,
+      id: 'N5',
+      name: 'N5',
+      displayName: 'Neighborhood 5',
+      description: 'White Tents',
+      isWhiteTent: true,
+      tentIds,
+    },
+  };
+};
+
+// N6: White tents with 4 tents (61-64), 6 single beds each
+const createN6Neighborhood = (): { tents: Tent[]; beds: Bed[]; neighborhood: Neighborhood } => {
+  const tents: Tent[] = [];
+  const beds: Bed[] = [];
+  const tentIds: string[] = [];
+
+  for (let i = 1; i <= 4; i++) {
+    const tentId = generateId();
+    const tentCode = `6${i}`;
+    
+    const tentBeds = createSingleBeds(tentId, 6);
+
+    tents.push({
+      id: tentId,
+      code: tentCode,
+      neighborhoodId: 'N6',
+      beds: tentBeds,
+      cleaningStatus: 'CLEAN',
+      lastUpdated: now(),
+    });
+
+    beds.push(...tentBeds);
+    tentIds.push(tentId);
+  }
+
+  return {
+    tents,
+    beds,
+    neighborhood: {
+      id: 'N6',
+      name: 'N6',
+      displayName: 'Neighborhood 6',
       description: 'White Tents',
       isWhiteTent: true,
       tentIds,
@@ -521,8 +557,8 @@ export const generateInitialVillageState = (): VillageState => {
   const n2 = createN123Neighborhood(2);
   const n3 = createN123Neighborhood(3);
   const n4 = createN4Neighborhood();
-  const n5 = createWhiteTentNeighborhood(5);
-  const n6 = createWhiteTentNeighborhood(6);
+  const n5 = createN5Neighborhood();
+  const n6 = createN6Neighborhood();
   const n7 = createN7Neighborhood();
   const vip = createVIPNeighborhood();
 
