@@ -91,6 +91,21 @@ export interface FacilityArea {
 }
 
 // ============================================================
+// FACILITY RESERVATIONS
+// ============================================================
+
+export interface FacilityReservation {
+  id: string;
+  facilityId: string;
+  date: string; // ISO date YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  groupName: string;
+  notes?: string;
+  createdAt: string;
+}
+
+// ============================================================
 // ACTIVITY SPACES
 // ============================================================
 
@@ -138,6 +153,7 @@ export interface VillageState {
   facilities: Record<string, Facility>;
   activitySpaces: Record<string, ActivitySpace>;
   activityReservations: Record<string, ActivityReservation>;
+  facilityReservations: Record<string, FacilityReservation>;
   activityLog: ActivityLogEntry[];
 }
 
