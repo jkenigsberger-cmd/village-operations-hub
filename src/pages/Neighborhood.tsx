@@ -1,27 +1,34 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { TentCard } from '@/components/TentCard';
+import NeighborhoodMap, { TentNode } from '@/components/NeighborhoodMap';
 import { NeighborhoodId } from '@/types/village';
 import { 
   Search, 
   Filter, 
   Loader2,
   LayoutGrid,
-  Layers
+  Layers,
+  Map,
+  Grid3X3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type ViewMode = 'grid' | 'map';
 
 type FilterType = 'all' | 'dirty' | 'checkin' | 'checkout' | 'full';
 
 const Neighborhood = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { state, isLoading, getTentSummary } = useVillage();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [groupByDouble, setGroupByDouble] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const neighborhoodId = id as NeighborhoodId;
 
@@ -100,6 +107,39 @@ const Neighborhood = () => {
     }));
   }, [filteredTents, groupByDouble, hasDoubleTents]);
 
+  // Map nodes for NeighborhoodMap
+  const mapNodes: TentNode[] = useMemo(() => {
+    return filteredTents.map(({ tent, summary }) => {
+      // Determine tent type based on neighborhood and structure
+      let tentType: 'SIMPLE' | 'DOUBLE' | 'WHITE' = 'SIMPLE';
+      if (tent.neighborhoodId === 'N5' || tent.neighborhoodId === 'N6') {
+        tentType = 'WHITE';
+      } else if (tent.doubleTentId) {
+        tentType = 'DOUBLE';
+      }
+
+      // Map cleaning status
+      let cleaning: 'CLEAN' | 'DIRTY' | 'IN_PROGRESS' = 'CLEAN';
+      if (summary.cleaningStatus === 'NEEDS_CLEANING') {
+        cleaning = 'DIRTY';
+      } else if (summary.cleaningStatus === 'CLEANING_IN_PROGRESS') {
+        cleaning = 'IN_PROGRESS';
+      }
+
+      return {
+        id: tent.id,
+        code: tent.code,
+        type: tentType,
+        cleaning,
+        occupancySummary: {
+          used: summary.occupiedBeds,
+          total: summary.totalBeds,
+        },
+        onClick: () => navigate(`/tent/${tent.id}`),
+      };
+    });
+  }, [filteredTents, navigate]);
+
   if (isLoading || !state) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -173,7 +213,7 @@ const Neighborhood = () => {
           {/* Filter buttons */}
           <div className="flex flex-wrap gap-2">
             <Filter className="w-6 h-6 text-muted-foreground self-center mr-2" />
-            {filters.map((filter) => (
+              {filters.map((filter) => (
               <button
                 key={filter.key}
                 onClick={() => setActiveFilter(filter.key)}
@@ -188,10 +228,37 @@ const Neighborhood = () => {
               </button>
             ))}
 
-            {/* Group toggle for N1-N3 */}
-            {hasDoubleTents && (
+            {/* View Mode Toggle */}
+            <div className="ml-auto flex gap-2">
               <button
-                onClick={() => setGroupByDouble(!groupByDouble)}
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'px-4 py-2 rounded-xl font-semibold transition-all flex items-center gap-2',
+                  viewMode === 'grid'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                <Grid3X3 className="w-5 h-5" />
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={cn(
+                  'px-4 py-2 rounded-xl font-semibold transition-all flex items-center gap-2',
+                  viewMode === 'map'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                <Map className="w-5 h-5" />
+                Map
+              </button>
+
+              {/* Group toggle for N1-N3 */}
+              {hasDoubleTents && viewMode === 'grid' && (
+                <button
+                  onClick={() => setGroupByDouble(!groupByDouble)}
                 className={cn(
                   'ml-auto px-4 py-2 rounded-xl font-semibold transition-all flex items-center gap-2',
                   groupByDouble
@@ -200,17 +267,26 @@ const Neighborhood = () => {
                 )}
               >
                 {groupByDouble ? <Layers className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
-                {groupByDouble ? 'Grouped by Double' : 'Individual Tents'}
-              </button>
-            )}
+                  {groupByDouble ? 'Grouped' : 'Individual'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Tent Grid */}
+        {/* Tent Display */}
         {filteredTents.length === 0 ? (
           <div className="tile p-12 text-center">
             <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-xl text-muted-foreground">No tents match your search</p>
+          </div>
+        ) : viewMode === 'map' ? (
+          // Map view
+          <div className="tile p-6 overflow-x-auto">
+            <NeighborhoodMap
+              title={neighborhood.displayName}
+              nodes={mapNodes}
+            />
           </div>
         ) : groupByDouble && groupedTents ? (
           // Grouped view
