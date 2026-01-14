@@ -1,21 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import { ActionTile } from '@/components/ActionTile';
-import { NeighborhoodId } from '@/types/village';
+import { NeighborhoodId, Facility } from '@/types/village';
+import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
+import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { 
   Calendar, 
   Bath, 
-  UtensilsCrossed, 
   CalendarDays, 
   Tent,
-  Loader2
+  Loader2,
+  Home,
+  Flame,
+  ShowerHead,
+  StickyNote,
+  AlertTriangle
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
+type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'notes';
+
 const Index = () => {
-  const { state, isLoading, getNeighborhoodSummary, getTodaySummary } = useVillage();
+  const { 
+    state, 
+    isLoading, 
+    getNeighborhoodSummary, 
+    getTodaySummary,
+    updateFacilityCleaningStatus,
+    updateFacilityWorkingStatus,
+    updateFacilityNotes,
+    addFacilityReservation,
+    removeFacilityReservation,
+    getFacilityReservations
+  } = useVillage();
+
+  const [activeSection, setActiveSection] = useState<MenuSection>('overview');
+  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
 
   if (isLoading || !state) {
     return (
@@ -29,6 +53,21 @@ const Index = () => {
   }
 
   const todaySummary = getTodaySummary();
+
+  // Get all facilities organized by type
+  const allFacilities = Object.values(state.facilities);
+  const bathroomFacilities = allFacilities.filter(f => f.type === 'TOILET' || f.type === 'SHOWER');
+  const facilitiesNeedingAttention = bathroomFacilities.filter(
+    f => f.cleaningStatus === 'NEEDS_CLEANING' || f.workingStatus === 'BROKEN'
+  );
+
+  const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
+    { key: 'overview', label: 'Overview', icon: Home },
+    { key: 'neighborhoods', label: 'Neighborhoods', icon: Tent },
+    { key: 'facilities', label: 'Common Facilities', icon: Flame },
+    { key: 'bathrooms', label: 'Bathrooms', icon: ShowerHead, count: facilitiesNeedingAttention.length },
+    { key: 'notes', label: 'Important Notes', icon: StickyNote },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,86 +88,233 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="container py-8">
-        {/* Today's Quick Actions */}
-        <section className="mb-10">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <CalendarDays className="w-8 h-8" />
-            Today's Overview
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <ActionTile
-              title="Check-ins"
-              icon={Calendar}
-              to="/today"
-              count={todaySummary.checkIns.length}
-              variant={todaySummary.checkIns.length > 0 ? 'success' : 'default'}
-            />
-            <ActionTile
-              title="Check-outs"
-              icon={Calendar}
-              to="/today"
-              count={todaySummary.checkOuts.length}
-            />
-            <ActionTile
-              title="Needs Cleaning"
-              icon={Tent}
-              to="/today"
-              count={todaySummary.tentsToCleaning.length}
-              variant={todaySummary.tentsToCleaning.length > 0 ? 'warning' : 'default'}
-            />
-            <ActionTile
-              title="Facilities Alert"
-              icon={Bath}
-              to="/facilities"
-              count={todaySummary.facilitiesNeedAttention.length}
-              variant={todaySummary.facilitiesNeedAttention.length > 0 ? 'danger' : 'default'}
-            />
+      {/* Navigation Menu */}
+      <nav className="bg-card border-b border-border">
+        <div className="container">
+          <div className="flex overflow-x-auto gap-1 py-2">
+            {menuItems.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setActiveSection(item.key)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold whitespace-nowrap transition-all ${
+                  activeSection === item.key
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+                {item.count !== undefined && item.count > 0 && (
+                  <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-destructive text-destructive-foreground">
+                    {item.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
-        </section>
+        </div>
+      </nav>
 
-        {/* Neighborhoods Grid */}
-        <section className="mb-10">
-          <h2 className="text-2xl font-bold mb-6">Neighborhoods</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {neighborhoodOrder.map((id) => {
-              const summary = getNeighborhoodSummary(id);
-              if (!summary) return null;
-              return (
-                <NeighborhoodTile
-                  key={id}
-                  summary={summary}
-                  to={`/neighborhood/${id}`}
+      <main className="container py-8">
+        {/* Overview Section */}
+        {activeSection === 'overview' && (
+          <>
+            <section className="mb-10">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                <CalendarDays className="w-8 h-8" />
+                Today's Overview
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <ActionTile
+                  title="Check-ins"
+                  icon={Calendar}
+                  to="/today"
+                  count={todaySummary.checkIns.length}
+                  variant={todaySummary.checkIns.length > 0 ? 'success' : 'default'}
                 />
+                <ActionTile
+                  title="Check-outs"
+                  icon={Calendar}
+                  to="/today"
+                  count={todaySummary.checkOuts.length}
+                />
+                <ActionTile
+                  title="Needs Cleaning"
+                  icon={Tent}
+                  to="/today"
+                  count={todaySummary.tentsToCleaning.length}
+                  variant={todaySummary.tentsToCleaning.length > 0 ? 'warning' : 'default'}
+                />
+                <ActionTile
+                  title="Facilities Alert"
+                  icon={Bath}
+                  to="/facilities"
+                  count={todaySummary.facilitiesNeedAttention.length}
+                  variant={todaySummary.facilitiesNeedAttention.length > 0 ? 'danger' : 'default'}
+                />
+              </div>
+            </section>
+
+            {/* Quick Neighborhoods Preview */}
+            <section>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Neighborhoods</h2>
+                <button 
+                  onClick={() => setActiveSection('neighborhoods')}
+                  className="text-primary hover:underline font-semibold"
+                >
+                  View All →
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {neighborhoodOrder.slice(0, 4).map((id) => {
+                  const summary = getNeighborhoodSummary(id);
+                  if (!summary) return null;
+                  return (
+                    <NeighborhoodTile
+                      key={id}
+                      summary={summary}
+                      to={`/neighborhood/${id}`}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* Neighborhoods Section */}
+        {activeSection === 'neighborhoods' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <Tent className="w-8 h-8" />
+              All Neighborhoods
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {neighborhoodOrder.map((id) => {
+                const summary = getNeighborhoodSummary(id);
+                if (!summary) return null;
+                return (
+                  <NeighborhoodTile
+                    key={id}
+                    summary={summary}
+                    to={`/neighborhood/${id}`}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Common Facilities Section */}
+        {activeSection === 'facilities' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <Flame className="w-8 h-8" />
+              Common Facilities
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Click on any facility to view or add reservations
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.values(state.activitySpaces).map((space) => (
+                <div
+                  key={space.id}
+                  onClick={() => {
+                    // Create a fake facility object for activity spaces
+                    const fakeFacility: Facility = {
+                      id: space.id,
+                      areaId: 'activities',
+                      label: space.name,
+                      type: 'TOILET', // We're reusing the facility system
+                      gender: 'UNISEX',
+                      cleaningStatus: 'CLEAN',
+                      workingStatus: 'WORKING',
+                      lastUpdated: new Date().toISOString(),
+                    };
+                    setSelectedFacility(fakeFacility);
+                  }}
+                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Flame className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">{space.name}</h3>
+                      {space.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {space.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Bathrooms Section */}
+        {activeSection === 'bathrooms' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <ShowerHead className="w-8 h-8" />
+              Bathrooms & Showers
+            </h2>
+
+            {facilitiesNeedingAttention.length > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                <div className="flex items-center gap-2 text-destructive font-semibold mb-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  {facilitiesNeedingAttention.length} facilities need attention
+                </div>
+              </div>
+            )}
+
+            {/* Group by area */}
+            {Object.values(state.facilityAreas).map((area) => {
+              const areaFacilities = area.facilityIds
+                .map(id => state.facilities[id])
+                .filter(Boolean);
+
+              return (
+                <div key={area.id} className="mb-8">
+                  <h3 className="text-xl font-bold mb-4">{area.name}</h3>
+                  <p className="text-muted-foreground mb-4">{area.description}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {areaFacilities.map((facility) => (
+                      <FacilityTile
+                        key={facility.id}
+                        facility={facility}
+                        onClick={() => setSelectedFacility(facility)}
+                      />
+                    ))}
+                  </div>
+                </div>
               );
             })}
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* Quick Access */}
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Quick Access</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ActionTile
-              title="Bathrooms & Showers"
-              description="Manage all facilities"
-              icon={Bath}
-              to="/facilities"
-            />
-            <ActionTile
-              title="Dining Facilities"
-              description="Dining hall toilets & showers"
-              icon={UtensilsCrossed}
-              to="/facilities/dining"
-            />
-            <ActionTile
-              title="Activities"
-              description="Reserve spaces & view schedule"
-              icon={CalendarDays}
-              to="/activities"
-            />
-          </div>
-        </section>
+        {/* Important Notes Section */}
+        {activeSection === 'notes' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <StickyNote className="w-8 h-8" />
+              Important Notes
+            </h2>
+            <div className="tile p-8 text-center">
+              <StickyNote className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-xl text-muted-foreground mb-4">
+                Notes feature coming soon
+              </p>
+              <p className="text-muted-foreground">
+                This section will allow you to add and manage important notes for the team.
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Footer with Settings link */}
         <footer className="mt-12 pt-8 border-t-2 border-border text-center">
@@ -140,6 +326,56 @@ const Index = () => {
           </a>
         </footer>
       </main>
+
+      {/* Facility Detail Modal with Reservations */}
+      <Dialog open={!!selectedFacility} onOpenChange={(open) => !open && setSelectedFacility(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">
+              {selectedFacility?.label}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedFacility && (
+            <Tabs defaultValue="reservations" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="reservations">Reservations</TabsTrigger>
+                <TabsTrigger value="status">Status</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="reservations" className="mt-4">
+                <FacilityReservationCalendar
+                  facilityId={selectedFacility.id}
+                  facilityLabel={selectedFacility.label}
+                  reservations={getFacilityReservations(selectedFacility.id)}
+                  onAddReservation={(reservation) => {
+                    return addFacilityReservation({
+                      ...reservation,
+                      facilityId: selectedFacility.id,
+                    });
+                  }}
+                  onRemoveReservation={removeFacilityReservation}
+                />
+              </TabsContent>
+              
+              <TabsContent value="status" className="mt-4">
+                <FacilityCard
+                  facility={selectedFacility}
+                  onCleaningChange={(status) => 
+                    updateFacilityCleaningStatus(selectedFacility.id, status)
+                  }
+                  onWorkingChange={(status) => 
+                    updateFacilityWorkingStatus(selectedFacility.id, status)
+                  }
+                  onNotesChange={(notes) => 
+                    updateFacilityNotes(selectedFacility.id, notes)
+                  }
+                />
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

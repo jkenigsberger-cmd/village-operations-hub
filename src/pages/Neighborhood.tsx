@@ -137,6 +137,8 @@ const Neighborhood = () => {
           total: summary.totalBeds,
         },
         onClick: () => navigate(`/tent/${tent.id}`),
+        isAlef: tent.isAlef,
+        doubleTentId: tent.doubleTentId,
       };
     });
   }, [filteredTents, navigate]);
@@ -290,6 +292,7 @@ const Neighborhood = () => {
               <NeighborhoodMap
                 title={neighborhood.displayName}
                 nodes={mapNodes}
+                isDoubleTentNeighborhood={hasDoubleTents}
               />
             )}
           </div>
