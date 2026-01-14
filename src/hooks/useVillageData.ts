@@ -15,6 +15,10 @@ export const useVillageData = () => {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as VillageState;
+        // Ensure facilityReservations exists (for backwards compatibility)
+        if (!parsed.facilityReservations) {
+          parsed.facilityReservations = {};
+        }
         setState(parsed);
       } else {
         // Generate initial state on first load
