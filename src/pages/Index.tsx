@@ -15,14 +15,18 @@ import {
   Flame,
   ShowerHead,
   StickyNote,
-  AlertTriangle
+  AlertTriangle,
+  Wrench,
+  Sparkles,
+  CheckCircle
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
-type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'notes';
+type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes';
 
 const Index = () => {
   const { 
@@ -33,6 +37,7 @@ const Index = () => {
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
     updateFacilityNotes,
+    updateTentCleaningStatus,
     addFacilityReservation,
     removeFacilityReservation,
     getFacilityReservations
@@ -61,11 +66,27 @@ const Index = () => {
     f => f.cleaningStatus === 'NEEDS_CLEANING' || f.workingStatus === 'BROKEN'
   );
 
+  // Maintenance items - facilities that are broken or need maintenance
+  const maintenanceItems = allFacilities.filter(
+    f => f.workingStatus === 'BROKEN' || f.workingStatus === 'MAINTENANCE'
+  );
+
+  // Housekeeping items - tents and facilities that need cleaning
+  const tentsNeedingCleaning = Object.values(state.tents).filter(
+    t => t.cleaningStatus === 'NEEDS_CLEANING'
+  );
+  const facilitiesNeedingCleaning = allFacilities.filter(
+    f => f.cleaningStatus === 'NEEDS_CLEANING'
+  );
+  const totalHousekeepingItems = tentsNeedingCleaning.length + facilitiesNeedingCleaning.length;
+
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: 'Overview', icon: Home },
     { key: 'neighborhoods', label: 'Neighborhoods', icon: Tent },
     { key: 'facilities', label: 'Common Facilities', icon: Flame },
     { key: 'bathrooms', label: 'Bathrooms', icon: ShowerHead, count: facilitiesNeedingAttention.length },
+    { key: 'maintenance', label: 'Maintenance', icon: Wrench, count: maintenanceItems.length },
+    { key: 'housekeeping', label: 'Housekeeping', icon: Sparkles, count: totalHousekeepingItems },
     { key: 'notes', label: 'Important Notes', icon: StickyNote },
   ];
 
@@ -294,6 +315,179 @@ const Index = () => {
                 </div>
               );
             })}
+          </section>
+        )}
+
+        {/* Maintenance Section */}
+        {activeSection === 'maintenance' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <Wrench className="w-8 h-8" />
+              Maintenance Tasks
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Items that need repair or maintenance attention
+            </p>
+
+            {maintenanceItems.length === 0 ? (
+              <div className="tile p-8 text-center">
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+                <p className="text-xl text-muted-foreground">
+                  All clear! No maintenance tasks pending.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {maintenanceItems.map((facility) => (
+                  <div 
+                    key={facility.id}
+                    className="tile p-4 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                        facility.workingStatus === 'BROKEN' 
+                          ? 'bg-destructive/10 text-destructive' 
+                          : 'bg-yellow-500/10 text-yellow-600'
+                      }`}>
+                        <Wrench className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">{facility.label}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {state.facilityAreas[facility.areaId]?.name || 'Unknown Area'}
+                        </p>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                          facility.workingStatus === 'BROKEN' 
+                            ? 'bg-destructive/10 text-destructive' 
+                            : 'bg-yellow-500/10 text-yellow-600'
+                        }`}>
+                          {facility.workingStatus === 'BROKEN' ? '🔧 Broken' : '⚠️ Maintenance'}
+                        </span>
+                        {facility.notes && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            📝 {facility.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => updateFacilityWorkingStatus(facility.id, 'WORKING')}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Done
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Housekeeping Section */}
+        {activeSection === 'housekeeping' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <Sparkles className="w-8 h-8" />
+              Housekeeping Tasks
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Areas that need cleaning
+            </p>
+
+            {totalHousekeepingItems === 0 ? (
+              <div className="tile p-8 text-center">
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+                <p className="text-xl text-muted-foreground">
+                  All clean! No housekeeping tasks pending.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Tents needing cleaning */}
+                {tentsNeedingCleaning.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <Tent className="w-5 h-5" />
+                      Tents ({tentsNeedingCleaning.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {tentsNeedingCleaning.map((tent) => (
+                        <div 
+                          key={tent.id}
+                          className="tile p-4 flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                              <Tent className="w-6 h-6 text-yellow-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg">{tent.code}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {state.neighborhoods[tent.neighborhoodId]?.displayName || tent.neighborhoodId}
+                              </p>
+                              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-600">
+                                🧹 Needs Cleaning
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => updateTentCleaningStatus(tent.id, 'CLEAN')}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Done
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Facilities needing cleaning */}
+                {facilitiesNeedingCleaning.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <ShowerHead className="w-5 h-5" />
+                      Facilities ({facilitiesNeedingCleaning.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {facilitiesNeedingCleaning.map((facility) => (
+                        <div 
+                          key={facility.id}
+                          className="tile p-4 flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                              <ShowerHead className="w-6 h-6 text-yellow-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg">{facility.label}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {state.facilityAreas[facility.areaId]?.name || 'Unknown Area'}
+                              </p>
+                              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-600">
+                                🧹 Needs Cleaning
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => updateFacilityCleaningStatus(facility.id, 'CLEAN')}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Done
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 
