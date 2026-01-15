@@ -80,6 +80,7 @@ export interface Facility {
   cleaningStatus: CleaningStatus;
   workingStatus: WorkingStatus;
   notes?: string;
+  maintenanceImage?: string; // Base64 image for maintenance issues
   lastUpdated: string;
 }
 
