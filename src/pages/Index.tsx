@@ -581,15 +581,18 @@ const Index = () => {
               <TabsContent value="status" className="mt-4">
                 <FacilityCard
                   facility={selectedFacility}
-                  onCleaningChange={(status) => 
-                    updateFacilityCleaningStatus(selectedFacility.id, status)
-                  }
-                  onWorkingChange={(status) => 
-                    updateFacilityWorkingStatus(selectedFacility.id, status)
-                  }
-                  onNotesChange={(notes) => 
-                    updateFacilityNotes(selectedFacility.id, notes)
-                  }
+                  onCleaningChange={(status) => {
+                    updateFacilityCleaningStatus(selectedFacility.id, status);
+                    setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
+                  }}
+                  onWorkingChange={(status) => {
+                    updateFacilityWorkingStatus(selectedFacility.id, status);
+                    setSelectedFacility({ ...selectedFacility, workingStatus: status });
+                  }}
+                  onNotesChange={(notes) => {
+                    updateFacilityNotes(selectedFacility.id, notes);
+                    setSelectedFacility({ ...selectedFacility, notes });
+                  }}
                 />
               </TabsContent>
             </Tabs>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Facility, CleaningStatus, WorkingStatus } from '@/types/village';
 import { CleaningToggle, WorkingToggle } from './StatusBadge';
 import { cn } from '@/lib/utils';
-import { Droplets, CircleUser, Accessibility, MessageSquare } from 'lucide-react';
+import { Droplets, Accessibility, MessageSquare } from 'lucide-react';
 
 interface FacilityCardProps {
   facility: Facility;
@@ -11,102 +11,102 @@ interface FacilityCardProps {
   onNotesChange: (notes: string) => void;
 }
 
-export const FacilityCard: React.FC<FacilityCardProps> = ({
-  facility,
-  onCleaningChange,
-  onWorkingChange,
-  onNotesChange,
-}) => {
-  const isToilet = facility.type === 'TOILET';
-  const needsAttention = 
-    facility.cleaningStatus === 'NEEDS_CLEANING' || 
-    facility.workingStatus === 'BROKEN';
+export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
+  ({ facility, onCleaningChange, onWorkingChange, onNotesChange }, ref) => {
+    const isToilet = facility.type === 'TOILET';
+    const needsAttention = 
+      facility.cleaningStatus === 'NEEDS_CLEANING' || 
+      facility.workingStatus === 'BROKEN';
 
-  const genderIcon = {
-    UNISEX: '🚻',
-    MALE: '🚹',
-    FEMALE: '🚺',
-  }[facility.gender];
+    const genderIcon = {
+      UNISEX: '🚻',
+      MALE: '🚹',
+      FEMALE: '🚺',
+    }[facility.gender];
 
-  return (
-    <div
-      className={cn(
-        'tile flex flex-col gap-4',
-        needsAttention && 'border-destructive bg-destructive/5'
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{genderIcon}</span>
-          <div>
-            <h4 className="text-xl font-bold">{facility.label}</h4>
-            <span className="text-muted-foreground">
-              {isToilet ? 'Toilet' : 'Shower'}
-            </span>
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'tile flex flex-col gap-4',
+          needsAttention && 'border-destructive bg-destructive/5'
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{genderIcon}</span>
+            <div>
+              <h4 className="text-xl font-bold">{facility.label}</h4>
+              <span className="text-muted-foreground">
+                {isToilet ? 'Toilet' : 'Shower'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            {facility.isAccessible && (
+              <span className="p-2 bg-primary text-primary-foreground rounded-full">
+                <Accessibility className="w-5 h-5" />
+              </span>
+            )}
+            {!isToilet && (
+              <span className="p-2 bg-accent text-accent-foreground rounded-full">
+                <Droplets className="w-5 h-5" />
+              </span>
+            )}
           </div>
         </div>
-        
-        <div className="flex gap-2">
-          {facility.isAccessible && (
-            <span className="p-2 bg-primary text-primary-foreground rounded-full">
-              <Accessibility className="w-5 h-5" />
-            </span>
-          )}
-          {!isToilet && (
-            <span className="p-2 bg-accent text-accent-foreground rounded-full">
-              <Droplets className="w-5 h-5" />
-            </span>
-          )}
+
+        {/* Cleaning Status */}
+        <div className="space-y-2">
+          <label className="text-base font-semibold text-muted-foreground">
+            Cleaning Status
+          </label>
+          <CleaningToggle
+            status={facility.cleaningStatus}
+            onChange={onCleaningChange}
+            size="md"
+          />
+        </div>
+
+        {/* Working Status */}
+        <div className="space-y-2">
+          <label className="text-base font-semibold text-muted-foreground">
+            Working Status
+          </label>
+          <WorkingToggle
+            status={facility.workingStatus}
+            onChange={onWorkingChange}
+            size="md"
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <label className="text-base font-semibold text-muted-foreground flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Notes
+          </label>
+          <textarea
+            value={facility.notes || ''}
+            onChange={(e) => onNotesChange(e.target.value)}
+            placeholder="Add notes..."
+            className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background resize-none focus:outline-none focus:border-primary"
+            rows={2}
+          />
+        </div>
+
+        {/* Last updated */}
+        <div className="text-sm text-muted-foreground">
+          Updated: {new Date(facility.lastUpdated).toLocaleString()}
         </div>
       </div>
+    );
+  }
+);
 
-      {/* Cleaning Status */}
-      <div className="space-y-2">
-        <label className="text-base font-semibold text-muted-foreground">
-          Cleaning Status
-        </label>
-        <CleaningToggle
-          status={facility.cleaningStatus}
-          onChange={onCleaningChange}
-          size="md"
-        />
-      </div>
-
-      {/* Working Status */}
-      <div className="space-y-2">
-        <label className="text-base font-semibold text-muted-foreground">
-          Working Status
-        </label>
-        <WorkingToggle
-          status={facility.workingStatus}
-          onChange={onWorkingChange}
-          size="md"
-        />
-      </div>
-
-      {/* Notes */}
-      <div className="space-y-2">
-        <label className="text-base font-semibold text-muted-foreground flex items-center gap-2">
-          <MessageSquare className="w-4 h-4" />
-          Notes
-        </label>
-        <textarea
-          value={facility.notes || ''}
-          onChange={(e) => onNotesChange(e.target.value)}
-          placeholder="Add notes..."
-          className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background resize-none focus:outline-none focus:border-primary"
-          rows={2}
-        />
-      </div>
-
-      {/* Last updated */}
-      <div className="text-sm text-muted-foreground">
-        Updated: {new Date(facility.lastUpdated).toLocaleString()}
-      </div>
-    </div>
-  );
-};
+FacilityCard.displayName = 'FacilityCard';
 
 // Compact facility tile for overview
 interface FacilityTileProps {
