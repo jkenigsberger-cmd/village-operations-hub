@@ -60,44 +60,45 @@ interface CleaningToggleProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const CleaningToggle: React.FC<CleaningToggleProps> = ({
-  status,
-  onChange,
-  size = 'md'
-}) => {
-  const statuses: CleaningStatus[] = ['CLEAN', 'NEEDS_CLEANING', 'CLEANING_IN_PROGRESS'];
-  
-  const sizeClasses = {
-    sm: 'px-2 py-1 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
-  };
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {statuses.map((s) => {
-        const config = statusConfig[s];
-        const isActive = status === s;
-        
-        return (
-          <button
-            key={s}
-            onClick={() => onChange(s)}
-            className={cn(
-              'rounded-xl font-semibold transition-all duration-200',
-              sizeClasses[size],
-              isActive 
-                ? cn(config.bg, 'ring-2 ring-offset-2 ring-primary shadow-md')
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            )}
-          >
-            {config.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+const toggleSizeClasses = {
+  sm: 'px-2 py-1 text-sm',
+  md: 'px-4 py-2 text-base',
+  lg: 'px-6 py-3 text-lg',
 };
+
+export const CleaningToggle = React.forwardRef<HTMLDivElement, CleaningToggleProps>(
+  ({ status, onChange, size = 'md' }, ref) => {
+    const statuses: CleaningStatus[] = ['CLEAN', 'NEEDS_CLEANING', 'CLEANING_IN_PROGRESS'];
+
+    return (
+      <div ref={ref} className="flex flex-wrap gap-2">
+        {statuses.map((s) => {
+          const config = statusConfig[s];
+          const isActive = status === s;
+          
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange(s)}
+              className={cn(
+                'rounded-xl font-semibold transition-all duration-200',
+                toggleSizeClasses[size],
+                isActive 
+                  ? cn(config.bg, 'ring-2 ring-offset-2 ring-primary shadow-md')
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              {config.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+);
+
+CleaningToggle.displayName = 'CleaningToggle';
 
 interface WorkingToggleProps {
   status: WorkingStatus;
@@ -105,41 +106,36 @@ interface WorkingToggleProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const WorkingToggle: React.FC<WorkingToggleProps> = ({
-  status,
-  onChange,
-  size = 'md'
-}) => {
-  const statuses: WorkingStatus[] = ['WORKING', 'BROKEN', 'MAINTENANCE', 'CLOSED'];
-  
-  const sizeClasses = {
-    sm: 'px-2 py-1 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
-  };
+export const WorkingToggle = React.forwardRef<HTMLDivElement, WorkingToggleProps>(
+  ({ status, onChange, size = 'md' }, ref) => {
+    const statuses: WorkingStatus[] = ['WORKING', 'BROKEN', 'MAINTENANCE', 'CLOSED'];
 
-  return (
-    <div className="flex flex-wrap gap-2">
-      {statuses.map((s) => {
-        const config = statusConfig[s];
-        const isActive = status === s;
-        
-        return (
-          <button
-            key={s}
-            onClick={() => onChange(s)}
-            className={cn(
-              'rounded-xl font-semibold transition-all duration-200',
-              sizeClasses[size],
-              isActive 
-                ? cn(config.bg, 'ring-2 ring-offset-2 ring-primary shadow-md')
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            )}
-          >
-            {config.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-};
+    return (
+      <div ref={ref} className="flex flex-wrap gap-2">
+        {statuses.map((s) => {
+          const config = statusConfig[s];
+          const isActive = status === s;
+          
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange(s)}
+              className={cn(
+                'rounded-xl font-semibold transition-all duration-200',
+                toggleSizeClasses[size],
+                isActive 
+                  ? cn(config.bg, 'ring-2 ring-offset-2 ring-primary shadow-md')
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              {config.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+);
+
+WorkingToggle.displayName = 'WorkingToggle';
