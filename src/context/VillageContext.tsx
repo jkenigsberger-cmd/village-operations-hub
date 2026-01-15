@@ -37,6 +37,7 @@ interface VillageContextType {
   updateFacilityCleaningStatus: (facilityId: string, status: CleaningStatus) => void;
   updateFacilityWorkingStatus: (facilityId: string, status: WorkingStatus) => void;
   updateFacilityNotes: (facilityId: string, notes: string) => void;
+  updateFacilityMaintenanceImage: (facilityId: string, image: string | undefined) => void;
   
   // Facility reservation operations
   addFacilityReservation: (reservation: Omit<FacilityReservation, 'id' | 'createdAt'>) => boolean;
@@ -278,6 +279,20 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     saveState({ ...state, facilities: updatedFacilities });
   };
 
+  const updateFacilityMaintenanceImage = (facilityId: string, maintenanceImage: string | undefined) => {
+    if (!state) return;
+    
+    const facility = state.facilities[facilityId];
+    if (!facility) return;
+
+    const updatedFacilities = {
+      ...state.facilities,
+      [facilityId]: { ...facility, maintenanceImage, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, facilities: updatedFacilities });
+  };
+
   // ============================================================
   // FACILITY RESERVATION OPERATIONS
   // ============================================================
@@ -510,6 +525,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
     updateFacilityNotes,
+    updateFacilityMaintenanceImage,
     addFacilityReservation,
     removeFacilityReservation,
     getFacilityReservations,

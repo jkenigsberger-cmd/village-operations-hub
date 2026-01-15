@@ -5,6 +5,7 @@ import { ActionTile } from '@/components/ActionTile';
 import { NeighborhoodId, Facility } from '@/types/village';
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
 import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
+import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { 
   Calendar, 
   Bath, 
@@ -18,7 +19,8 @@ import {
   AlertTriangle,
   Wrench,
   Sparkles,
-  CheckCircle
+  CheckCircle,
+  Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -37,6 +39,7 @@ const Index = () => {
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
     updateFacilityNotes,
+    updateFacilityMaintenanceImage,
     updateTentCleaningStatus,
     addFacilityReservation,
     removeFacilityReservation,
@@ -341,22 +344,32 @@ const Index = () => {
                 {maintenanceItems.map((facility) => (
                   <div 
                     key={facility.id}
-                    className="tile p-4 flex items-center justify-between"
+                    className="tile p-4"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        facility.workingStatus === 'BROKEN' 
-                          ? 'bg-destructive/10 text-destructive' 
-                          : 'bg-yellow-500/10 text-yellow-600'
-                      }`}>
-                        <Wrench className="w-6 h-6" />
-                      </div>
-                      <div>
+                    <div className="flex items-start gap-4">
+                      {/* Photo thumbnail or status icon */}
+                      {facility.maintenanceImage ? (
+                        <MaintenancePhotoCapture
+                          facilityId={facility.id}
+                          currentImage={facility.maintenanceImage}
+                          onImageCapture={updateFacilityMaintenanceImage}
+                        />
+                      ) : (
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                          facility.workingStatus === 'BROKEN' 
+                            ? 'bg-destructive/10 text-destructive' 
+                            : 'bg-yellow-500/10 text-yellow-600'
+                        }`}>
+                          <Wrench className="w-6 h-6" />
+                        </div>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-lg">{facility.label}</h3>
                         <p className="text-sm text-muted-foreground">
                           {state.facilityAreas[facility.areaId]?.name || 'Unknown Area'}
                         </p>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-full mt-1 ${
                           facility.workingStatus === 'BROKEN' 
                             ? 'bg-destructive/10 text-destructive' 
                             : 'bg-yellow-500/10 text-yellow-600'
@@ -364,20 +377,33 @@ const Index = () => {
                           {facility.workingStatus === 'BROKEN' ? '🔧 Broken' : '⚠️ Maintenance'}
                         </span>
                         {facility.notes && (
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="text-sm text-muted-foreground mt-2">
                             📝 {facility.notes}
                           </p>
                         )}
                       </div>
+                      
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        {!facility.maintenanceImage && (
+                          <MaintenancePhotoCapture
+                            facilityId={facility.id}
+                            currentImage={facility.maintenanceImage}
+                            onImageCapture={updateFacilityMaintenanceImage}
+                          />
+                        )}
+                        <Button
+                          onClick={() => {
+                            updateFacilityWorkingStatus(facility.id, 'WORKING');
+                            updateFacilityMaintenanceImage(facility.id, undefined);
+                          }}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Done
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      onClick={() => updateFacilityWorkingStatus(facility.id, 'WORKING')}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Done
-                    </Button>
                   </div>
                 ))}
               </div>
