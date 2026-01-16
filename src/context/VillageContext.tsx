@@ -6,6 +6,9 @@ import {
   Facility, 
   ActivityReservation,
   FacilityReservation,
+  NeighborhoodReservation,
+  DailyTask,
+  DailyTaskStatus,
   BedStatus,
   CleaningStatus,
   WorkingStatus,
@@ -47,6 +50,20 @@ interface VillageContextType {
   // Activity operations
   addActivityReservation: (reservation: Omit<ActivityReservation, 'id' | 'createdAt'>) => boolean;
   removeActivityReservation: (reservationId: string) => void;
+  
+  // Neighborhood bulk operations
+  reserveNeighborhood: (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => void;
+  removeNeighborhoodReservation: (reservationId: string) => void;
+  getNeighborhoodReservations: (neighborhoodId: NeighborhoodId) => NeighborhoodReservation[];
+  markNeighborhoodDirty: (neighborhoodId: NeighborhoodId) => void;
+  markNeighborhoodClean: (neighborhoodId: NeighborhoodId) => void;
+  clearNeighborhoodBeds: (neighborhoodId: NeighborhoodId) => void;
+  
+  // Daily task operations
+  addDailyTask: (task: Omit<DailyTask, 'id' | 'createdAt'>) => void;
+  updateDailyTaskStatus: (taskId: string, status: DailyTaskStatus) => void;
+  removeDailyTask: (taskId: string) => void;
+  getDailyTasks: (date: string) => DailyTask[];
   
   // Summaries
   getNeighborhoodSummary: (neighborhoodId: NeighborhoodId) => NeighborhoodSummary | null;
@@ -401,6 +418,197 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // ============================================================
+  // NEIGHBORHOOD BULK OPERATIONS
+  // ============================================================
+
+  const reserveNeighborhood = (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => {
+    if (!state) return;
+
+    const neighborhood = state.neighborhoods[reservation.neighborhoodId];
+    if (!neighborhood) return;
+
+    const newReservation: NeighborhoodReservation = {
+      ...reservation,
+      id: Math.random().toString(36).substring(2, 11),
+      createdAt: new Date().toISOString(),
+    };
+
+    // Update all tents in the neighborhood
+    const updatedTents = { ...state.tents };
+    const updatedBeds = { ...state.beds };
+
+    for (const tentId of neighborhood.tentIds) {
+      const tent = updatedTents[tentId];
+      if (!tent) continue;
+
+      // Set group name, check-in and check-out dates
+      updatedTents[tentId] = {
+        ...tent,
+        groupName: reservation.groupName,
+        checkInDate: reservation.checkInDate,
+        checkOutDate: reservation.checkOutDate,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      // Reserve all beds
+      const updatedTentBeds = tent.beds.map(b => {
+        const reservedBed = { ...b, status: 'RESERVED' as BedStatus };
+        updatedBeds[b.id] = reservedBed;
+        return reservedBed;
+      });
+      updatedTents[tentId].beds = updatedTentBeds;
+    }
+
+    const updatedReservations = {
+      ...state.neighborhoodReservations,
+      [newReservation.id]: newReservation,
+    };
+
+    saveState({ ...state, tents: updatedTents, beds: updatedBeds, neighborhoodReservations: updatedReservations });
+  };
+
+  const removeNeighborhoodReservation = (reservationId: string) => {
+    if (!state) return;
+
+    const updatedReservations = { ...(state.neighborhoodReservations || {}) };
+    delete updatedReservations[reservationId];
+
+    saveState({ ...state, neighborhoodReservations: updatedReservations });
+  };
+
+  const getNeighborhoodReservations = (neighborhoodId: NeighborhoodId): NeighborhoodReservation[] => {
+    if (!state) return [];
+    return Object.values(state.neighborhoodReservations || {}).filter(
+      r => r.neighborhoodId === neighborhoodId
+    );
+  };
+
+  const markNeighborhoodDirty = (neighborhoodId: NeighborhoodId) => {
+    if (!state) return;
+
+    const neighborhood = state.neighborhoods[neighborhoodId];
+    if (!neighborhood) return;
+
+    const updatedTents = { ...state.tents };
+    for (const tentId of neighborhood.tentIds) {
+      const tent = updatedTents[tentId];
+      if (!tent) continue;
+      updatedTents[tentId] = {
+        ...tent,
+        cleaningStatus: 'NEEDS_CLEANING',
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const markNeighborhoodClean = (neighborhoodId: NeighborhoodId) => {
+    if (!state) return;
+
+    const neighborhood = state.neighborhoods[neighborhoodId];
+    if (!neighborhood) return;
+
+    const updatedTents = { ...state.tents };
+    for (const tentId of neighborhood.tentIds) {
+      const tent = updatedTents[tentId];
+      if (!tent) continue;
+      updatedTents[tentId] = {
+        ...tent,
+        cleaningStatus: 'CLEAN',
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const clearNeighborhoodBeds = (neighborhoodId: NeighborhoodId) => {
+    if (!state) return;
+
+    const neighborhood = state.neighborhoods[neighborhoodId];
+    if (!neighborhood) return;
+
+    const updatedTents = { ...state.tents };
+    const updatedBeds = { ...state.beds };
+
+    for (const tentId of neighborhood.tentIds) {
+      const tent = updatedTents[tentId];
+      if (!tent) continue;
+
+      const clearedTentBeds = tent.beds.map(b => {
+        const clearedBed = { ...b, status: 'FREE' as BedStatus, guestName: '' };
+        updatedBeds[b.id] = clearedBed;
+        return clearedBed;
+      });
+
+      updatedTents[tentId] = {
+        ...tent,
+        beds: clearedTentBeds,
+        groupName: '',
+        checkInDate: undefined,
+        checkOutDate: undefined,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    saveState({ ...state, tents: updatedTents, beds: updatedBeds });
+  };
+
+  // ============================================================
+  // DAILY TASK OPERATIONS
+  // ============================================================
+
+  const addDailyTask = (task: Omit<DailyTask, 'id' | 'createdAt'>) => {
+    if (!state) return;
+
+    const newTask: DailyTask = {
+      ...task,
+      id: Math.random().toString(36).substring(2, 11),
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedTasks = {
+      ...(state.dailyTasks || {}),
+      [newTask.id]: newTask,
+    };
+
+    saveState({ ...state, dailyTasks: updatedTasks });
+  };
+
+  const updateDailyTaskStatus = (taskId: string, status: DailyTaskStatus) => {
+    if (!state) return;
+
+    const task = state.dailyTasks?.[taskId];
+    if (!task) return;
+
+    const updatedTasks = {
+      ...state.dailyTasks,
+      [taskId]: {
+        ...task,
+        status,
+        completedAt: status === 'COMPLETED' ? new Date().toISOString() : undefined,
+      },
+    };
+
+    saveState({ ...state, dailyTasks: updatedTasks });
+  };
+
+  const removeDailyTask = (taskId: string) => {
+    if (!state) return;
+
+    const updatedTasks = { ...(state.dailyTasks || {}) };
+    delete updatedTasks[taskId];
+
+    saveState({ ...state, dailyTasks: updatedTasks });
+  };
+
+  const getDailyTasks = (date: string): DailyTask[] => {
+    if (!state) return [];
+    return Object.values(state.dailyTasks || {}).filter(t => t.date === date);
+  };
+
+  // ============================================================
   // SUMMARIES
   // ============================================================
 
@@ -531,6 +739,16 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     getFacilityReservations,
     addActivityReservation,
     removeActivityReservation,
+    reserveNeighborhood,
+    removeNeighborhoodReservation,
+    getNeighborhoodReservations,
+    markNeighborhoodDirty,
+    markNeighborhoodClean,
+    clearNeighborhoodBeds,
+    addDailyTask,
+    updateDailyTaskStatus,
+    removeDailyTask,
+    getDailyTasks,
     getNeighborhoodSummary,
     getTentSummary,
     getTodaySummary,

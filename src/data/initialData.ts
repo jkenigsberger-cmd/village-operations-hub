@@ -609,6 +609,8 @@ export const generateInitialVillageState = (): VillageState => {
     activitySpaces,
     activityReservations: {},
     facilityReservations: {},
+    neighborhoodReservations: {},
+    dailyTasks: {},
     activityLog: [],
   };
 };
