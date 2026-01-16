@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodId } from '@/types/village';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { 
   Users, 
   Trash2, 
@@ -8,7 +10,10 @@ import {
   AlertTriangle,
   Calendar,
   X,
-  Check
+  Check,
+  AlertCircle,
+  CalendarCheck,
+  CalendarX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -23,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface NeighborhoodBulkActionsProps {
   neighborhoodId: NeighborhoodId;
@@ -38,11 +44,14 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
     markNeighborhoodDirty, 
     markNeighborhoodClean,
     clearNeighborhoodBeds,
-    getNeighborhoodReservations
+    getNeighborhoodReservations,
+    checkNeighborhoodAvailability,
+    removeNeighborhoodReservation
   } = useVillage();
 
   const [showReserveDialog, setShowReserveDialog] = useState(false);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [reservationForm, setReservationForm] = useState({
     groupName: '',
     checkInDate: new Date().toISOString().split('T')[0],
@@ -51,29 +60,85 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
   });
 
   const reservations = getNeighborhoodReservations(neighborhoodId);
+  const today = new Date().toISOString().split('T')[0];
+
+  // Get upcoming check-ins and check-outs
+  const upcomingEvents = useMemo(() => {
+    return reservations
+      .filter(r => r.checkOutDate >= today)
+      .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
+  }, [reservations, today]);
+
+  // Check availability when dates change
+  const handleDateChange = (field: 'checkInDate' | 'checkOutDate', value: string) => {
+    const newForm = { ...reservationForm, [field]: value };
+    setReservationForm(newForm);
+    
+    // Validate dates when both are set
+    if (newForm.checkInDate && newForm.checkOutDate) {
+      if (newForm.checkInDate >= newForm.checkOutDate) {
+        setAvailabilityError('La fecha de check-out debe ser posterior al check-in');
+        return;
+      }
+      
+      const availability = checkNeighborhoodAvailability(
+        neighborhoodId, 
+        newForm.checkInDate, 
+        newForm.checkOutDate
+      );
+      
+      if (!availability.available && availability.conflictingReservation) {
+        setAvailabilityError(
+          `⚠️ Conflicto: "${availability.conflictingReservation.groupName}" ya tiene reserva del ${availability.conflictingReservation.checkInDate} al ${availability.conflictingReservation.checkOutDate}`
+        );
+      } else {
+        setAvailabilityError(null);
+      }
+    } else {
+      setAvailabilityError(null);
+    }
+  };
 
   const handleReserve = () => {
-    if (!reservationForm.groupName || !reservationForm.checkInDate || !reservationForm.checkOutDate) {
-      toast.error('Por favor completa todos los campos requeridos');
+    if (!reservationForm.groupName.trim()) {
+      toast.error('El nombre del grupo es requerido');
+      return;
+    }
+    if (!reservationForm.checkInDate || !reservationForm.checkOutDate) {
+      toast.error('Por favor completa todas las fechas');
+      return;
+    }
+    if (reservationForm.checkInDate >= reservationForm.checkOutDate) {
+      toast.error('La fecha de check-out debe ser posterior al check-in');
       return;
     }
 
-    reserveNeighborhood({
+    const result = reserveNeighborhood({
       neighborhoodId,
-      groupName: reservationForm.groupName,
+      groupName: reservationForm.groupName.trim(),
       checkInDate: reservationForm.checkInDate,
       checkOutDate: reservationForm.checkOutDate,
       notes: reservationForm.notes,
     });
 
-    toast.success(`Vecindario ${neighborhoodName} reservado para ${reservationForm.groupName}`);
-    setShowReserveDialog(false);
-    setReservationForm({
-      groupName: '',
-      checkInDate: new Date().toISOString().split('T')[0],
-      checkOutDate: '',
-      notes: '',
-    });
+    if (result.success) {
+      toast.success(`✓ Vecindario ${neighborhoodName} reservado para ${reservationForm.groupName}`);
+      setShowReserveDialog(false);
+      setReservationForm({
+        groupName: '',
+        checkInDate: new Date().toISOString().split('T')[0],
+        checkOutDate: '',
+        notes: '',
+      });
+      setAvailabilityError(null);
+    } else {
+      toast.error(result.error || 'Error al crear la reserva');
+    }
+  };
+
+  const handleRemoveReservation = (reservationId: string, groupName: string) => {
+    removeNeighborhoodReservation(reservationId);
+    toast.success(`Reserva de "${groupName}" eliminada`);
   };
 
   const handleMarkDirty = () => {
@@ -123,6 +188,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                   value={reservationForm.groupName}
                   onChange={(e) => setReservationForm(prev => ({ ...prev, groupName: e.target.value }))}
                   placeholder="Ej: Grupo Escolar San José"
+                  maxLength={100}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -132,7 +198,8 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     id="checkIn"
                     type="date"
                     value={reservationForm.checkInDate}
-                    onChange={(e) => setReservationForm(prev => ({ ...prev, checkInDate: e.target.value }))}
+                    onChange={(e) => handleDateChange('checkInDate', e.target.value)}
+                    min={today}
                   />
                 </div>
                 <div className="space-y-2">
@@ -141,10 +208,20 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     id="checkOut"
                     type="date"
                     value={reservationForm.checkOutDate}
-                    onChange={(e) => setReservationForm(prev => ({ ...prev, checkOutDate: e.target.value }))}
+                    onChange={(e) => handleDateChange('checkOutDate', e.target.value)}
+                    min={reservationForm.checkInDate || today}
                   />
                 </div>
               </div>
+
+              {/* Availability Error */}
+              {availabilityError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{availabilityError}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Notas</Label>
                 <Input
@@ -152,14 +229,21 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                   value={reservationForm.notes}
                   onChange={(e) => setReservationForm(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Notas adicionales..."
+                  maxLength={500}
                 />
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowReserveDialog(false)}>
+              <Button variant="outline" onClick={() => {
+                setShowReserveDialog(false);
+                setAvailabilityError(null);
+              }}>
                 Cancelar
               </Button>
-              <Button onClick={handleReserve}>
+              <Button 
+                onClick={handleReserve}
+                disabled={!!availabilityError}
+              >
                 <Check className="w-4 h-4 mr-2" />
                 Reservar
               </Button>
@@ -219,22 +303,69 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
         </Dialog>
       </div>
 
-      {/* Active Reservations */}
-      {reservations.length > 0 && (
+      {/* Upcoming Events - Check-ins and Check-outs */}
+      {upcomingEvents.length > 0 && (
         <div className="mt-4 pt-4 border-t">
-          <h4 className="font-semibold mb-2">Reservas Activas del Vecindario</h4>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4" />
+            Reservas Programadas
+          </h4>
           <div className="space-y-2">
-            {reservations.map(r => (
-              <div key={r.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <span className="font-medium">{r.groupName}</span>
-                  <span className="text-sm text-muted-foreground ml-3">
-                    {r.checkInDate} → {r.checkOutDate}
-                  </span>
+            {upcomingEvents.map(r => {
+              const isCheckInToday = r.checkInDate === today;
+              const isCheckOutToday = r.checkOutDate === today;
+              
+              return (
+                <div 
+                  key={r.id} 
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-lg border-2",
+                    isCheckInToday ? "bg-green-50 border-green-300" :
+                    isCheckOutToday ? "bg-orange-50 border-orange-300" :
+                    "bg-muted border-transparent"
+                  )}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{r.groupName}</span>
+                      {isCheckInToday && (
+                        <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CalendarCheck className="w-3 h-3" />
+                          CHECK-IN HOY
+                        </span>
+                      )}
+                      {isCheckOutToday && (
+                        <span className="text-xs bg-orange-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CalendarX className="w-3 h-3" />
+                          CHECK-OUT HOY
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      📅 {r.checkInDate} → {r.checkOutDate}
+                      {r.notes && <span className="ml-2 italic">({r.notes})</span>}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleRemoveReservation(r.id, r.groupName)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* No reservations message */}
+      {upcomingEvents.length === 0 && (
+        <div className="mt-4 pt-4 border-t text-center text-muted-foreground py-4">
+          <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p>No hay reservas programadas para este vecindario</p>
         </div>
       )}
     </div>
