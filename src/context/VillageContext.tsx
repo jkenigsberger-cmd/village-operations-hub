@@ -52,9 +52,10 @@ interface VillageContextType {
   removeActivityReservation: (reservationId: string) => void;
   
   // Neighborhood bulk operations
-  reserveNeighborhood: (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => void;
+  reserveNeighborhood: (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => { success: boolean; error?: string };
   removeNeighborhoodReservation: (reservationId: string) => void;
   getNeighborhoodReservations: (neighborhoodId: NeighborhoodId) => NeighborhoodReservation[];
+  checkNeighborhoodAvailability: (neighborhoodId: NeighborhoodId, checkIn: string, checkOut: string) => { available: boolean; conflictingReservation?: NeighborhoodReservation };
   markNeighborhoodDirty: (neighborhoodId: NeighborhoodId) => void;
   markNeighborhoodClean: (neighborhoodId: NeighborhoodId) => void;
   clearNeighborhoodBeds: (neighborhoodId: NeighborhoodId) => void;
@@ -421,11 +422,85 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   // NEIGHBORHOOD BULK OPERATIONS
   // ============================================================
 
-  const reserveNeighborhood = (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => {
-    if (!state) return;
+  // Helper to check date overlap
+  const datesOverlap = (start1: string, end1: string, start2: string, end2: string): boolean => {
+    // Two ranges overlap if one starts before the other ends
+    return start1 < end2 && start2 < end1;
+  };
+
+  const checkNeighborhoodAvailability = (
+    neighborhoodId: NeighborhoodId, 
+    checkIn: string, 
+    checkOut: string
+  ): { available: boolean; conflictingReservation?: NeighborhoodReservation } => {
+    if (!state) return { available: false };
+
+    // Check existing neighborhood reservations
+    const existingReservations = Object.values(state.neighborhoodReservations || {}).filter(
+      r => r.neighborhoodId === neighborhoodId
+    );
+
+    for (const reservation of existingReservations) {
+      if (datesOverlap(checkIn, checkOut, reservation.checkInDate, reservation.checkOutDate)) {
+        return { available: false, conflictingReservation: reservation };
+      }
+    }
+
+    // Also check individual tent reservations in that neighborhood
+    const neighborhood = state.neighborhoods[neighborhoodId];
+    if (neighborhood) {
+      for (const tentId of neighborhood.tentIds) {
+        const tent = state.tents[tentId];
+        if (tent && tent.checkInDate && tent.checkOutDate) {
+          if (datesOverlap(checkIn, checkOut, tent.checkInDate, tent.checkOutDate)) {
+            // Check if any beds are occupied or reserved
+            const hasBookedBeds = tent.beds.some(b => b.status === 'RESERVED' || b.status === 'OCCUPIED');
+            if (hasBookedBeds) {
+              return { 
+                available: false, 
+                conflictingReservation: {
+                  id: 'tent_' + tentId,
+                  neighborhoodId,
+                  groupName: tent.groupName || 'Reserva existente',
+                  checkInDate: tent.checkInDate,
+                  checkOutDate: tent.checkOutDate,
+                  createdAt: tent.lastUpdated,
+                }
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return { available: true };
+  };
+
+  const reserveNeighborhood = (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>): { success: boolean; error?: string } => {
+    if (!state) return { success: false, error: 'Estado no disponible' };
 
     const neighborhood = state.neighborhoods[reservation.neighborhoodId];
-    if (!neighborhood) return;
+    if (!neighborhood) return { success: false, error: 'Vecindario no encontrado' };
+
+    // Validate dates
+    if (reservation.checkInDate >= reservation.checkOutDate) {
+      return { success: false, error: 'La fecha de check-out debe ser posterior al check-in' };
+    }
+
+    // Check for overlapping reservations
+    const availability = checkNeighborhoodAvailability(
+      reservation.neighborhoodId,
+      reservation.checkInDate,
+      reservation.checkOutDate
+    );
+
+    if (!availability.available) {
+      const conflict = availability.conflictingReservation;
+      return { 
+        success: false, 
+        error: `Conflicto con reserva existente: ${conflict?.groupName} (${conflict?.checkInDate} - ${conflict?.checkOutDate})` 
+      };
+    }
 
     const newReservation: NeighborhoodReservation = {
       ...reservation,
@@ -465,6 +540,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
 
     saveState({ ...state, tents: updatedTents, beds: updatedBeds, neighborhoodReservations: updatedReservations });
+    return { success: true };
   };
 
   const removeNeighborhoodReservation = (reservationId: string) => {
@@ -480,7 +556,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!state) return [];
     return Object.values(state.neighborhoodReservations || {}).filter(
       r => r.neighborhoodId === neighborhoodId
-    );
+    ).sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
   };
 
   const markNeighborhoodDirty = (neighborhoodId: NeighborhoodId) => {
@@ -742,6 +818,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     reserveNeighborhood,
     removeNeighborhoodReservation,
     getNeighborhoodReservations,
+    checkNeighborhoodAvailability,
     markNeighborhoodDirty,
     markNeighborhoodClean,
     clearNeighborhoodBeds,
