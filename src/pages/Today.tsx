@@ -4,6 +4,7 @@ import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { TentCard } from '@/components/TentCard';
 import { FacilityTile } from '@/components/FacilityCard';
+import { DailyTasksCalendar } from '@/components/DailyTasksCalendar';
 import { 
   Calendar, 
   CalendarCheck, 
@@ -43,6 +44,9 @@ const Today = () => {
       </header>
 
       <main className="container py-8 space-y-10">
+        {/* Daily Tasks Calendar */}
+        <DailyTasksCalendar />
+
         {/* Check-ins Today */}
         <section>
           <div className="flex items-center gap-3 mb-6">

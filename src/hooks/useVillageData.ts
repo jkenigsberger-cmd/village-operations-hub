@@ -19,6 +19,12 @@ export const useVillageData = () => {
         if (!parsed.facilityReservations) {
           parsed.facilityReservations = {};
         }
+        if (!parsed.neighborhoodReservations) {
+          parsed.neighborhoodReservations = {};
+        }
+        if (!parsed.dailyTasks) {
+          parsed.dailyTasks = {};
+        }
         setState(parsed);
       } else {
         // Generate initial state on first load

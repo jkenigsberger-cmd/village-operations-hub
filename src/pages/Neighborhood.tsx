@@ -5,6 +5,7 @@ import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { TentCard } from '@/components/TentCard';
 import NeighborhoodMap, { TentNode } from '@/components/NeighborhoodMap';
 import VIPNeighborhoodMap from '@/components/VIPNeighborhoodMap';
+import { NeighborhoodBulkActions } from '@/components/NeighborhoodBulkActions';
 import { NeighborhoodId } from '@/types/village';
 import { 
   Search, 
@@ -199,6 +200,12 @@ const Neighborhood = () => {
       </header>
 
       <main className="container py-6">
+        {/* Bulk Actions for large groups */}
+        <NeighborhoodBulkActions 
+          neighborhoodId={neighborhoodId} 
+          neighborhoodName={neighborhood.displayName} 
+        />
+
         {/* Search & Filters */}
         <div className="mb-6 space-y-4">
           {/* Search */}

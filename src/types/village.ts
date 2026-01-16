@@ -155,6 +155,8 @@ export interface VillageState {
   activitySpaces: Record<string, ActivitySpace>;
   activityReservations: Record<string, ActivityReservation>;
   facilityReservations: Record<string, FacilityReservation>;
+  neighborhoodReservations: Record<string, NeighborhoodReservation>;
+  dailyTasks: Record<string, DailyTask>;
   activityLog: ActivityLogEntry[];
 }
 
@@ -196,4 +198,39 @@ export interface TodaySummary {
   checkOuts: TentSummary[];
   tentsToCleaning: TentSummary[];
   facilitiesNeedAttention: Facility[];
+}
+
+// ============================================================
+// NEIGHBORHOOD RESERVATIONS (for large groups)
+// ============================================================
+
+export interface NeighborhoodReservation {
+  id: string;
+  neighborhoodId: NeighborhoodId;
+  groupName: string;
+  checkInDate: string; // ISO date YYYY-MM-DD
+  checkOutDate: string; // ISO date YYYY-MM-DD
+  notes?: string;
+  createdAt: string;
+}
+
+// ============================================================
+// DAILY TASKS
+// ============================================================
+
+export type DailyTaskType = 'CLEANING' | 'CHECKOUT' | 'CHECKIN' | 'MAINTENANCE' | 'CUSTOM';
+export type DailyTaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+
+export interface DailyTask {
+  id: string;
+  date: string; // ISO date YYYY-MM-DD
+  type: DailyTaskType;
+  title: string;
+  description?: string;
+  entityType?: 'TENT' | 'FACILITY' | 'NEIGHBORHOOD';
+  entityId?: string;
+  status: DailyTaskStatus;
+  assignedTo?: string;
+  createdAt: string;
+  completedAt?: string;
 }
