@@ -212,7 +212,18 @@ export interface NeighborhoodReservation {
   checkOutDate: string; // ISO date YYYY-MM-DD
   notes?: string;
   createdAt: string;
+  // Optional fields for flexible reservation info
+  numberOfPeople?: number;
+  contactName?: string;
+  contactPhone?: string;
+  arrivalTime?: string; // HH:mm
+  specialNotes?: string;
+  tentIds?: string[]; // For partial neighborhood reservations (specific tents)
+  isPartialReservation?: boolean;
 }
+
+// User role type
+export type UserRole = 'CLEANER' | 'MAINTENANCE' | 'RESERVATION_MANAGER' | 'ADMIN';
 
 // ============================================================
 // DAILY TASKS
