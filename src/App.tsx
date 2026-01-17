@@ -4,12 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { VillageProvider } from "@/context/VillageContext";
-import Index from "./pages/Index";
-import Today from "./pages/Today";
+import MainLayout from "@/components/MainLayout";
+import TasksToday from "./pages/TasksToday";
+import Reservations from "./pages/Reservations";
+import Neighborhoods from "./pages/Neighborhoods";
 import Neighborhood from "./pages/Neighborhood";
 import TentDetail from "./pages/TentDetail";
 import Facilities from "./pages/Facilities";
-import Activities from "./pages/Activities";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -23,14 +24,15 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/today" element={<Today />} />
+            <Route path="/" element={<MainLayout><TasksToday /></MainLayout>} />
+            <Route path="/tasks" element={<MainLayout><TasksToday /></MainLayout>} />
+            <Route path="/reservations" element={<MainLayout><Reservations /></MainLayout>} />
+            <Route path="/neighborhoods" element={<MainLayout><Neighborhoods /></MainLayout>} />
             <Route path="/neighborhood/:id" element={<Neighborhood />} />
             <Route path="/tent/:id" element={<TentDetail />} />
             <Route path="/facilities" element={<Facilities />} />
             <Route path="/facilities/:areaId" element={<Facilities />} />
-            <Route path="/activities" element={<Activities />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
