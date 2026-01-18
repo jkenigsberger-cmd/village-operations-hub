@@ -81,6 +81,7 @@ export interface Facility {
   workingStatus: WorkingStatus;
   notes?: string;
   maintenanceImage?: string; // Base64 image for maintenance issues
+  maintenanceNotes?: string; // Notes specifically for maintenance issues
   lastUpdated: string;
 }
 

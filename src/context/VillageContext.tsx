@@ -41,6 +41,9 @@ interface VillageContextType {
   updateFacilityWorkingStatus: (facilityId: string, status: WorkingStatus) => void;
   updateFacilityNotes: (facilityId: string, notes: string) => void;
   updateFacilityMaintenanceImage: (facilityId: string, image: string | undefined) => void;
+  updateFacilityMaintenanceNotes: (facilityId: string, notes: string | undefined) => void;
+  reportFacilityIssue: (facilityId: string, status: WorkingStatus, notes: string, image?: string) => void;
+  resolveFacilityIssue: (facilityId: string) => void;
   
   // Facility reservation operations
   addFacilityReservation: (reservation: Omit<FacilityReservation, 'id' | 'createdAt'>) => boolean;
@@ -306,6 +309,60 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updatedFacilities = {
       ...state.facilities,
       [facilityId]: { ...facility, maintenanceImage, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, facilities: updatedFacilities });
+  };
+
+  const updateFacilityMaintenanceNotes = (facilityId: string, maintenanceNotes: string | undefined) => {
+    if (!state) return;
+    
+    const facility = state.facilities[facilityId];
+    if (!facility) return;
+
+    const updatedFacilities = {
+      ...state.facilities,
+      [facilityId]: { ...facility, maintenanceNotes, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, facilities: updatedFacilities });
+  };
+
+  const reportFacilityIssue = (facilityId: string, status: WorkingStatus, notes: string, image?: string) => {
+    if (!state) return;
+    
+    const facility = state.facilities[facilityId];
+    if (!facility) return;
+
+    const updatedFacilities = {
+      ...state.facilities,
+      [facilityId]: { 
+        ...facility, 
+        workingStatus: status,
+        maintenanceNotes: notes,
+        maintenanceImage: image,
+        lastUpdated: new Date().toISOString() 
+      },
+    };
+
+    saveState({ ...state, facilities: updatedFacilities });
+  };
+
+  const resolveFacilityIssue = (facilityId: string) => {
+    if (!state) return;
+    
+    const facility = state.facilities[facilityId];
+    if (!facility) return;
+
+    const updatedFacilities = {
+      ...state.facilities,
+      [facilityId]: { 
+        ...facility, 
+        workingStatus: 'WORKING' as WorkingStatus,
+        maintenanceNotes: undefined,
+        maintenanceImage: undefined,
+        lastUpdated: new Date().toISOString() 
+      },
     };
 
     saveState({ ...state, facilities: updatedFacilities });
@@ -810,6 +867,9 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateFacilityWorkingStatus,
     updateFacilityNotes,
     updateFacilityMaintenanceImage,
+    updateFacilityMaintenanceNotes,
+    reportFacilityIssue,
+    resolveFacilityIssue,
     addFacilityReservation,
     removeFacilityReservation,
     getFacilityReservations,

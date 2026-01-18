@@ -4,7 +4,8 @@ import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FacilityCard, FacilityTile } from '@/components/FacilityCard';
 import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
-import { Facility } from '@/types/village';
+import { ReportIssueModal } from '@/components/ReportIssueModal';
+import { Facility, WorkingStatus } from '@/types/village';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Loader2, 
@@ -16,6 +17,7 @@ import {
   Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const Facilities = () => {
   const { areaId } = useParams<{ areaId?: string }>();
@@ -25,6 +27,7 @@ const Facilities = () => {
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
     updateFacilityNotes,
+    reportFacilityIssue,
     addFacilityReservation,
     removeFacilityReservation,
     getFacilityReservations,
@@ -32,6 +35,8 @@ const Facilities = () => {
 
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(areaId || null);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
 
   if (isLoading || !state) {
     return (
@@ -61,6 +66,24 @@ const Facilities = () => {
 
   const closeFacilityDetail = () => {
     setSelectedFacility(null);
+  };
+
+  const handleReportIssue = (status: WorkingStatus) => {
+    setReportStatus(status);
+    setReportModalOpen(true);
+  };
+
+  const handleReportSubmit = (data: { status: WorkingStatus; notes: string; image?: string }) => {
+    if (selectedFacility) {
+      reportFacilityIssue(selectedFacility.id, data.status, data.notes, data.image);
+      setSelectedFacility({ 
+        ...selectedFacility, 
+        workingStatus: data.status,
+        maintenanceNotes: data.notes,
+        maintenanceImage: data.image,
+      });
+      toast.success('Issue reported successfully');
+    }
   };
 
   return (
@@ -183,6 +206,7 @@ const Facilities = () => {
                         updateFacilityNotes(selectedFacility.id, notes);
                         setSelectedFacility({ ...selectedFacility, notes });
                       }}
+                      onReportIssue={handleReportIssue}
                     />
                   </TabsContent>
 
@@ -206,6 +230,17 @@ const Facilities = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Report Issue Modal */}
+        {selectedFacility && (
+          <ReportIssueModal
+            isOpen={reportModalOpen}
+            onClose={() => setReportModalOpen(false)}
+            facility={selectedFacility}
+            selectedStatus={reportStatus}
+            onSubmit={handleReportSubmit}
+          />
         )}
       </main>
     </div>

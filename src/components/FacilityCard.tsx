@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Facility, CleaningStatus, WorkingStatus } from '@/types/village';
 import { CleaningToggle, WorkingToggle } from './StatusBadge';
 import { cn } from '@/lib/utils';
@@ -9,10 +9,11 @@ interface FacilityCardProps {
   onCleaningChange: (status: CleaningStatus) => void;
   onWorkingChange: (status: WorkingStatus) => void;
   onNotesChange: (notes: string) => void;
+  onReportIssue?: (status: WorkingStatus) => void;
 }
 
 export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
-  ({ facility, onCleaningChange, onWorkingChange, onNotesChange }, ref) => {
+  ({ facility, onCleaningChange, onWorkingChange, onNotesChange, onReportIssue }, ref) => {
     const isToilet = facility.type === 'TOILET';
     const needsAttention = 
       facility.cleaningStatus === 'NEEDS_CLEANING' || 
@@ -23,6 +24,15 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
       MALE: '🚹',
       FEMALE: '🚺',
     }[facility.gender];
+
+    const handleWorkingChange = (status: WorkingStatus) => {
+      // If changing to BROKEN or MAINTENANCE, trigger the report modal
+      if ((status === 'BROKEN' || status === 'MAINTENANCE') && onReportIssue) {
+        onReportIssue(status);
+      } else {
+        onWorkingChange(status);
+      }
+    };
 
     return (
       <div
@@ -77,7 +87,7 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
           </label>
           <WorkingToggle
             status={facility.workingStatus}
-            onChange={onWorkingChange}
+            onChange={handleWorkingChange}
             size="md"
           />
         </div>
