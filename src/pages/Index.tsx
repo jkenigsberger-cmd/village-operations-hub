@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import { ActionTile } from '@/components/ActionTile';
-import { NeighborhoodId, Facility } from '@/types/village';
+import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
 import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
+import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { 
   Calendar, 
   Bath, 
@@ -25,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
@@ -43,11 +45,15 @@ const Index = () => {
     updateTentCleaningStatus,
     addFacilityReservation,
     removeFacilityReservation,
-    getFacilityReservations
+    getFacilityReservations,
+    reportFacilityIssue,
+    resolveFacilityIssue
   } = useVillage();
 
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
 
   if (isLoading || !state) {
     return (
@@ -92,6 +98,29 @@ const Index = () => {
     { key: 'housekeeping', label: 'Housekeeping', icon: Sparkles, count: totalHousekeepingItems },
     { key: 'notes', label: 'Important Notes', icon: StickyNote },
   ];
+
+  const handleReportIssue = (status: WorkingStatus) => {
+    setReportStatus(status);
+    setReportModalOpen(true);
+  };
+
+  const handleReportSubmit = (data: { status: WorkingStatus; notes: string; image?: string }) => {
+    if (selectedFacility) {
+      reportFacilityIssue(selectedFacility.id, data.status, data.notes, data.image);
+      setSelectedFacility({ 
+        ...selectedFacility, 
+        workingStatus: data.status,
+        maintenanceNotes: data.notes,
+        maintenanceImage: data.image,
+      });
+      toast.success('Issue reported successfully');
+    }
+  };
+
+  const handleResolveMaintenance = (facilityId: string) => {
+    resolveFacilityIssue(facilityId);
+    toast.success('Task marked as complete');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -349,11 +378,16 @@ const Index = () => {
                     <div className="flex items-start gap-4">
                       {/* Photo thumbnail or status icon */}
                       {facility.maintenanceImage ? (
-                        <MaintenancePhotoCapture
-                          facilityId={facility.id}
-                          currentImage={facility.maintenanceImage}
-                          onImageCapture={updateFacilityMaintenanceImage}
-                        />
+                        <button
+                          onClick={() => setSelectedFacility(facility)}
+                          className="w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/50 hover:border-primary transition-all flex-shrink-0"
+                        >
+                          <img 
+                            src={facility.maintenanceImage} 
+                            alt="Maintenance issue" 
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
                       ) : (
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                           facility.workingStatus === 'BROKEN' 
@@ -376,7 +410,14 @@ const Index = () => {
                         }`}>
                           {facility.workingStatus === 'BROKEN' ? '🔧 Broken' : '⚠️ Maintenance'}
                         </span>
-                        {facility.notes && (
+                        {/* Show maintenance notes if available */}
+                        {facility.maintenanceNotes && (
+                          <p className="text-sm text-foreground mt-2 p-2 bg-muted rounded-lg">
+                            📝 {facility.maintenanceNotes}
+                          </p>
+                        )}
+                        {/* Fallback to general notes */}
+                        {!facility.maintenanceNotes && facility.notes && (
                           <p className="text-sm text-muted-foreground mt-2">
                             📝 {facility.notes}
                           </p>
@@ -392,10 +433,7 @@ const Index = () => {
                           />
                         )}
                         <Button
-                          onClick={() => {
-                            updateFacilityWorkingStatus(facility.id, 'WORKING');
-                            updateFacilityMaintenanceImage(facility.id, undefined);
-                          }}
+                          onClick={() => handleResolveMaintenance(facility.id)}
                           variant="outline"
                           className="flex items-center gap-2"
                         >
@@ -593,12 +631,24 @@ const Index = () => {
                     updateFacilityNotes(selectedFacility.id, notes);
                     setSelectedFacility({ ...selectedFacility, notes });
                   }}
+                  onReportIssue={handleReportIssue}
                 />
               </TabsContent>
             </Tabs>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Report Issue Modal */}
+      {selectedFacility && (
+        <ReportIssueModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          facility={selectedFacility}
+          selectedStatus={reportStatus}
+          onSubmit={handleReportSubmit}
+        />
+      )}
     </div>
   );
 };
