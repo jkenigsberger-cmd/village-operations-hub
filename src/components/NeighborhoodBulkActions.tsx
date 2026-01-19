@@ -119,6 +119,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
       checkInDate: reservationForm.checkInDate,
       checkOutDate: reservationForm.checkOutDate,
       notes: reservationForm.notes,
+      reservationType: 'FULL_NEIGHBORHOOD',
     });
 
     if (result.success) {

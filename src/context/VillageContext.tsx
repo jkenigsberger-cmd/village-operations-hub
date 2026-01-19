@@ -15,7 +15,8 @@ import {
   NeighborhoodSummary,
   TentSummary,
   TodaySummary,
-  NeighborhoodId
+  NeighborhoodId,
+  TentGender
 } from '@/types/village';
 import { useVillageData } from '@/hooks/useVillageData';
 
@@ -34,6 +35,9 @@ interface VillageContextType {
   updateTentGroupName: (tentId: string, groupName: string) => void;
   updateTentDates: (tentId: string, checkIn?: string, checkOut?: string) => void;
   updateTentNotes: (tentId: string, notes: string) => void;
+  updateTentGender: (tentId: string, gender: TentGender) => void;
+  updateTentPrivateBathroom: (tentId: string, hasPrivateBathroom: boolean) => void;
+  updateTentPrivateShower: (tentId: string, hasPrivateShower: boolean) => void;
   clearAllBeds: (tentId: string) => void;
   
   // Facility operations
@@ -56,9 +60,20 @@ interface VillageContextType {
   
   // Neighborhood bulk operations
   reserveNeighborhood: (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => { success: boolean; error?: string };
+  reserveSpecificTents: (params: {
+    neighborhoodId: NeighborhoodId;
+    tentIds: string[];
+    groupName: string;
+    checkInDate: string;
+    checkOutDate: string;
+    contactName?: string;
+    contactPhone?: string;
+    notes?: string;
+  }) => { success: boolean; error?: string };
   removeNeighborhoodReservation: (reservationId: string) => void;
   getNeighborhoodReservations: (neighborhoodId: NeighborhoodId) => NeighborhoodReservation[];
   checkNeighborhoodAvailability: (neighborhoodId: NeighborhoodId, checkIn: string, checkOut: string) => { available: boolean; conflictingReservation?: NeighborhoodReservation };
+  checkTentAvailability: (tentId: string, checkIn: string, checkOut: string) => { available: boolean; conflictingGroup?: string };
   markNeighborhoodDirty: (neighborhoodId: NeighborhoodId) => void;
   markNeighborhoodClean: (neighborhoodId: NeighborhoodId) => void;
   clearNeighborhoodBeds: (neighborhoodId: NeighborhoodId) => void;
@@ -228,6 +243,48 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updatedTents = {
       ...state.tents,
       [tentId]: { ...tent, notes, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const updateTentGender = (tentId: string, gender: TentGender) => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, gender, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const updateTentPrivateBathroom = (tentId: string, hasPrivateBathroom: boolean) => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, hasPrivateBathroom, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const updateTentPrivateShower = (tentId: string, hasPrivateShower: boolean) => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, hasPrivateShower, lastUpdated: new Date().toISOString() },
     };
 
     saveState({ ...state, tents: updatedTents });
@@ -521,6 +578,8 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
                   groupName: tent.groupName || 'Reserva existente',
                   checkInDate: tent.checkInDate,
                   checkOutDate: tent.checkOutDate,
+                  reservationType: 'SPECIFIC_TENTS',
+                  tentIds: [tentId],
                   createdAt: tent.lastUpdated,
                 }
               };
@@ -563,6 +622,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...reservation,
       id: Math.random().toString(36).substring(2, 11),
       createdAt: new Date().toISOString(),
+      reservationType: reservation.reservationType || 'FULL_NEIGHBORHOOD',
     };
 
     // Update all tents in the neighborhood
@@ -583,6 +643,116 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
 
       // Reserve all beds
+      const updatedTentBeds = tent.beds.map(b => {
+        const reservedBed = { ...b, status: 'RESERVED' as BedStatus };
+        updatedBeds[b.id] = reservedBed;
+        return reservedBed;
+      });
+      updatedTents[tentId].beds = updatedTentBeds;
+    }
+
+    const updatedReservations = {
+      ...state.neighborhoodReservations,
+      [newReservation.id]: newReservation,
+    };
+
+    saveState({ ...state, tents: updatedTents, beds: updatedBeds, neighborhoodReservations: updatedReservations });
+    return { success: true };
+  };
+
+  const checkTentAvailability = (
+    tentId: string,
+    checkIn: string,
+    checkOut: string
+  ): { available: boolean; conflictingGroup?: string } => {
+    if (!state) return { available: false };
+
+    const tent = state.tents[tentId];
+    if (!tent) return { available: false };
+
+    // Check if tent has booked beds in overlapping dates
+    if (tent.checkInDate && tent.checkOutDate) {
+      if (datesOverlap(checkIn, checkOut, tent.checkInDate, tent.checkOutDate)) {
+        const hasBookedBeds = tent.beds.some(b => b.status === 'RESERVED' || b.status === 'OCCUPIED');
+        if (hasBookedBeds) {
+          return { available: false, conflictingGroup: tent.groupName };
+        }
+      }
+    }
+
+    return { available: true };
+  };
+
+  const reserveSpecificTents = (params: {
+    neighborhoodId: NeighborhoodId;
+    tentIds: string[];
+    groupName: string;
+    checkInDate: string;
+    checkOutDate: string;
+    contactName?: string;
+    contactPhone?: string;
+    notes?: string;
+  }): { success: boolean; error?: string } => {
+    if (!state) return { success: false, error: 'Estado no disponible' };
+
+    const { neighborhoodId, tentIds, groupName, checkInDate, checkOutDate, contactName, contactPhone, notes } = params;
+
+    // Validate dates
+    if (checkInDate >= checkOutDate) {
+      return { success: false, error: 'La fecha de check-out debe ser posterior al check-in' };
+    }
+
+    // Check availability of each tent
+    for (const tentId of tentIds) {
+      const availability = checkTentAvailability(tentId, checkInDate, checkOutDate);
+      if (!availability.available) {
+        const tent = state.tents[tentId];
+        return { 
+          success: false, 
+          error: `Carpa ${tent?.code} tiene conflicto con: ${availability.conflictingGroup || 'reserva existente'}` 
+        };
+      }
+    }
+
+    // Calculate total beds
+    let totalBeds = 0;
+    for (const tentId of tentIds) {
+      const tent = state.tents[tentId];
+      if (tent) totalBeds += tent.beds.length;
+    }
+
+    const newReservation: NeighborhoodReservation = {
+      id: Math.random().toString(36).substring(2, 11),
+      neighborhoodId,
+      groupName,
+      checkInDate,
+      checkOutDate,
+      reservationType: 'SPECIFIC_TENTS',
+      tentIds,
+      totalBeds,
+      contactName,
+      contactPhone,
+      notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Update selected tents
+    const updatedTents = { ...state.tents };
+    const updatedBeds = { ...state.beds };
+
+    for (const tentId of tentIds) {
+      const tent = updatedTents[tentId];
+      if (!tent) continue;
+
+      updatedTents[tentId] = {
+        ...tent,
+        groupName,
+        checkInDate,
+        checkOutDate,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      // Reserve all beds in selected tents
       const updatedTentBeds = tent.beds.map(b => {
         const reservedBed = { ...b, status: 'RESERVED' as BedStatus };
         updatedBeds[b.id] = reservedBed;
@@ -813,7 +983,9 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       checkOutDate: tent.checkOutDate,
       isVIP: tent.isVIP,
       hasPrivateBathroom: tent.hasPrivateBathroom,
+      hasPrivateShower: tent.hasPrivateShower,
       isAccessible: tent.isAccessible,
+      gender: tent.gender,
     };
   };
 
@@ -862,6 +1034,9 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateTentGroupName,
     updateTentDates,
     updateTentNotes,
+    updateTentGender,
+    updateTentPrivateBathroom,
+    updateTentPrivateShower,
     clearAllBeds,
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
@@ -876,9 +1051,11 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     addActivityReservation,
     removeActivityReservation,
     reserveNeighborhood,
+    reserveSpecificTents,
     removeNeighborhoodReservation,
     getNeighborhoodReservations,
     checkNeighborhoodAvailability,
+    checkTentAvailability,
     markNeighborhoodDirty,
     markNeighborhoodClean,
     clearNeighborhoodBeds,

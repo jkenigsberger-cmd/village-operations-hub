@@ -6,7 +6,9 @@ import { TentCard } from '@/components/TentCard';
 import NeighborhoodMap, { TentNode } from '@/components/NeighborhoodMap';
 import VIPNeighborhoodMap from '@/components/VIPNeighborhoodMap';
 import { NeighborhoodBulkActions } from '@/components/NeighborhoodBulkActions';
-import { NeighborhoodId } from '@/types/village';
+import { NeighborhoodReservationModal } from '@/components/NeighborhoodReservationModal';
+import { TentDetailModal } from '@/components/TentDetailModal';
+import { NeighborhoodId, Tent } from '@/types/village';
 import { 
   Search, 
   Filter, 
@@ -14,9 +16,11 @@ import {
   LayoutGrid,
   Layers,
   Map,
-  Grid3X3
+  Grid3X3,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 type ViewMode = 'grid' | 'map';
 
@@ -31,6 +35,8 @@ const Neighborhood = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [groupByDouble, setGroupByDouble] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [selectedTent, setSelectedTent] = useState<Tent | null>(null);
 
   const neighborhoodId = id as NeighborhoodId;
 
@@ -185,7 +191,7 @@ const Neighborhood = () => {
             </div>
             
             {/* Stats */}
-            <div className="flex gap-4 text-lg">
+            <div className="flex gap-4 text-lg flex-wrap">
               <span className="px-4 py-2 bg-muted rounded-xl">
                 <strong>{tentSummaries.length}</strong> tents
               </span>
@@ -194,6 +200,10 @@ const Neighborhood = () => {
                   {tentSummaries.reduce((acc, t) => acc + t.summary.occupiedBeds, 0)}
                 </strong> / {tentSummaries.reduce((acc, t) => acc + t.summary.totalBeds, 0)} beds
               </span>
+              <Button onClick={() => setShowReservationModal(true)} className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Nueva Reserva
+              </Button>
             </div>
           </div>
         </div>
@@ -326,16 +336,36 @@ const Neighborhood = () => {
         ) : (
           // Regular grid view
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredTents.map(({ summary }) => (
-              <TentCard
-                key={summary.tentId}
-                summary={summary}
-                to={`/tent/${summary.tentId}`}
-              />
+            {filteredTents.map(({ tent, summary }) => (
+              <div 
+                key={summary.tentId} 
+                onClick={() => setSelectedTent(tent)}
+                className="cursor-pointer"
+              >
+                <TentCard
+                  summary={summary}
+                  to="#"
+                />
+              </div>
             ))}
           </div>
         )}
       </main>
+
+      {/* Reservation Modal */}
+      <NeighborhoodReservationModal
+        open={showReservationModal}
+        onOpenChange={setShowReservationModal}
+        neighborhoodId={neighborhoodId}
+        neighborhoodName={neighborhood.displayName}
+      />
+
+      {/* Tent Detail Modal */}
+      <TentDetailModal
+        open={!!selectedTent}
+        onOpenChange={(open) => !open && setSelectedTent(null)}
+        tent={selectedTent}
+      />
     </div>
   );
 };
