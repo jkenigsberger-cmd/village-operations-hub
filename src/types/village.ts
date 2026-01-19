@@ -20,6 +20,9 @@ export type BedType = 'SINGLE' | 'BUNK_TOP' | 'BUNK_BOTTOM';
 // Neighborhood IDs
 export type NeighborhoodId = 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7' | 'VIP';
 
+// Tent gender designation
+export type TentGender = 'MIXED' | 'MALE' | 'FEMALE';
+
 // ============================================================
 // CORE DATA STRUCTURES
 // ============================================================
@@ -46,6 +49,7 @@ export interface Tent {
   checkOutDate?: string;
   notes?: string;
   cleaningStatus: CleaningStatus;
+  gender?: TentGender; // Gender designation for the tent
   hasPrivateBathroom?: boolean;
   hasPrivateShower?: boolean;
   isAccessible?: boolean;
@@ -179,7 +183,9 @@ export interface TentSummary {
   checkOutDate?: string;
   isVIP?: boolean;
   hasPrivateBathroom?: boolean;
+  hasPrivateShower?: boolean;
   isAccessible?: boolean;
+  gender?: TentGender;
 }
 
 export interface NeighborhoodSummary {
@@ -205,12 +211,19 @@ export interface TodaySummary {
 // NEIGHBORHOOD RESERVATIONS (for large groups)
 // ============================================================
 
+export type ReservationType = 'FULL_NEIGHBORHOOD' | 'SPECIFIC_TENTS';
+
 export interface NeighborhoodReservation {
   id: string;
   neighborhoodId: NeighborhoodId;
   groupName: string;
   checkInDate: string; // ISO date YYYY-MM-DD
   checkOutDate: string; // ISO date YYYY-MM-DD
+  reservationType: ReservationType;
+  tentIds?: string[]; // Only for SPECIFIC_TENTS reservations
+  totalBeds?: number;
+  contactName?: string;
+  contactPhone?: string;
   notes?: string;
   createdAt: string;
 }
