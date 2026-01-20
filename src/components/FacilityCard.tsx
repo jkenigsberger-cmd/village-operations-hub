@@ -136,11 +136,19 @@ export const FacilityTile: React.FC<FacilityTileProps> = ({ facility, onClick })
     FEMALE: '🚺',
   }[facility.gender];
 
+  // Gender-based styling
+  const genderClass = {
+    UNISEX: 'bg-gender-unisex',
+    MALE: 'bg-gender-male',
+    FEMALE: 'bg-gender-female',
+  }[facility.gender];
+
   return (
     <button
       onClick={onClick}
       className={cn(
-        'tile p-4 text-left w-full',
+        'tile p-4 text-left w-full border-2',
+        genderClass,
         needsAttention && 'border-destructive bg-destructive/5 animate-pulse-soft'
       )}
     >
