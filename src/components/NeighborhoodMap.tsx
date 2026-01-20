@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { TentGender } from "@/types/village";
 
 type TentType = "SIMPLE" | "DOUBLE" | "WHITE";
 type CleaningState = "CLEAN" | "DIRTY" | "IN_PROGRESS";
@@ -12,22 +13,33 @@ export type TentNode = {
   onClick: () => void;
   isAlef?: boolean;
   doubleTentId?: string;
+  gender?: TentGender;
 };
 
-function statusColor(cleaning: CleaningState, used: number, total: number) {
-  if (cleaning === "DIRTY") return "hsl(30, 35%, 35%)";
-  if (cleaning === "IN_PROGRESS") return "hsl(40, 30%, 75%)";
-  const ratio = total ? used / total : 0;
-  if (ratio >= 0.95) return "hsl(80, 30%, 37%)";
-  if (ratio > 0) return "hsl(90, 25%, 62%)";
-  return "hsl(40, 30%, 96%)";
+// Gender-based colors for tent fill
+function genderColor(gender?: TentGender): string {
+  switch (gender) {
+    case 'FEMALE': return "hsl(330, 70%, 75%)"; // Pink
+    case 'MALE': return "hsl(210, 70%, 65%)"; // Blue
+    case 'MIXED': return "hsl(270, 60%, 70%)"; // Purple
+    default: return "hsl(40, 30%, 96%)"; // Default/empty
+  }
 }
 
-function TentIcon({ x, y, type, fill, label }: { x: number; y: number; type: TentType; fill: string; label: string }) {
+function genderStroke(gender?: TentGender): string {
+  switch (gender) {
+    case 'FEMALE': return "hsl(330, 60%, 50%)";
+    case 'MALE': return "hsl(210, 60%, 45%)";
+    case 'MIXED': return "hsl(270, 50%, 50%)";
+    default: return "hsl(30, 10%, 50%)";
+  }
+}
+
+function TentIcon({ x, y, type, fill, stroke, label }: { x: number; y: number; type: TentType; fill: string; stroke: string; label: string }) {
   if (type === "WHITE") {
     return (
       <g transform={`translate(${x},${y})`}>
-        <ellipse cx="0" cy="0" rx="26" ry="18" fill={fill} stroke="hsl(30, 10%, 50%)" strokeWidth="1.5" />
+        <ellipse cx="0" cy="0" rx="26" ry="18" fill={fill} stroke={stroke} strokeWidth="2" />
         <text x="0" y="5" textAnchor="middle" fontSize="11" fontWeight="600" fill="hsl(30, 20%, 25%)">{label}</text>
       </g>
     );
@@ -37,7 +49,7 @@ function TentIcon({ x, y, type, fill, label }: { x: number; y: number; type: Ten
   if (type === "DOUBLE") {
     return (
       <g transform={`translate(${x},${y})`}>
-        <polygon points="-22,12 0,-16 22,12" fill={fill} stroke="hsl(30, 10%, 50%)" strokeWidth="1.5" />
+        <polygon points="-22,12 0,-16 22,12" fill={fill} stroke={stroke} strokeWidth="2" />
         <text x="0" y="6" textAnchor="middle" fontSize="9" fontWeight="600" fill="hsl(30, 20%, 25%)">{label}</text>
       </g>
     );
@@ -45,7 +57,7 @@ function TentIcon({ x, y, type, fill, label }: { x: number; y: number; type: Ten
 
   return (
     <g transform={`translate(${x},${y})`}>
-      <polygon points="-26,14 0,-22 26,14" fill={fill} stroke="hsl(30, 10%, 50%)" strokeWidth="1.5" />
+      <polygon points="-26,14 0,-22 26,14" fill={fill} stroke={stroke} strokeWidth="2" />
       <text x="0" y="6" textAnchor="middle" fontSize="10" fontWeight="600" fill="hsl(30, 20%, 25%)">{label}</text>
     </g>
   );
@@ -64,8 +76,10 @@ function DoubleTentPair({
   betNode: TentNode;
   pairLabel: string;
 }) {
-  const alefFill = statusColor(alefNode.cleaning, alefNode.occupancySummary.used, alefNode.occupancySummary.total);
-  const betFill = statusColor(betNode.cleaning, betNode.occupancySummary.used, betNode.occupancySummary.total);
+  const alefFill = genderColor(alefNode.gender);
+  const alefStroke = genderStroke(alefNode.gender);
+  const betFill = genderColor(betNode.gender);
+  const betStroke = genderStroke(betNode.gender);
 
   return (
     <g transform={`translate(${x},${y})`}>
@@ -74,13 +88,13 @@ function DoubleTentPair({
       
       {/* Alef tent on left */}
       <g onClick={alefNode.onClick} style={{ cursor: "pointer" }} className="hover:opacity-80 transition-opacity">
-        <polygon points="-45,18 -23,-12 -1,18" fill={alefFill} stroke="hsl(30, 10%, 50%)" strokeWidth="1.5" />
+        <polygon points="-45,18 -23,-12 -1,18" fill={alefFill} stroke={alefStroke} strokeWidth="2" />
         <text x="-23" y="10" textAnchor="middle" fontSize="8" fontWeight="600" fill="hsl(30, 20%, 25%)">א</text>
       </g>
       
       {/* Bet tent on right */}
       <g onClick={betNode.onClick} style={{ cursor: "pointer" }} className="hover:opacity-80 transition-opacity">
-        <polygon points="1,18 23,-12 45,18" fill={betFill} stroke="hsl(30, 10%, 50%)" strokeWidth="1.5" />
+        <polygon points="1,18 23,-12 45,18" fill={betFill} stroke={betStroke} strokeWidth="2" />
         <text x="23" y="10" textAnchor="middle" fontSize="8" fontWeight="600" fill="hsl(30, 20%, 25%)">ב</text>
       </g>
     </g>
@@ -216,34 +230,31 @@ export default function NeighborhoodMap({ title, nodes, isDoubleTentNeighborhood
               x={x} 
               y={y} 
               type={node.type} 
-              fill={statusColor(node.cleaning, node.occupancySummary.used, node.occupancySummary.total)} 
+              fill={genderColor(node.gender)} 
+              stroke={genderStroke(node.gender)}
               label={node.code} 
             />
           </g>
         ))}
       </svg>
       
-      {/* Legend */}
+      {/* Gender Legend */}
       <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(40, 30%, 96%)" }} />
-          <span>Empty</span>
+          <span>Sin Asignar</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(90, 25%, 62%)" }} />
-          <span>Partial</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(330, 70%, 75%)" }} />
+          <span>♀ Femenino</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(80, 30%, 37%)" }} />
-          <span>Full</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(210, 70%, 65%)" }} />
+          <span>♂ Masculino</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(40, 30%, 75%)" }} />
-          <span>Cleaning</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(30, 35%, 35%)" }} />
-          <span>Dirty</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(270, 60%, 70%)" }} />
+          <span>👥 Mixto</span>
         </div>
       </div>
     </div>

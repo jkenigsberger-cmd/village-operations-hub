@@ -1,16 +1,27 @@
 import React from "react";
 import { TentNode } from "./NeighborhoodMap";
+import { TentGender } from "@/types/village";
 
-function statusColor(cleaning: 'CLEAN' | 'DIRTY' | 'IN_PROGRESS', used: number, total: number) {
-  if (cleaning === "DIRTY") return "hsl(30, 35%, 35%)";
-  if (cleaning === "IN_PROGRESS") return "hsl(40, 30%, 75%)";
-  const ratio = total ? used / total : 0;
-  if (ratio >= 0.95) return "hsl(80, 30%, 37%)";
-  if (ratio > 0) return "hsl(90, 25%, 62%)";
-  return "hsl(40, 30%, 96%)";
+// Gender-based colors for tent fill
+function genderColor(gender?: TentGender): string {
+  switch (gender) {
+    case 'FEMALE': return "hsl(330, 70%, 75%)"; // Pink
+    case 'MALE': return "hsl(210, 70%, 65%)"; // Blue
+    case 'MIXED': return "hsl(270, 60%, 70%)"; // Purple
+    default: return "hsl(40, 30%, 96%)"; // Default/empty
+  }
 }
 
-function VIPTentIcon({ x, y, fill, label }: { x: number; y: number; fill: string; label: string }) {
+function genderStroke(gender?: TentGender): string {
+  switch (gender) {
+    case 'FEMALE': return "hsl(330, 60%, 50%)";
+    case 'MALE': return "hsl(210, 60%, 45%)";
+    case 'MIXED': return "hsl(270, 50%, 50%)";
+    default: return "hsl(30, 10%, 50%)";
+  }
+}
+
+function VIPTentIcon({ x, y, fill, stroke, label }: { x: number; y: number; fill: string; stroke: string; label: string }) {
   return (
     <g transform={`translate(${x},${y})`}>
       {/* VIP tent - premium rectangular cabin style */}
@@ -21,15 +32,15 @@ function VIPTentIcon({ x, y, fill, label }: { x: number; y: number; fill: string
         height="36" 
         rx="4" 
         fill={fill} 
-        stroke="hsl(30, 10%, 50%)" 
-        strokeWidth="1.5" 
+        stroke={stroke} 
+        strokeWidth="2.5" 
       />
       {/* Roof */}
       <polygon 
         points="-32,-18 0,-32 32,-18" 
         fill={fill} 
-        stroke="hsl(30, 10%, 50%)" 
-        strokeWidth="1.5" 
+        stroke={stroke} 
+        strokeWidth="2.5" 
       />
       {/* Door */}
       <rect 
@@ -93,27 +104,23 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
     <div className="flex flex-col items-center">
       <h2 className="text-2xl font-bold text-foreground mb-4">VIP Neighborhood</h2>
       
-      {/* Legend */}
+      {/* Gender Legend */}
       <div className="flex flex-wrap gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(40, 30%, 96%)" }} />
-          <span>Empty</span>
+          <span>Sin Asignar</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(90, 25%, 62%)" }} />
-          <span>Partial</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(330, 70%, 75%)" }} />
+          <span>♀ Femenino</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(80, 30%, 37%)" }} />
-          <span>Full</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(210, 70%, 65%)" }} />
+          <span>♂ Masculino</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(30, 35%, 35%)" }} />
-          <span>Needs Cleaning</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(40, 30%, 75%)" }} />
-          <span>Cleaning</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(270, 60%, 70%)" }} />
+          <span>👥 Mixto</span>
         </div>
       </div>
 
@@ -193,7 +200,8 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
           const pos = VIP_POSITIONS[tentNum];
           if (!pos) return null;
 
-          const fill = statusColor(node.cleaning, node.occupancySummary.used, node.occupancySummary.total);
+          const fill = genderColor(node.gender);
+          const stroke = genderStroke(node.gender);
           
           return (
             <g 
@@ -206,6 +214,7 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
                 x={pos.x} 
                 y={pos.y} 
                 fill={fill} 
+                stroke={stroke}
                 label={node.code} 
               />
             </g>

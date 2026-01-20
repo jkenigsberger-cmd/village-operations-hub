@@ -143,12 +143,13 @@ const Neighborhood = () => {
           used: summary.occupiedBeds,
           total: summary.totalBeds,
         },
-        onClick: () => navigate(`/tent/${tent.id}`),
+        onClick: () => setSelectedTent(tent),
         isAlef: tent.isAlef,
         doubleTentId: tent.doubleTentId,
+        gender: tent.gender,
       };
     });
-  }, [filteredTents, navigate]);
+  }, [filteredTents]);
 
   if (isLoading || !state) {
     return (
