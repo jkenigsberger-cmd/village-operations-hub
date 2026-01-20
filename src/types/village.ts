@@ -221,6 +221,7 @@ export interface NeighborhoodReservation {
   checkOutDate: string; // ISO date YYYY-MM-DD
   reservationType: ReservationType;
   tentIds?: string[]; // Only for SPECIFIC_TENTS reservations
+  tentCount?: number; // Number of tents to prepare (for FULL_NEIGHBORHOOD)
   totalBeds?: number;
   contactName?: string;
   contactPhone?: string;

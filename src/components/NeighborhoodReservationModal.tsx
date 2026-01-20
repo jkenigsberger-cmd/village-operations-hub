@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
-import { NeighborhoodId, Tent, TentGender } from '@/types/village';
+import { NeighborhoodId, Tent } from '@/types/village';
 import { 
   Calendar, 
   Users, 
@@ -27,7 +27,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface NeighborhoodReservationModalProps {
@@ -57,6 +56,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   const [selectedTentIds, setSelectedTentIds] = useState<string[]>([]);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [tentCount, setTentCount] = useState<number>(0); // Number of tents for FULL mode
   
   const [form, setForm] = useState({
     groupName: '',
@@ -200,6 +200,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         checkInDate: form.checkInDate,
         checkOutDate: form.checkOutDate,
         reservationType: 'FULL_NEIGHBORHOOD',
+        tentCount: tentCount || neighborhoodTents.length,
         contactName: form.contactName || undefined,
         contactPhone: form.contactPhone || undefined,
         notes: form.notes || undefined,
@@ -241,6 +242,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     setMode('FULL');
     setAvailabilityError(null);
     setShowOptionalFields(false);
+    setTentCount(0);
     onOpenChange(false);
   };
 
@@ -409,10 +411,74 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
             </div>
           )}
 
-          {/* Capacity Summary for FULL mode */}
+          {/* Capacity Summary and Tent Count for FULL mode */}
           {mode === 'FULL' && (
-            <div className="text-sm text-muted-foreground text-center p-3 bg-primary/10 rounded-lg">
-              Capacidad total: <strong>{neighborhoodTents.length}</strong> carpas, <strong>{totalNeighborhoodBeds}</strong> camas
+            <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
+              <h3 className="font-semibold flex items-center gap-2">
+                <TentIcon className="w-4 h-4" />
+                Cantidad de Carpas a Preparar
+              </h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="tentCount">
+                  ¿Cuántas carpas necesitan estar listas? (1-{neighborhoodTents.length})
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="tentCount"
+                    type="number"
+                    min={1}
+                    max={neighborhoodTents.length}
+                    value={tentCount || ''}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      setTentCount(Math.min(Math.max(value, 0), neighborhoodTents.length));
+                    }}
+                    placeholder={`1-${neighborhoodTents.length}`}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    de {neighborhoodTents.length} carpas disponibles
+                  </span>
+                </div>
+                
+                {/* Quick select buttons */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {[...Array(Math.min(neighborhoodTents.length, 8))].map((_, i) => (
+                    <Button
+                      key={i + 1}
+                      type="button"
+                      variant={tentCount === i + 1 ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTentCount(i + 1)}
+                      className="w-10 h-10"
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                  {neighborhoodTents.length > 8 && (
+                    <Button
+                      type="button"
+                      variant={tentCount === neighborhoodTents.length ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTentCount(neighborhoodTents.length)}
+                      className="px-3 h-10"
+                    >
+                      Todas ({neighborhoodTents.length})
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {tentCount > 0 && (
+                <div className="text-sm text-center p-3 bg-primary/10 rounded-lg">
+                  <strong>{tentCount}</strong> carpas a preparar = aprox. <strong>{Math.round((tentCount / neighborhoodTents.length) * totalNeighborhoodBeds)}</strong> camas
+                </div>
+              )}
+              
+              <div className="text-xs text-muted-foreground text-center">
+                Capacidad máxima del vecindario: {neighborhoodTents.length} carpas, {totalNeighborhoodBeds} camas
+              </div>
             </div>
           )}
 
