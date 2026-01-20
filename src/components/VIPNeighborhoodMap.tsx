@@ -206,10 +206,9 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
           const pos = VIP_POSITIONS[tentNum];
           if (!pos) return null;
 
-          // Check if tent has reservation (occupancy > 0 indicates reservation)
-          const hasReservation = node.occupancySummary && node.occupancySummary.used > 0;
-          const fill = genderColor(node.gender, hasReservation);
-          const stroke = genderStroke(node.gender, hasReservation);
+          // Use hasReservation from node (synced with Neighborhood.tsx)
+          const fill = genderColor(node.gender, node.hasReservation);
+          const stroke = genderStroke(node.gender, node.hasReservation);
           
           return (
             <g 
