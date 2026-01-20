@@ -72,6 +72,41 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     }
   }, [tentId, bedsJson]);
 
+  // Organize beds by bunk - MUST be before early return to maintain hook order
+  const { bunkBeds, singleBeds } = useMemo(() => {
+    if (!tent) return { bunkBeds: [], singleBeds: [] };
+
+    const bunks: { top: BedType; bottom: BedType }[] = [];
+    const singles: BedType[] = [];
+
+    const bunkTops = tent.beds.filter(b => b.type === 'BUNK_TOP');
+    const bunkBottoms = tent.beds.filter(b => b.type === 'BUNK_BOTTOM');
+
+    bunkTops.forEach(top => {
+      const bottom = bunkBottoms.find(b => b.bunkNumber === top.bunkNumber);
+      if (bottom) {
+        bunks.push({ top, bottom });
+      }
+    });
+
+    tent.beds.filter(b => b.type === 'SINGLE').forEach(bed => {
+      singles.push(bed);
+    });
+
+    return { bunkBeds: bunks, singleBeds: singles };
+  }, [tent]);
+
+  // Stats - also before early return
+  const stats = useMemo(() => {
+    if (!tent) return { total: 0, free: 0, reserved: 0, occupied: 0 };
+    return {
+      total: tent.beds.length,
+      free: tent.beds.filter(b => b.status === 'FREE').length,
+      reserved: tent.beds.filter(b => b.status === 'RESERVED').length,
+      occupied: tent.beds.filter(b => b.status === 'OCCUPIED').length,
+    };
+  }, [tent]);
+
   if (!tent || !state) return null;
 
   const isVIP = tent.isVIP;
@@ -105,37 +140,6 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
       updateBedGuestName(bedId, name);
     });
     toast.success('Nombres guardados');
-  };
-
-  // Organize beds by bunk
-  const { bunkBeds, singleBeds } = useMemo(() => {
-    if (!tent) return { bunkBeds: [], singleBeds: [] };
-
-    const bunks: { top: BedType; bottom: BedType }[] = [];
-    const singles: BedType[] = [];
-
-    const bunkTops = tent.beds.filter(b => b.type === 'BUNK_TOP');
-    const bunkBottoms = tent.beds.filter(b => b.type === 'BUNK_BOTTOM');
-
-    bunkTops.forEach(top => {
-      const bottom = bunkBottoms.find(b => b.bunkNumber === top.bunkNumber);
-      if (bottom) {
-        bunks.push({ top, bottom });
-      }
-    });
-
-    tent.beds.filter(b => b.type === 'SINGLE').forEach(bed => {
-      singles.push(bed);
-    });
-
-    return { bunkBeds: bunks, singleBeds: singles };
-  }, [tent]);
-
-  const stats = {
-    total: tent.beds.length,
-    free: tent.beds.filter(b => b.status === 'FREE').length,
-    reserved: tent.beds.filter(b => b.status === 'RESERVED').length,
-    occupied: tent.beds.filter(b => b.status === 'OCCUPIED').length,
   };
 
   return (
