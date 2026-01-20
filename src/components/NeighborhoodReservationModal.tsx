@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
-import { NeighborhoodId, Tent } from '@/types/village';
+import { NeighborhoodId, Tent, TentGender, GenderCount } from '@/types/village';
 import { 
   Calendar, 
   Users, 
@@ -58,6 +58,12 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [tentCount, setTentCount] = useState<number>(0); // Number of tents for FULL mode
   
+  // Gender distribution for reservation
+  const [genderCounts, setGenderCounts] = useState<GenderCount>({ female: 0, male: 0, mixed: 0 });
+  
+  // Gender assignments for specific tent mode
+  const [tentGenders, setTentGenders] = useState<Record<string, TentGender>>({});
+  
   const [form, setForm] = useState({
     groupName: '',
     checkInDate: new Date().toISOString().split('T')[0],
@@ -92,6 +98,16 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   const totalNeighborhoodBeds = useMemo(() => {
     return neighborhoodTents.reduce((acc, tent) => acc + tent.beds.length, 0);
   }, [neighborhoodTents]);
+
+  // Total gender count sum
+  const totalGenderTents = genderCounts.female + genderCounts.male + genderCounts.mixed;
+  
+  // Calculate estimated beds based on gender distribution
+  const estimatedBedsByGender = useMemo(() => {
+    if (neighborhoodTents.length === 0) return 0;
+    const avgBedsPerTent = totalNeighborhoodBeds / neighborhoodTents.length;
+    return Math.round(totalGenderTents * avgBedsPerTent);
+  }, [totalGenderTents, totalNeighborhoodBeds, neighborhoodTents.length]);
 
   // Check availability when dates change
   const handleDateChange = (field: 'checkInDate' | 'checkOutDate', value: string) => {
@@ -200,7 +216,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         checkInDate: form.checkInDate,
         checkOutDate: form.checkOutDate,
         reservationType: 'FULL_NEIGHBORHOOD',
-        tentCount: tentCount || neighborhoodTents.length,
+        tentCount: totalGenderTents || tentCount || neighborhoodTents.length,
+        genderDistribution: totalGenderTents > 0 ? genderCounts : undefined,
         contactName: form.contactName || undefined,
         contactPhone: form.contactPhone || undefined,
         notes: form.notes || undefined,
@@ -209,6 +226,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
       result = reserveSpecificTents({
         neighborhoodId,
         tentIds: selectedTentIds,
+        tentGenders,
         groupName: form.groupName.trim(),
         checkInDate: form.checkInDate,
         checkOutDate: form.checkOutDate,
@@ -243,6 +261,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     setAvailabilityError(null);
     setShowOptionalFields(false);
     setTentCount(0);
+    setGenderCounts({ female: 0, male: 0, mixed: 0 });
+    setTentGenders({});
     onOpenChange(false);
   };
 
@@ -349,7 +369,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold flex items-center gap-2">
                   <TentIcon className="w-4 h-4" />
-                  Seleccionar Carpas
+                  Seleccionar Carpas y Género
                 </h3>
                 <Button
                   type="button"
@@ -361,51 +381,115 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                 {neighborhoodTents.map(tent => {
                   const status = getTentStatus(tent);
                   const isSelected = selectedTentIds.includes(tent.id);
                   const isDisabled = status === 'unavailable';
+                  const currentGender = tentGenders[tent.id] || tent.gender || 'MIXED';
+                  
+                  const genderBorderColor = isSelected ? (
+                    currentGender === 'FEMALE' ? 'border-pink-500 bg-pink-50' :
+                    currentGender === 'MALE' ? 'border-blue-500 bg-blue-50' :
+                    'border-purple-500 bg-purple-50'
+                  ) : '';
                   
                   return (
-                    <button
+                    <div
                       key={tent.id}
-                      type="button"
-                      onClick={() => !isDisabled && handleTentToggle(tent.id)}
-                      disabled={isDisabled}
                       className={cn(
-                        'p-3 rounded-lg border-2 text-left transition-all',
+                        'p-3 rounded-lg border-2 transition-all',
                         isDisabled && 'opacity-50 cursor-not-allowed bg-muted',
-                        isSelected && !isDisabled && 'border-primary bg-primary/10',
+                        isSelected && !isDisabled && genderBorderColor,
                         !isSelected && !isDisabled && 'border-border hover:border-primary/50'
                       )}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{tent.code}</span>
-                        {isSelected && <Check className="w-4 h-4 text-primary" />}
-                        {isDisabled && <X className="w-4 h-4 text-destructive" />}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {tent.beds.length} camas
-                        {tent.gender && tent.gender !== 'MIXED' && (
-                          <span className="ml-1">
-                            • {tent.gender === 'MALE' ? '♂️' : '♀️'}
-                          </span>
+                      <button
+                        type="button"
+                        onClick={() => !isDisabled && handleTentToggle(tent.id)}
+                        disabled={isDisabled}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{tent.code}</span>
+                          <div className="flex items-center gap-1">
+                            {isSelected && <Check className="w-4 h-4 text-primary" />}
+                            {isDisabled && <X className="w-4 h-4 text-destructive" />}
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {tent.beds.length} camas
+                        </div>
+                        {isDisabled && tent.groupName && (
+                          <div className="text-xs text-destructive mt-1">
+                            Ocupada: {tent.groupName}
+                          </div>
                         )}
-                      </div>
-                      {isDisabled && tent.groupName && (
-                        <div className="text-xs text-destructive mt-1">
-                          Ocupada: {tent.groupName}
+                      </button>
+                      
+                      {/* Gender selector - only show when selected */}
+                      {isSelected && !isDisabled && (
+                        <div className="flex gap-1 mt-2 pt-2 border-t">
+                          <button
+                            type="button"
+                            onClick={() => setTentGenders(prev => ({ ...prev, [tent.id]: 'FEMALE' }))}
+                            className={cn(
+                              'flex-1 py-1 rounded text-xs font-medium transition-all',
+                              currentGender === 'FEMALE' 
+                                ? 'bg-pink-500 text-white' 
+                                : 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                            )}
+                          >
+                            ♀ Fem
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTentGenders(prev => ({ ...prev, [tent.id]: 'MALE' }))}
+                            className={cn(
+                              'flex-1 py-1 rounded text-xs font-medium transition-all',
+                              currentGender === 'MALE' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            )}
+                          >
+                            ♂ Masc
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTentGenders(prev => ({ ...prev, [tent.id]: 'MIXED' }))}
+                            className={cn(
+                              'flex-1 py-1 rounded text-xs font-medium transition-all',
+                              currentGender === 'MIXED' 
+                                ? 'bg-purple-500 text-white' 
+                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                            )}
+                          >
+                            ⚥ Mixto
+                          </button>
                         </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
 
               {selectedTentIds.length > 0 && (
-                <div className="text-sm text-muted-foreground text-center p-2 bg-primary/10 rounded-lg">
-                  Seleccionadas: <strong>{selectedTentIds.length}</strong> carpas, <strong>{selectedBeds}</strong> camas
+                <div className="text-sm text-center p-3 bg-primary/10 rounded-lg space-y-1">
+                  <div>
+                    Seleccionadas: <strong>{selectedTentIds.length}</strong> carpas, <strong>{selectedBeds}</strong> camas
+                  </div>
+                  {/* Show gender breakdown */}
+                  <div className="flex justify-center gap-3 flex-wrap text-xs">
+                    {Object.values(tentGenders).filter(g => g === 'FEMALE').length > 0 && (
+                      <span className="text-pink-600">♀ {Object.values(tentGenders).filter(g => g === 'FEMALE').length}</span>
+                    )}
+                    {Object.values(tentGenders).filter(g => g === 'MALE').length > 0 && (
+                      <span className="text-blue-600">♂ {Object.values(tentGenders).filter(g => g === 'MALE').length}</span>
+                    )}
+                    {Object.values(tentGenders).filter(g => g === 'MIXED').length > 0 && (
+                      <span className="text-purple-600">⚥ {Object.values(tentGenders).filter(g => g === 'MIXED').length}</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -416,68 +500,126 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
             <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
               <h3 className="font-semibold flex items-center gap-2">
                 <TentIcon className="w-4 h-4" />
-                Cantidad de Carpas a Preparar
+                Distribución de Carpas por Género
               </h3>
               
-              <div className="space-y-2">
-                <Label htmlFor="tentCount">
-                  ¿Cuántas carpas necesitan estar listas? (1-{neighborhoodTents.length})
-                </Label>
-                <div className="flex items-center gap-3">
-                  <Input
-                    id="tentCount"
-                    type="number"
-                    min={1}
-                    max={neighborhoodTents.length}
-                    value={tentCount || ''}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || 0;
-                      setTentCount(Math.min(Math.max(value, 0), neighborhoodTents.length));
-                    }}
-                    placeholder={`1-${neighborhoodTents.length}`}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    de {neighborhoodTents.length} carpas disponibles
-                  </span>
+              {/* Gender distribution inputs */}
+              <div className="grid grid-cols-3 gap-3">
+                {/* Female */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-pink-600">
+                    <span className="w-3 h-3 rounded-full bg-pink-500" />
+                    Femenino
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGenderCounts(prev => ({ ...prev, female: Math.max(0, prev.female - 1) }))}
+                      disabled={genderCounts.female === 0}
+                      className="w-8 h-8 p-0"
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center font-semibold text-pink-600">{genderCounts.female}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGenderCounts(prev => ({ ...prev, female: Math.min(neighborhoodTents.length - prev.male - prev.mixed, prev.female + 1) }))}
+                      disabled={totalGenderTents >= neighborhoodTents.length}
+                      className="w-8 h-8 p-0"
+                    >
+                      +
+                    </Button>
+                  </div>
                 </div>
                 
-                {/* Quick select buttons */}
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {[...Array(Math.min(neighborhoodTents.length, 8))].map((_, i) => (
-                    <Button
-                      key={i + 1}
-                      type="button"
-                      variant={tentCount === i + 1 ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTentCount(i + 1)}
-                      className="w-10 h-10"
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
-                  {neighborhoodTents.length > 8 && (
+                {/* Male */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-blue-600">
+                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                    Masculino
+                  </Label>
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      variant={tentCount === neighborhoodTents.length ? 'default' : 'outline'}
+                      variant="outline"
                       size="sm"
-                      onClick={() => setTentCount(neighborhoodTents.length)}
-                      className="px-3 h-10"
+                      onClick={() => setGenderCounts(prev => ({ ...prev, male: Math.max(0, prev.male - 1) }))}
+                      disabled={genderCounts.male === 0}
+                      className="w-8 h-8 p-0"
                     >
-                      Todas ({neighborhoodTents.length})
+                      -
                     </Button>
-                  )}
+                    <span className="w-8 text-center font-semibold text-blue-600">{genderCounts.male}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGenderCounts(prev => ({ ...prev, male: Math.min(neighborhoodTents.length - prev.female - prev.mixed, prev.male + 1) }))}
+                      disabled={totalGenderTents >= neighborhoodTents.length}
+                      className="w-8 h-8 p-0"
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Mixed */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-purple-600">
+                    <span className="w-3 h-3 rounded-full bg-purple-500" />
+                    Mixto
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGenderCounts(prev => ({ ...prev, mixed: Math.max(0, prev.mixed - 1) }))}
+                      disabled={genderCounts.mixed === 0}
+                      className="w-8 h-8 p-0"
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center font-semibold text-purple-600">{genderCounts.mixed}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGenderCounts(prev => ({ ...prev, mixed: Math.min(neighborhoodTents.length - prev.female - prev.male, prev.mixed + 1) }))}
+                      disabled={totalGenderTents >= neighborhoodTents.length}
+                      className="w-8 h-8 p-0"
+                    >
+                      +
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              {tentCount > 0 && (
-                <div className="text-sm text-center p-3 bg-primary/10 rounded-lg">
-                  <strong>{tentCount}</strong> carpas a preparar = aprox. <strong>{Math.round((tentCount / neighborhoodTents.length) * totalNeighborhoodBeds)}</strong> camas
+              {totalGenderTents > 0 && (
+                <div className="text-sm text-center p-3 bg-primary/10 rounded-lg space-y-1">
+                  <div className="flex justify-center gap-4 flex-wrap">
+                    {genderCounts.female > 0 && (
+                      <span className="text-pink-600">♀ {genderCounts.female} carpas</span>
+                    )}
+                    {genderCounts.male > 0 && (
+                      <span className="text-blue-600">♂ {genderCounts.male} carpas</span>
+                    )}
+                    {genderCounts.mixed > 0 && (
+                      <span className="text-purple-600">⚥ {genderCounts.mixed} carpas</span>
+                    )}
+                  </div>
+                  <div>
+                    <strong>{totalGenderTents}</strong> carpas = aprox. <strong>{estimatedBedsByGender}</strong> camas
+                  </div>
                 </div>
               )}
               
               <div className="text-xs text-muted-foreground text-center">
-                Capacidad máxima del vecindario: {neighborhoodTents.length} carpas, {totalNeighborhoodBeds} camas
+                Capacidad máxima: {neighborhoodTents.length} carpas, {totalNeighborhoodBeds} camas
               </div>
             </div>
           )}
