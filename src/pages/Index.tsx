@@ -47,7 +47,10 @@ const Index = () => {
     removeFacilityReservation,
     getFacilityReservations,
     reportFacilityIssue,
-    resolveFacilityIssue
+    resolveFacilityIssue,
+    getDailyTasks,
+    removeDailyTask,
+    resolveTentFacilityIssue
   } = useVillage();
 
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
@@ -80,6 +83,15 @@ const Index = () => {
     f => f.workingStatus === 'BROKEN' || f.workingStatus === 'MAINTENANCE'
   );
 
+  // VIP Maintenance tasks from dailyTasks (baños y duchas VIP)
+  const today = new Date().toISOString().split('T')[0];
+  const vipMaintenanceTasks = getDailyTasks(today).filter(
+    task => task.type === 'MAINTENANCE' && task.status !== 'COMPLETED' && task.entityType === 'TENT'
+  );
+
+  // Combined maintenance count
+  const totalMaintenanceCount = maintenanceItems.length + vipMaintenanceTasks.length;
+
   // Housekeeping items - tents and facilities that need cleaning
   const tentsNeedingCleaning = Object.values(state.tents).filter(
     t => t.cleaningStatus === 'NEEDS_CLEANING'
@@ -94,7 +106,7 @@ const Index = () => {
     { key: 'neighborhoods', label: 'Neighborhoods', icon: Tent },
     { key: 'facilities', label: 'Common Facilities', icon: Flame },
     { key: 'bathrooms', label: 'Bathrooms', icon: ShowerHead, count: facilitiesNeedingAttention.length },
-    { key: 'maintenance', label: 'Maintenance', icon: Wrench, count: maintenanceItems.length },
+    { key: 'maintenance', label: 'Maintenance', icon: Wrench, count: totalMaintenanceCount },
     { key: 'housekeeping', label: 'Housekeeping', icon: Sparkles, count: totalHousekeepingItems },
     { key: 'notes', label: 'Important Notes', icon: StickyNote },
   ];
@@ -361,7 +373,7 @@ const Index = () => {
               Items that need repair or maintenance attention
             </p>
 
-            {maintenanceItems.length === 0 ? (
+            {totalMaintenanceCount === 0 ? (
               <div className="tile p-8 text-center">
                 <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
                 <p className="text-xl text-muted-foreground">
@@ -370,6 +382,7 @@ const Index = () => {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Common Facilities Maintenance */}
                 {maintenanceItems.map((facility) => (
                   <div 
                     key={facility.id}
@@ -444,6 +457,73 @@ const Index = () => {
                     </div>
                   </div>
                 ))}
+
+                {/* VIP Tent Maintenance Tasks */}
+                {vipMaintenanceTasks.map((task) => {
+                  const tent = task.entityId ? state.tents[task.entityId] : null;
+                  const facilityType = task.title.includes('Baño') ? 'bathroom' : 'shower';
+                  
+                  return (
+                    <div 
+                      key={task.id}
+                      className="tile p-4 border-amber-300 bg-amber-50/50"
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Photo thumbnail or VIP icon */}
+                        {task.maintenanceImage ? (
+                          <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-amber-500/50 flex-shrink-0">
+                            <img 
+                              src={task.maintenanceImage} 
+                              alt="Maintenance issue" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-500/10 text-amber-700">
+                            <Sparkles className="w-6 h-6" />
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            {task.title}
+                            <span className="px-2 py-0.5 bg-amber-500 text-white rounded-full text-xs">VIP</span>
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Carpa VIP - {tent?.code || 'Unknown'}
+                          </p>
+                          <span className="inline-block text-xs font-semibold px-2 py-1 rounded-full mt-1 bg-destructive/10 text-destructive">
+                            {task.description?.includes('ROTO') ? '🔧 Roto' : '⚠️ Mantenimiento'}
+                          </span>
+                          {task.description && (
+                            <p className="text-sm text-foreground mt-2 p-2 bg-white/50 rounded-lg">
+                              📝 {task.description}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 flex-shrink-0">
+                          <Button
+                            onClick={() => {
+                              // Resolve the tent facility issue
+                              if (tent) {
+                                resolveTentFacilityIssue(tent.id, facilityType);
+                              }
+                              // Remove the task
+                              removeDailyTask(task.id);
+                              toast.success('Tarea VIP completada');
+                            }}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Done
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
