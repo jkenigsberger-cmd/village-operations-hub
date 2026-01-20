@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
-import { ActionTile } from '@/components/ActionTile';
 import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
 import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
+import { TentCard } from '@/components/TentCard';
 import { 
   Calendar, 
   Bath, 
@@ -21,7 +21,9 @@ import {
   Wrench,
   Sparkles,
   CheckCircle,
-  Camera
+  Camera,
+  ArrowLeft,
+  CalendarCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,7 +32,7 @@ import { toast } from 'sonner';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
-type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert';
+type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 const Index = () => {
   const { 
@@ -190,33 +192,93 @@ const Index = () => {
                 Today's Overview
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <ActionTile
-                  title="Check-ins"
-                  icon={Calendar}
-                  to="/today"
-                  count={todaySummary.checkIns.length}
-                  variant={todaySummary.checkIns.length > 0 ? 'success' : 'default'}
-                />
-                <ActionTile
-                  title="Check-outs"
-                  icon={Calendar}
-                  to="/today"
-                  count={todaySummary.checkOuts.length}
-                />
-                <ActionTile
-                  title="Needs Cleaning"
-                  icon={Tent}
-                  to="/today"
-                  count={todaySummary.tentsToCleaning.length}
-                  variant={todaySummary.tentsToCleaning.length > 0 ? 'warning' : 'default'}
-                />
+                {/* Check-ins Tile */}
+                <div 
+                  onClick={() => setActiveSection('check-ins')}
+                  className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 ${
+                    todaySummary.checkIns.length > 0 ? 'border-green-500' : 'border-muted'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                      todaySummary.checkIns.length > 0 
+                        ? 'bg-green-500/20 text-green-600' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Calendar className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">Check-ins</h3>
+                      <p className="text-sm text-muted-foreground">Today's arrivals</p>
+                    </div>
+                    {todaySummary.checkIns.length > 0 && (
+                      <span className="px-3 py-1.5 rounded-full bg-green-500 text-white font-bold text-lg">
+                        {todaySummary.checkIns.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Check-outs Tile */}
+                <div 
+                  onClick={() => setActiveSection('check-outs')}
+                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 border-muted"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                      todaySummary.checkOuts.length > 0 
+                        ? 'bg-blue-500/20 text-blue-600' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Calendar className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">Check-outs</h3>
+                      <p className="text-sm text-muted-foreground">Today's departures</p>
+                    </div>
+                    {todaySummary.checkOuts.length > 0 && (
+                      <span className="px-3 py-1.5 rounded-full bg-blue-500 text-white font-bold text-lg">
+                        {todaySummary.checkOuts.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Needs Cleaning Tile */}
+                <div 
+                  onClick={() => setActiveSection('needs-cleaning')}
+                  className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 ${
+                    todaySummary.tentsToCleaning.length > 0 ? 'border-yellow-500' : 'border-muted'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                      todaySummary.tentsToCleaning.length > 0 
+                        ? 'bg-yellow-500/20 text-yellow-600' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Tent className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">Needs Cleaning</h3>
+                      <p className="text-sm text-muted-foreground">Tents to clean</p>
+                    </div>
+                    {todaySummary.tentsToCleaning.length > 0 && (
+                      <span className="px-3 py-1.5 rounded-full bg-yellow-500 text-white font-bold text-lg">
+                        {todaySummary.tentsToCleaning.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Facilities Alert Tile */}
                 <div 
                   onClick={() => setActiveSection('facilities-alert')}
                   className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 border-destructive"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                      todaySummary.facilitiesNeedAttention.length > 0 
+                      (totalMaintenanceCount + totalHousekeepingItems) > 0 
                         ? 'bg-destructive/20 text-destructive' 
                         : 'bg-muted text-muted-foreground'
                     }`}>
@@ -732,6 +794,135 @@ const Index = () => {
                 This section will allow you to add and manage important notes for the team.
               </p>
             </div>
+          </section>
+        )}
+
+        {/* Check-ins Section */}
+        {activeSection === 'check-ins' && (
+          <section>
+            <div className="flex items-center gap-4 mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveSection('overview')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-green-500/20 rounded-xl">
+                <Calendar className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Check-ins Today</h2>
+                <p className="text-muted-foreground">{todaySummary.checkIns.length} groups arriving</p>
+              </div>
+            </div>
+            
+            {todaySummary.checkIns.length === 0 ? (
+              <div className="tile p-8 text-center text-muted-foreground">
+                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-xl">No check-ins today</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {todaySummary.checkIns.map((tent) => (
+                  <TentCard
+                    key={tent.tentId}
+                    summary={tent}
+                    to={`/tent/${tent.tentId}`}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Check-outs Section */}
+        {activeSection === 'check-outs' && (
+          <section>
+            <div className="flex items-center gap-4 mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveSection('overview')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-blue-500/20 rounded-xl">
+                <CalendarCheck className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Check-outs Today</h2>
+                <p className="text-muted-foreground">{todaySummary.checkOuts.length} groups leaving</p>
+              </div>
+            </div>
+            
+            {todaySummary.checkOuts.length === 0 ? (
+              <div className="tile p-8 text-center text-muted-foreground">
+                <CalendarCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-xl">No check-outs today</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {todaySummary.checkOuts.map((tent) => (
+                  <TentCard
+                    key={tent.tentId}
+                    summary={tent}
+                    to={`/tent/${tent.tentId}`}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Needs Cleaning Section */}
+        {activeSection === 'needs-cleaning' && (
+          <section>
+            <div className="flex items-center gap-4 mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveSection('overview')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-yellow-500/20 rounded-xl">
+                <Sparkles className="w-8 h-8 text-yellow-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Tents Needing Cleaning</h2>
+                <p className="text-muted-foreground">{todaySummary.tentsToCleaning.length} tents to clean</p>
+              </div>
+            </div>
+            
+            {todaySummary.tentsToCleaning.length === 0 ? (
+              <div className="tile p-8 text-center bg-green-500/10 border-green-500">
+                <Sparkles className="w-12 h-12 mx-auto mb-3 text-green-500" />
+                <p className="text-xl font-medium">All tents are clean! ✨</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {todaySummary.tentsToCleaning.map((tent) => (
+                  <TentCard
+                    key={tent.tentId}
+                    summary={tent}
+                    to={`/tent/${tent.tentId}`}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
