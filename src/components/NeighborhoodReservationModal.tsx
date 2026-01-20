@@ -687,11 +687,15 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={handleClose}>
+          <Button type="button" variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
           <Button 
-            onClick={handleSubmit}
+            type="button"
+            onClick={() => {
+              console.log('Create reservation clicked', { mode, form, selectedTentIds, availabilityError });
+              handleSubmit();
+            }}
             disabled={!!availabilityError || (mode === 'SPECIFIC' && selectedTentIds.length === 0)}
           >
             <Check className="w-4 h-4 mr-2" />
