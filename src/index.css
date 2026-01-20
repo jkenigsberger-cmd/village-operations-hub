@@ -89,6 +89,14 @@
     /* VIP accent */
     --vip: 45 80% 50%;
     --vip-foreground: 30 30% 15%;
+    
+    /* Gender colors */
+    --gender-female: 340 65% 55%;
+    --gender-female-light: 340 55% 92%;
+    --gender-male: 210 65% 50%;
+    --gender-male-light: 210 55% 92%;
+    --gender-unisex: 270 50% 55%;
+    --gender-unisex-light: 270 40% 92%;
   }
 
   .dark {
@@ -249,6 +257,22 @@
   .bg-vip {
     background-color: hsl(var(--vip));
     color: hsl(var(--vip-foreground));
+  }
+
+  /* Gender-based facility tiles */
+  .bg-gender-female {
+    background-color: hsl(var(--gender-female-light));
+    border-color: hsl(var(--gender-female));
+  }
+
+  .bg-gender-male {
+    background-color: hsl(var(--gender-male-light));
+    border-color: hsl(var(--gender-male));
+  }
+
+  .bg-gender-unisex {
+    background-color: hsl(var(--gender-unisex-light));
+    border-color: hsl(var(--gender-unisex));
   }
 }
 
