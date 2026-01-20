@@ -30,7 +30,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-
+import { compressImageFileToDataUrl } from '@/lib/imageCompression';
 interface TentDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -181,12 +181,18 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     toast.success(`Estado de limpieza: ${cleaningStatusOptions.find(s => s.value === status)?.label}`);
   };
 
-  const handleFileSelect = (
+  const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>, 
     setImage: (img: string | null) => void
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      const dataUrl = await compressImageFileToDataUrl(file);
+      setImage(dataUrl);
+    } catch (error) {
+      console.error('Error processing image:', error);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result as string);
