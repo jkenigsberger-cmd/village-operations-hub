@@ -63,6 +63,7 @@ interface VillageContextType {
   reserveSpecificTents: (params: {
     neighborhoodId: NeighborhoodId;
     tentIds: string[];
+    tentGenders?: Record<string, TentGender>;
     groupName: string;
     checkInDate: string;
     checkOutDate: string;
@@ -629,9 +630,31 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updatedTents = { ...state.tents };
     const updatedBeds = { ...state.beds };
 
+    // Assign genders based on distribution
+    const genderDistribution = reservation.genderDistribution;
+    let femaleCount = genderDistribution?.female || 0;
+    let maleCount = genderDistribution?.male || 0;
+    let mixedCount = genderDistribution?.mixed || 0;
+    let tentIndex = 0;
+
     for (const tentId of neighborhood.tentIds) {
       const tent = updatedTents[tentId];
       if (!tent) continue;
+
+      // Determine gender for this tent based on distribution
+      let assignedGender: TentGender | undefined = undefined;
+      if (genderDistribution && (femaleCount > 0 || maleCount > 0 || mixedCount > 0)) {
+        if (femaleCount > 0) {
+          assignedGender = 'FEMALE';
+          femaleCount--;
+        } else if (maleCount > 0) {
+          assignedGender = 'MALE';
+          maleCount--;
+        } else if (mixedCount > 0) {
+          assignedGender = 'MIXED';
+          mixedCount--;
+        }
+      }
 
       // Set group name, check-in and check-out dates
       updatedTents[tentId] = {
@@ -639,6 +662,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
         groupName: reservation.groupName,
         checkInDate: reservation.checkInDate,
         checkOutDate: reservation.checkOutDate,
+        gender: assignedGender || tent.gender,
         lastUpdated: new Date().toISOString(),
       };
 
@@ -649,6 +673,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
         return reservedBed;
       });
       updatedTents[tentId].beds = updatedTentBeds;
+      tentIndex++;
     }
 
     const updatedReservations = {
@@ -686,6 +711,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   const reserveSpecificTents = (params: {
     neighborhoodId: NeighborhoodId;
     tentIds: string[];
+    tentGenders?: Record<string, TentGender>;
     groupName: string;
     checkInDate: string;
     checkOutDate: string;
@@ -695,7 +721,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   }): { success: boolean; error?: string } => {
     if (!state) return { success: false, error: 'Estado no disponible' };
 
-    const { neighborhoodId, tentIds, groupName, checkInDate, checkOutDate, contactName, contactPhone, notes } = params;
+    const { neighborhoodId, tentIds, tentGenders, groupName, checkInDate, checkOutDate, contactName, contactPhone, notes } = params;
 
     // Validate dates
     if (checkInDate >= checkOutDate) {
@@ -744,11 +770,15 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       const tent = updatedTents[tentId];
       if (!tent) continue;
 
+      // Get assigned gender for this tent
+      const assignedGender = tentGenders?.[tentId] || tent.gender;
+
       updatedTents[tentId] = {
         ...tent,
         groupName,
         checkInDate,
         checkOutDate,
+        gender: assignedGender,
         lastUpdated: new Date().toISOString(),
       };
 

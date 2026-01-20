@@ -213,6 +213,12 @@ export interface TodaySummary {
 
 export type ReservationType = 'FULL_NEIGHBORHOOD' | 'SPECIFIC_TENTS';
 
+export interface GenderCount {
+  female: number;
+  male: number;
+  mixed: number;
+}
+
 export interface NeighborhoodReservation {
   id: string;
   neighborhoodId: NeighborhoodId;
@@ -222,6 +228,7 @@ export interface NeighborhoodReservation {
   reservationType: ReservationType;
   tentIds?: string[]; // Only for SPECIFIC_TENTS reservations
   tentCount?: number; // Number of tents to prepare (for FULL_NEIGHBORHOOD)
+  genderDistribution?: GenderCount; // Distribution of tents by gender
   totalBeds?: number;
   contactName?: string;
   contactPhone?: string;
