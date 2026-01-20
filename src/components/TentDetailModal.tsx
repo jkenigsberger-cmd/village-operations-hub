@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useVillage } from '@/context/VillageContext';
-import { Tent, TentGender, Bed as BedType } from '@/types/village';
+import { Tent, TentGender, Bed as BedType, CleaningStatus, WorkingStatus } from '@/types/village';
 import { 
   X,
   Users,
@@ -11,7 +11,11 @@ import {
   Accessibility,
   MessageSquare,
   User,
-  Save
+  Save,
+  Camera,
+  AlertTriangle,
+  Wrench,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -39,6 +43,12 @@ const genderOptions: { value: TentGender; label: string; icon: string }[] = [
   { value: 'FEMALE', label: 'Mujeres', icon: '♀️' },
 ];
 
+const cleaningStatusOptions: { value: CleaningStatus; label: string; className: string }[] = [
+  { value: 'CLEAN', label: 'Limpio', className: 'bg-green-500 text-white' },
+  { value: 'NEEDS_CLEANING', label: 'Necesita Limpieza', className: 'bg-yellow-500 text-white' },
+  { value: 'CLEANING_IN_PROGRESS', label: 'En Progreso', className: 'bg-blue-500 text-white' },
+];
+
 export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   open,
   onOpenChange,
@@ -52,10 +62,27 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     updateTentGender,
     updateTentPrivateBathroom,
     updateTentPrivateShower,
+    updateTentCleaningStatus,
     updateBedGuestName,
+    reportTentFacilityIssue,
+    resolveTentFacilityIssue,
   } = useVillage();
 
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
+  const [cleaningWorker, setCleaningWorker] = useState('');
+  
+  // VIP facility maintenance states
+  const [showBathroomIssue, setShowBathroomIssue] = useState(false);
+  const [showShowerIssue, setShowShowerIssue] = useState(false);
+  const [bathroomNotes, setBathroomNotes] = useState('');
+  const [bathroomImage, setBathroomImage] = useState<string | null>(null);
+  const [showerNotes, setShowerNotes] = useState('');
+  const [showerImage, setShowerImage] = useState<string | null>(null);
+  const [bathroomStatus, setBathroomStatus] = useState<WorkingStatus>('BROKEN');
+  const [showerStatus, setShowerStatus] = useState<WorkingStatus>('BROKEN');
+  
+  const bathroomFileRef = useRef<HTMLInputElement>(null);
+  const showerFileRef = useRef<HTMLInputElement>(null);
 
   // Get tent ID for dependency - memoize beds as JSON string for stable comparison
   const tentId = tent?.id;
@@ -69,8 +96,14 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
         names[bed.id] = bed.guestName || '';
       });
       setLocalGuestNames(names);
+      setCleaningWorker(tent.cleaningAssignedTo || '');
+      // Initialize VIP facility states
+      setBathroomNotes(tent.bathroomMaintenanceNotes || '');
+      setBathroomImage(tent.bathroomMaintenanceImage || null);
+      setShowerNotes(tent.showerMaintenanceNotes || '');
+      setShowerImage(tent.showerMaintenanceImage || null);
     }
-  }, [tentId, bedsJson]);
+  }, [tentId, bedsJson, tent?.cleaningAssignedTo, tent?.bathroomMaintenanceNotes, tent?.bathroomMaintenanceImage, tent?.showerMaintenanceNotes, tent?.showerMaintenanceImage]);
 
   // Organize beds by bunk - MUST be before early return to maintain hook order
   const { bunkBeds, singleBeds } = useMemo(() => {
@@ -142,6 +175,55 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     toast.success('Nombres guardados');
   };
 
+  const handleCleaningStatusChange = (status: CleaningStatus) => {
+    updateTentCleaningStatus(tent.id, status, cleaningWorker || undefined);
+    toast.success(`Estado de limpieza: ${cleaningStatusOptions.find(s => s.value === status)?.label}`);
+  };
+
+  const handleFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>, 
+    setImage: (img: string | null) => void
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmitBathroomIssue = () => {
+    if (!tent) return;
+    reportTentFacilityIssue(tent.id, 'bathroom', bathroomStatus, bathroomNotes, bathroomImage || undefined);
+    setShowBathroomIssue(false);
+    toast.success('Problema de baño reportado');
+  };
+
+  const handleSubmitShowerIssue = () => {
+    if (!tent) return;
+    reportTentFacilityIssue(tent.id, 'shower', showerStatus, showerNotes, showerImage || undefined);
+    setShowShowerIssue(false);
+    toast.success('Problema de ducha reportado');
+  };
+
+  const handleResolveBathroom = () => {
+    if (!tent) return;
+    resolveTentFacilityIssue(tent.id, 'bathroom');
+    setBathroomNotes('');
+    setBathroomImage(null);
+    toast.success('Baño marcado como funcionando');
+  };
+
+  const handleResolveShower = () => {
+    if (!tent) return;
+    resolveTentFacilityIssue(tent.id, 'shower');
+    setShowerNotes('');
+    setShowerImage(null);
+    toast.success('Ducha marcada como funcionando');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -174,6 +256,47 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             <span className="px-3 py-1.5 bg-orange-100 text-orange-800 rounded-lg text-sm font-medium">
               {stats.occupied} Ocupada
             </span>
+          </div>
+
+          {/* Cleaning Status with Worker Assignment */}
+          <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Estado de Limpieza
+            </h3>
+            
+            <div className="flex gap-2 flex-wrap">
+              {cleaningStatusOptions.map(option => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={tent.cleaningStatus === option.value ? 'default' : 'outline'}
+                  onClick={() => handleCleaningStatusChange(option.value)}
+                  className={cn('flex-1', tent.cleaningStatus === option.value && option.className)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Trabajador Asignado
+              </Label>
+              <Input
+                value={cleaningWorker}
+                onChange={(e) => setCleaningWorker(e.target.value)}
+                onBlur={() => updateTentCleaningStatus(tent.id, tent.cleaningStatus, cleaningWorker || undefined)}
+                placeholder="Nombre del trabajador..."
+              />
+            </div>
+            
+            {tent.cleaningAssignedTo && (
+              <div className="text-sm text-muted-foreground">
+                Asignado a: <span className="font-semibold">{tent.cleaningAssignedTo}</span>
+              </div>
+            )}
           </div>
 
           {/* Group Info */}
@@ -237,7 +360,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             </div>
           </div>
 
-          {/* VIP Options - Bathroom & Shower */}
+          {/* VIP Options - Bathroom & Shower with Maintenance */}
           {isVIP && (
             <div className="space-y-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <h3 className="font-semibold flex items-center gap-2 text-amber-800">
@@ -245,32 +368,264 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                 Opciones VIP
               </h3>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bath className="w-5 h-5 text-amber-700" />
-                  <div>
-                    <Label className="text-base">Baño Privado</Label>
-                    <p className="text-sm text-muted-foreground">Agregar baño a esta carpa</p>
+              {/* Bathroom Section */}
+              <div className="space-y-3 p-3 bg-white/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Bath className="w-5 h-5 text-amber-700" />
+                    <div>
+                      <Label className="text-base">Baño Privado</Label>
+                      <p className="text-sm text-muted-foreground">Agregar baño a esta carpa</p>
+                    </div>
                   </div>
+                  <Switch
+                    checked={tent.hasPrivateBathroom || false}
+                    onCheckedChange={handleBathroomToggle}
+                  />
                 </div>
-                <Switch
-                  checked={tent.hasPrivateBathroom || false}
-                  onCheckedChange={handleBathroomToggle}
-                />
+                
+                {/* Bathroom Maintenance */}
+                {tent.hasPrivateBathroom && (
+                  <div className="pt-2 border-t border-amber-200">
+                    {tent.bathroomWorkingStatus && tent.bathroomWorkingStatus !== 'WORKING' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            'px-2 py-1 rounded-full text-xs font-semibold',
+                            tent.bathroomWorkingStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
+                          )}>
+                            {tent.bathroomWorkingStatus === 'BROKEN' ? '⚠️ Roto' : '🔧 Mantenimiento'}
+                          </span>
+                          <Button size="sm" variant="outline" onClick={handleResolveBathroom}>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Marcar Funcionando
+                          </Button>
+                        </div>
+                        {tent.bathroomMaintenanceImage && (
+                          <img 
+                            src={tent.bathroomMaintenanceImage} 
+                            alt="Issue" 
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                        )}
+                        {tent.bathroomMaintenanceNotes && (
+                          <p className="text-sm text-muted-foreground">{tent.bathroomMaintenanceNotes}</p>
+                        )}
+                      </div>
+                    ) : showBathroomIssue ? (
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setBathroomStatus('BROKEN')}
+                            className={cn(
+                              'flex-1 px-3 py-2 rounded-lg text-sm font-semibold',
+                              bathroomStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-muted'
+                            )}
+                          >
+                            <AlertTriangle className="w-4 h-4 inline mr-1" />
+                            Roto
+                          </button>
+                          <button
+                            onClick={() => setBathroomStatus('MAINTENANCE')}
+                            className={cn(
+                              'flex-1 px-3 py-2 rounded-lg text-sm font-semibold',
+                              bathroomStatus === 'MAINTENANCE' ? 'bg-yellow-500 text-white' : 'bg-muted'
+                            )}
+                          >
+                            <Wrench className="w-4 h-4 inline mr-1" />
+                            Mantenimiento
+                          </button>
+                        </div>
+                        
+                        {bathroomImage ? (
+                          <div className="relative">
+                            <img src={bathroomImage} alt="Preview" className="w-full h-24 object-cover rounded-lg" />
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="absolute top-1 right-1"
+                              onClick={() => setBathroomImage(null)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => bathroomFileRef.current?.click()}
+                            className="w-full h-20 border-2 border-dashed border-amber-300 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-100"
+                          >
+                            <Camera className="w-5 h-5 text-amber-600" />
+                            <span className="text-sm text-amber-600">Agregar Foto</span>
+                          </button>
+                        )}
+                        <input
+                          ref={bathroomFileRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(e) => handleFileSelect(e, setBathroomImage)}
+                          className="hidden"
+                        />
+                        
+                        <Textarea
+                          value={bathroomNotes}
+                          onChange={(e) => setBathroomNotes(e.target.value)}
+                          placeholder="Descripción del problema..."
+                          rows={2}
+                        />
+                        
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setShowBathroomIssue(false)} className="flex-1">
+                            Cancelar
+                          </Button>
+                          <Button size="sm" onClick={handleSubmitBathroomIssue} className="flex-1">
+                            Reportar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full text-amber-700 border-amber-300"
+                        onClick={() => setShowBathroomIssue(true)}
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Reportar Problema
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <ShowerHead className="w-5 h-5 text-amber-700" />
-                  <div>
-                    <Label className="text-base">Ducha Privada</Label>
-                    <p className="text-sm text-muted-foreground">Agregar ducha a esta carpa</p>
+              {/* Shower Section */}
+              <div className="space-y-3 p-3 bg-white/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ShowerHead className="w-5 h-5 text-amber-700" />
+                    <div>
+                      <Label className="text-base">Ducha Privada</Label>
+                      <p className="text-sm text-muted-foreground">Agregar ducha a esta carpa</p>
+                    </div>
                   </div>
+                  <Switch
+                    checked={tent.hasPrivateShower || false}
+                    onCheckedChange={handleShowerToggle}
+                  />
                 </div>
-                <Switch
-                  checked={tent.hasPrivateShower || false}
-                  onCheckedChange={handleShowerToggle}
-                />
+                
+                {/* Shower Maintenance */}
+                {tent.hasPrivateShower && (
+                  <div className="pt-2 border-t border-amber-200">
+                    {tent.showerWorkingStatus && tent.showerWorkingStatus !== 'WORKING' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            'px-2 py-1 rounded-full text-xs font-semibold',
+                            tent.showerWorkingStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
+                          )}>
+                            {tent.showerWorkingStatus === 'BROKEN' ? '⚠️ Roto' : '🔧 Mantenimiento'}
+                          </span>
+                          <Button size="sm" variant="outline" onClick={handleResolveShower}>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Marcar Funcionando
+                          </Button>
+                        </div>
+                        {tent.showerMaintenanceImage && (
+                          <img 
+                            src={tent.showerMaintenanceImage} 
+                            alt="Issue" 
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                        )}
+                        {tent.showerMaintenanceNotes && (
+                          <p className="text-sm text-muted-foreground">{tent.showerMaintenanceNotes}</p>
+                        )}
+                      </div>
+                    ) : showShowerIssue ? (
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setShowerStatus('BROKEN')}
+                            className={cn(
+                              'flex-1 px-3 py-2 rounded-lg text-sm font-semibold',
+                              showerStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-muted'
+                            )}
+                          >
+                            <AlertTriangle className="w-4 h-4 inline mr-1" />
+                            Roto
+                          </button>
+                          <button
+                            onClick={() => setShowerStatus('MAINTENANCE')}
+                            className={cn(
+                              'flex-1 px-3 py-2 rounded-lg text-sm font-semibold',
+                              showerStatus === 'MAINTENANCE' ? 'bg-yellow-500 text-white' : 'bg-muted'
+                            )}
+                          >
+                            <Wrench className="w-4 h-4 inline mr-1" />
+                            Mantenimiento
+                          </button>
+                        </div>
+                        
+                        {showerImage ? (
+                          <div className="relative">
+                            <img src={showerImage} alt="Preview" className="w-full h-24 object-cover rounded-lg" />
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="absolute top-1 right-1"
+                              onClick={() => setShowerImage(null)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => showerFileRef.current?.click()}
+                            className="w-full h-20 border-2 border-dashed border-amber-300 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-100"
+                          >
+                            <Camera className="w-5 h-5 text-amber-600" />
+                            <span className="text-sm text-amber-600">Agregar Foto</span>
+                          </button>
+                        )}
+                        <input
+                          ref={showerFileRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(e) => handleFileSelect(e, setShowerImage)}
+                          className="hidden"
+                        />
+                        
+                        <Textarea
+                          value={showerNotes}
+                          onChange={(e) => setShowerNotes(e.target.value)}
+                          placeholder="Descripción del problema..."
+                          rows={2}
+                        />
+                        
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setShowShowerIssue(false)} className="flex-1">
+                            Cancelar
+                          </Button>
+                          <Button size="sm" onClick={handleSubmitShowerIssue} className="flex-1">
+                            Reportar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full text-amber-700 border-amber-300"
+                        onClick={() => setShowShowerIssue(true)}
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Reportar Problema
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

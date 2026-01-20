@@ -49,9 +49,17 @@ export interface Tent {
   checkOutDate?: string;
   notes?: string;
   cleaningStatus: CleaningStatus;
+  cleaningAssignedTo?: string; // Worker assigned to cleaning
   gender?: TentGender; // Gender designation for the tent
   hasPrivateBathroom?: boolean;
   hasPrivateShower?: boolean;
+  // VIP private facility maintenance
+  bathroomWorkingStatus?: WorkingStatus;
+  bathroomMaintenanceNotes?: string;
+  bathroomMaintenanceImage?: string;
+  showerWorkingStatus?: WorkingStatus;
+  showerMaintenanceNotes?: string;
+  showerMaintenanceImage?: string;
   isAccessible?: boolean;
   isVIP?: boolean;
   lastUpdated: string;
