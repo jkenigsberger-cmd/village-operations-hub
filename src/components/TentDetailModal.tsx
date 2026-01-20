@@ -57,20 +57,20 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
 
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
 
-  // Get tent ID for dependency
+  // Get tent ID for dependency - memoize beds as JSON string for stable comparison
   const tentId = tent?.id;
-  const tentBeds = tent?.beds;
+  const bedsJson = tent?.beds ? JSON.stringify(tent.beds.map(b => ({ id: b.id, guestName: b.guestName }))) : '';
 
   // Initialize local state when tent changes
   React.useEffect(() => {
-    if (tentId && tentBeds) {
+    if (tentId && tent?.beds) {
       const names: Record<string, string> = {};
-      tentBeds.forEach(bed => {
+      tent.beds.forEach(bed => {
         names[bed.id] = bed.guestName || '';
       });
       setLocalGuestNames(names);
     }
-  }, [tentId]);
+  }, [tentId, bedsJson]);
 
   if (!tent || !state) return null;
 
