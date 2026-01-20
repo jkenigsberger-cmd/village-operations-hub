@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Facility, WorkingStatus } from '@/types/village';
 import { cn } from '@/lib/utils';
+import { compressImageFileToDataUrl } from '@/lib/imageCompression';
 
 interface ReportIssueModalProps {
   isOpen: boolean;
@@ -35,9 +36,15 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(facility.maintenanceImage || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      const dataUrl = await compressImageFileToDataUrl(file);
+      setPreviewImage(dataUrl);
+    } catch (error) {
+      console.error('Error processing image:', error);
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;

@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { compressImageFileToDataUrl } from '@/lib/imageCompression';
 
 interface MaintenancePhotoCaptureProps {
   facilityId: string;
@@ -23,9 +24,16 @@ export const MaintenancePhotoCapture: React.FC<MaintenancePhotoCaptureProps> = (
   const [previewImage, setPreviewImage] = useState<string | null>(currentImage || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      const dataUrl = await compressImageFileToDataUrl(file);
+      setPreviewImage(dataUrl);
+      onImageCapture(facilityId, dataUrl);
+    } catch (error) {
+      console.error('Error processing image:', error);
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;

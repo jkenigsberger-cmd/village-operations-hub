@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { VillageState, ActivityLogEntry } from '@/types/village';
 import { generateInitialVillageState } from '@/data/initialData';
+import { isQuotaExceededError, pruneVillageStateForLocalStorage } from '@/lib/storagePrune';
 
 const STORAGE_KEY = 'aharonson_farm_village_state';
 const MAX_LOG_ENTRIES = 200;
@@ -30,14 +31,22 @@ export const useVillageData = () => {
         // Generate initial state on first load
         const initial = generateInitialVillageState();
         setState(initial);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+        } catch (error) {
+          console.warn('Unable to persist initial village state:', error);
+        }
       }
     } catch (error) {
       console.error('Error loading village state:', error);
       // Reset to initial state on error
       const initial = generateInitialVillageState();
       setState(initial);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      } catch (error2) {
+        console.warn('Unable to persist reset village state:', error2);
+      }
     }
     setIsLoading(false);
   }, []);
@@ -53,8 +62,42 @@ export const useVillageData = () => {
         lastModified: new Date().toISOString(),
       };
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
+      const persist = (candidate: VillageState): VillageState => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate));
+          return candidate;
+        } catch (error) {
+          if (!isQuotaExceededError(error)) {
+            console.error('Error saving village state:', error);
+            return candidate;
+          }
+
+          const strategies: Array<Parameters<typeof pruneVillageStateForLocalStorage>[1]> = [
+            'completedTaskImages',
+            'allImages',
+            'aggressive',
+          ];
+
+          for (const strategy of strategies) {
+            try {
+              const pruned = pruneVillageStateForLocalStorage(candidate, strategy);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
+              console.warn(`[storage] Quota exceeded; saved with strategy=${strategy}`);
+              return pruned;
+            } catch (error2) {
+              if (!isQuotaExceededError(error2)) {
+                console.error('Error saving pruned village state:', error2);
+                return candidate;
+              }
+            }
+          }
+
+          console.error('[storage] Quota exceeded; unable to persist state (continuing in-memory).');
+          return candidate;
+        }
+      };
+
+      return persist(updated);
     });
   }, []);
 
