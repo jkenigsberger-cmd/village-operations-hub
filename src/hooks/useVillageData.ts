@@ -43,13 +43,19 @@ export const useVillageData = () => {
   }, []);
 
   // Save state to localStorage whenever it changes
-  const saveState = useCallback((newState: VillageState) => {
-    const updated = {
-      ...newState,
-      lastModified: new Date().toISOString(),
-    };
-    setState(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  const saveState = useCallback((next: VillageState | ((prev: VillageState) => VillageState)) => {
+    setState((prev) => {
+      const base = prev ?? (typeof next === 'function' ? generateInitialVillageState() : next);
+      const computed = typeof next === 'function' ? next(base) : next;
+
+      const updated: VillageState = {
+        ...computed,
+        lastModified: new Date().toISOString(),
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
   }, []);
 
   // Add entry to activity log

@@ -160,28 +160,29 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateBedGuestName = (bedId: string, guestName: string) => {
     if (!state) return;
-    
-    const bed = state.beds[bedId];
-    if (!bed) return;
 
-    const updatedBeds = {
-      ...state.beds,
-      [bedId]: { ...bed, guestName },
-    };
+    saveState((prev) => {
+      const bed = prev.beds[bedId];
+      if (!bed) return prev;
 
-    const tent = state.tents[bed.tentId];
-    if (tent) {
-      const updatedTentBeds = tent.beds.map(b => 
-        b.id === bedId ? { ...b, guestName } : b
-      );
+      const updatedBeds = {
+        ...prev.beds,
+        [bedId]: { ...bed, guestName },
+      };
+
+      const tent = prev.tents[bed.tentId];
+      if (!tent) {
+        return { ...prev, beds: updatedBeds };
+      }
+
+      const updatedTentBeds = tent.beds.map((b) => (b.id === bedId ? { ...b, guestName } : b));
       const updatedTents = {
-        ...state.tents,
+        ...prev.tents,
         [bed.tentId]: { ...tent, beds: updatedTentBeds, lastUpdated: new Date().toISOString() },
       };
-      saveState({ ...state, beds: updatedBeds, tents: updatedTents });
-    } else {
-      saveState({ ...state, beds: updatedBeds });
-    }
+
+      return { ...prev, beds: updatedBeds, tents: updatedTents };
+    });
   };
 
   const clearBedGuest = (bedId: string) => {
@@ -194,21 +195,23 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateTentCleaningStatus = (tentId: string, cleaningStatus: CleaningStatus, assignedTo?: string) => {
     if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { 
-        ...tent, 
-        cleaningStatus, 
-        cleaningAssignedTo: assignedTo ?? tent.cleaningAssignedTo,
-        lastUpdated: new Date().toISOString() 
-      },
-    };
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
 
-    saveState({ ...state, tents: updatedTents });
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: {
+          ...tent,
+          cleaningStatus,
+          cleaningAssignedTo: assignedTo ?? tent.cleaningAssignedTo,
+          lastUpdated: new Date().toISOString(),
+        },
+      };
+
+      return { ...prev, tents: updatedTents };
+    });
   };
 
   const updateTentGroupName = (tentId: string, groupName: string) => {
@@ -336,27 +339,30 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const reportTentFacilityIssue = (
-    tentId: string, 
-    facilityType: 'bathroom' | 'shower', 
-    status: WorkingStatus, 
-    notes: string, 
+    tentId: string,
+    facilityType: 'bathroom' | 'shower',
+    status: WorkingStatus,
+    notes: string,
     image?: string
   ) => {
     if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
 
-    const updates = facilityType === 'bathroom' 
-      ? { bathroomWorkingStatus: status, bathroomMaintenanceNotes: notes, bathroomMaintenanceImage: image }
-      : { showerWorkingStatus: status, showerMaintenanceNotes: notes, showerMaintenanceImage: image };
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, ...updates, lastUpdated: new Date().toISOString() },
-    };
+      const updates =
+        facilityType === 'bathroom'
+          ? { bathroomWorkingStatus: status, bathroomMaintenanceNotes: notes, bathroomMaintenanceImage: image }
+          : { showerWorkingStatus: status, showerMaintenanceNotes: notes, showerMaintenanceImage: image };
 
-    saveState({ ...state, tents: updatedTents });
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: { ...tent, ...updates, lastUpdated: new Date().toISOString() },
+      };
+
+      return { ...prev, tents: updatedTents };
+    });
   };
 
   const resolveTentFacilityIssue = (tentId: string, facilityType: 'bathroom' | 'shower') => {
@@ -966,12 +972,14 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       createdAt: new Date().toISOString(),
     };
 
-    const updatedTasks = {
-      ...(state.dailyTasks || {}),
-      [newTask.id]: newTask,
-    };
+    saveState((prev) => {
+      const updatedTasks = {
+        ...(prev.dailyTasks || {}),
+        [newTask.id]: newTask,
+      };
 
-    saveState({ ...state, dailyTasks: updatedTasks });
+      return { ...prev, dailyTasks: updatedTasks };
+    });
   };
 
   const updateDailyTaskStatus = (taskId: string, status: DailyTaskStatus) => {
