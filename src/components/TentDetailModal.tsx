@@ -363,8 +363,11 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
 
         {/* Close Button */}
         <div className="flex justify-end pt-4 border-t">
-          <Button onClick={() => onOpenChange(false)}>
-            Cerrar
+          <Button onClick={() => {
+            handleSaveAllNames();
+            onOpenChange(false);
+          }}>
+            Guardar y Cerrar
           </Button>
         </div>
       </DialogContent>

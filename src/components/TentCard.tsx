@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TentSummary } from '@/types/village';
+import { TentSummary, TentGender } from '@/types/village';
 import { StatusBadge } from './StatusBadge';
 import { cn } from '@/lib/utils';
 import { Users, Calendar, Sparkles, Accessibility, Bath } from 'lucide-react';
@@ -11,17 +11,47 @@ interface TentCardProps {
   showGrouped?: boolean;
 }
 
+// Gender color styles
+const getGenderStyles = (gender?: TentGender) => {
+  switch (gender) {
+    case 'FEMALE':
+      return 'border-l-4 border-l-pink-400 bg-gradient-to-r from-pink-50 to-card';
+    case 'MALE':
+      return 'border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-card';
+    case 'MIXED':
+      return 'border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-card';
+    default:
+      return '';
+  }
+};
+
+const getGenderBadge = (gender?: TentGender) => {
+  switch (gender) {
+    case 'FEMALE':
+      return { label: '♀️', className: 'bg-pink-100 text-pink-700' };
+    case 'MALE':
+      return { label: '♂️', className: 'bg-blue-100 text-blue-700' };
+    case 'MIXED':
+      return { label: '👥', className: 'bg-purple-100 text-purple-700' };
+    default:
+      return null;
+  }
+};
+
 export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) => {
   const occupancyPercent = summary.totalBeds > 0 
     ? Math.round((summary.occupiedBeds / summary.totalBeds) * 100) 
     : 0;
 
+  const genderBadge = getGenderBadge(summary.gender);
+
   return (
     <Link 
       to={to}
       className={cn(
-        'tile flex flex-col gap-3 animate-slide-up',
-        summary.isVIP && 'border-vip/50 bg-gradient-to-br from-card to-vip/10',
+        'tile flex flex-col gap-3 animate-slide-up transition-all',
+        getGenderStyles(summary.gender),
+        summary.isVIP && !summary.gender && 'border-vip/50 bg-gradient-to-br from-card to-vip/10',
         summary.cleaningStatus === 'NEEDS_CLEANING' && 'border-status-dirty'
       )}
     >
@@ -38,6 +68,14 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
         
         {/* Badges */}
         <div className="flex flex-wrap gap-1 justify-end">
+          {genderBadge && (
+            <span className={cn(
+              'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold',
+              genderBadge.className
+            )}>
+              {genderBadge.label}
+            </span>
+          )}
           {summary.isVIP && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-vip text-vip-foreground rounded-full text-xs font-semibold">
               <Sparkles className="w-3 h-3" />
