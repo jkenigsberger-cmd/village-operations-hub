@@ -57,16 +57,20 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
 
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
 
+  // Get tent ID for dependency
+  const tentId = tent?.id;
+  const tentBeds = tent?.beds;
+
   // Initialize local state when tent changes
   React.useEffect(() => {
-    if (tent) {
+    if (tentId && tentBeds) {
       const names: Record<string, string> = {};
-      tent.beds.forEach(bed => {
+      tentBeds.forEach(bed => {
         names[bed.id] = bed.guestName || '';
       });
       setLocalGuestNames(names);
     }
-  }, [tent?.id]);
+  }, [tentId]);
 
   if (!tent || !state) return null;
 
