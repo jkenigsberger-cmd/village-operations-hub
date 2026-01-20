@@ -66,6 +66,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     updateBedGuestName,
     reportTentFacilityIssue,
     resolveTentFacilityIssue,
+    addDailyTask,
   } = useVillage();
 
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
@@ -197,15 +198,43 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   const handleSubmitBathroomIssue = () => {
     if (!tent) return;
     reportTentFacilityIssue(tent.id, 'bathroom', bathroomStatus, bathroomNotes, bathroomImage || undefined);
+    
+    // Add maintenance task
+    const today = new Date().toISOString().split('T')[0];
+    addDailyTask({
+      type: 'MAINTENANCE',
+      status: 'PENDING',
+      date: today,
+      title: `🚽 Baño VIP - ${tent.code}`,
+      description: `${bathroomStatus === 'BROKEN' ? 'ROTO' : 'MANTENIMIENTO'}: ${bathroomNotes || 'Sin descripción'}`,
+      entityType: 'TENT',
+      entityId: tent.id,
+      maintenanceImage: bathroomImage || undefined,
+    });
+    
     setShowBathroomIssue(false);
-    toast.success('Problema de baño reportado');
+    toast.success('Problema de baño reportado y enviado a mantenimiento');
   };
 
   const handleSubmitShowerIssue = () => {
     if (!tent) return;
     reportTentFacilityIssue(tent.id, 'shower', showerStatus, showerNotes, showerImage || undefined);
+    
+    // Add maintenance task
+    const today = new Date().toISOString().split('T')[0];
+    addDailyTask({
+      type: 'MAINTENANCE',
+      status: 'PENDING',
+      date: today,
+      title: `🚿 Ducha VIP - ${tent.code}`,
+      description: `${showerStatus === 'BROKEN' ? 'ROTO' : 'MANTENIMIENTO'}: ${showerNotes || 'Sin descripción'}`,
+      entityType: 'TENT',
+      entityId: tent.id,
+      maintenanceImage: showerImage || undefined,
+    });
+    
     setShowShowerIssue(false);
-    toast.success('Problema de ducha reportado');
+    toast.success('Problema de ducha reportado y enviado a mantenimiento');
   };
 
   const handleResolveBathroom = () => {
@@ -222,6 +251,21 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     setShowerNotes('');
     setShowerImage(null);
     toast.success('Ducha marcada como funcionando');
+  };
+
+  const handleSaveAndClose = () => {
+    // Save all guest names
+    Object.entries(localGuestNames).forEach(([bedId, name]) => {
+      updateBedGuestName(bedId, name);
+    });
+    
+    // Save cleaning worker if assigned
+    if (tent && cleaningWorker !== tent.cleaningAssignedTo) {
+      updateTentCleaningStatus(tent.id, tent.cleaningStatus, cleaningWorker || undefined);
+    }
+    
+    toast.success('Cambios guardados');
+    onOpenChange(false);
   };
 
   return (
@@ -718,10 +762,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
 
         {/* Close Button */}
         <div className="flex justify-end pt-4 border-t">
-          <Button onClick={() => {
-            handleSaveAllNames();
-            onOpenChange(false);
-          }}>
+          <Button onClick={handleSaveAndClose}>
             Guardar y Cerrar
           </Button>
         </div>

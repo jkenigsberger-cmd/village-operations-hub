@@ -261,6 +261,7 @@ export interface DailyTask {
   entityId?: string;
   status: DailyTaskStatus;
   assignedTo?: string;
+  maintenanceImage?: string; // Base64 image for maintenance tasks
   createdAt: string;
   completedAt?: string;
 }
