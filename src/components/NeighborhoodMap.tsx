@@ -14,10 +14,14 @@ export type TentNode = {
   isAlef?: boolean;
   doubleTentId?: string;
   gender?: TentGender;
+  hasReservation?: boolean; // Whether tent has active reservation (group name or dates)
 };
 
-// Gender-based colors for tent fill
-function genderColor(gender?: TentGender): string {
+// Gender-based colors for tent fill - only when tent has reservation
+function genderColor(gender?: TentGender, hasReservation?: boolean): string {
+  // Only show gender colors if there's an active reservation
+  if (!hasReservation) return "hsl(40, 30%, 96%)"; // Default/neutral
+  
   switch (gender) {
     case 'FEMALE': return "hsl(330, 70%, 75%)"; // Pink
     case 'MALE': return "hsl(210, 70%, 65%)"; // Blue
@@ -26,7 +30,10 @@ function genderColor(gender?: TentGender): string {
   }
 }
 
-function genderStroke(gender?: TentGender): string {
+function genderStroke(gender?: TentGender, hasReservation?: boolean): string {
+  // Only show gender stroke if there's an active reservation
+  if (!hasReservation) return "hsl(30, 10%, 50%)";
+  
   switch (gender) {
     case 'FEMALE': return "hsl(330, 60%, 50%)";
     case 'MALE': return "hsl(210, 60%, 45%)";
@@ -76,10 +83,10 @@ function DoubleTentPair({
   betNode: TentNode;
   pairLabel: string;
 }) {
-  const alefFill = genderColor(alefNode.gender);
-  const alefStroke = genderStroke(alefNode.gender);
-  const betFill = genderColor(betNode.gender);
-  const betStroke = genderStroke(betNode.gender);
+  const alefFill = genderColor(alefNode.gender, alefNode.hasReservation);
+  const alefStroke = genderStroke(alefNode.gender, alefNode.hasReservation);
+  const betFill = genderColor(betNode.gender, betNode.hasReservation);
+  const betStroke = genderStroke(betNode.gender, betNode.hasReservation);
 
   return (
     <g transform={`translate(${x},${y})`}>
@@ -230,8 +237,8 @@ export default function NeighborhoodMap({ title, nodes, isDoubleTentNeighborhood
               x={x} 
               y={y} 
               type={node.type} 
-              fill={genderColor(node.gender)} 
-              stroke={genderStroke(node.gender)}
+              fill={genderColor(node.gender, node.hasReservation)} 
+              stroke={genderStroke(node.gender, node.hasReservation)}
               label={node.code} 
             />
           </g>

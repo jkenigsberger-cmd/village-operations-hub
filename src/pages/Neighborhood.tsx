@@ -134,6 +134,9 @@ const Neighborhood = () => {
         cleaning = 'IN_PROGRESS';
       }
 
+      // Check if tent has active reservation (group name or dates)
+      const hasReservation = !!(tent.groupName || tent.checkInDate || tent.checkOutDate);
+
       return {
         id: tent.id,
         code: tent.code,
@@ -147,6 +150,7 @@ const Neighborhood = () => {
         isAlef: tent.isAlef,
         doubleTentId: tent.doubleTentId,
         gender: tent.gender,
+        hasReservation,
       };
     });
   }, [filteredTents]);

@@ -254,14 +254,23 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   };
 
   const handleSaveAndClose = () => {
-    // Save all guest names
-    Object.entries(localGuestNames).forEach(([bedId, name]) => {
+    if (!tent) return;
+    
+    // Collect all updates to apply in sequence with small delays
+    // This ensures all updates are applied correctly
+    const guestNameUpdates = Object.entries(localGuestNames);
+    
+    // Apply all guest name updates
+    guestNameUpdates.forEach(([bedId, name]) => {
       updateBedGuestName(bedId, name);
     });
     
-    // Save cleaning worker if assigned
-    if (tent && cleaningWorker !== tent.cleaningAssignedTo) {
-      updateTentCleaningStatus(tent.id, tent.cleaningStatus, cleaningWorker || undefined);
+    // Save cleaning worker if changed
+    if (cleaningWorker !== tent.cleaningAssignedTo) {
+      // Small timeout to ensure previous updates are processed
+      setTimeout(() => {
+        updateTentCleaningStatus(tent.id, tent.cleaningStatus, cleaningWorker || undefined);
+      }, 50);
     }
     
     toast.success('Cambios guardados');
