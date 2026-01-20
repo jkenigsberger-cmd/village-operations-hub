@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
-type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes';
+type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert';
 
 const Index = () => {
   const { 
@@ -210,13 +210,29 @@ const Index = () => {
                   count={todaySummary.tentsToCleaning.length}
                   variant={todaySummary.tentsToCleaning.length > 0 ? 'warning' : 'default'}
                 />
-                <ActionTile
-                  title="Facilities Alert"
-                  icon={Bath}
-                  to="/facilities"
-                  count={todaySummary.facilitiesNeedAttention.length}
-                  variant={todaySummary.facilitiesNeedAttention.length > 0 ? 'danger' : 'default'}
-                />
+                <div 
+                  onClick={() => setActiveSection('facilities-alert')}
+                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 border-destructive"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                      todaySummary.facilitiesNeedAttention.length > 0 
+                        ? 'bg-destructive/20 text-destructive' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Bath className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">Facilities Alert</h3>
+                      <p className="text-sm text-muted-foreground">Maintenance & Housekeeping</p>
+                    </div>
+                    {(totalMaintenanceCount + totalHousekeepingItems) > 0 && (
+                      <span className="px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground font-bold text-lg">
+                        {totalMaintenanceCount + totalHousekeepingItems}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -316,6 +332,71 @@ const Index = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Facilities Alert Submenu */}
+        {activeSection === 'facilities-alert' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <AlertTriangle className="w-8 h-8 text-destructive" />
+              Facilities Alert
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Choose a category to view pending tasks
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Maintenance Option */}
+              <button
+                onClick={() => setActiveSection('maintenance')}
+                className="tile p-8 text-left hover:shadow-lg hover:border-destructive/50 transition-all group"
+              >
+                <div className="flex items-center gap-6">
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
+                    totalMaintenanceCount > 0 
+                      ? 'bg-destructive/20 text-destructive' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    <Wrench className="w-10 h-10" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold group-hover:text-destructive transition-colors">Maintenance</h3>
+                    <p className="text-muted-foreground mt-1">Repairs & broken items</p>
+                  </div>
+                  {totalMaintenanceCount > 0 && (
+                    <span className="px-4 py-2 rounded-full bg-destructive text-destructive-foreground font-bold text-2xl">
+                      {totalMaintenanceCount}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Housekeeping Option */}
+              <button
+                onClick={() => setActiveSection('housekeeping')}
+                className="tile p-8 text-left hover:shadow-lg hover:border-yellow-500/50 transition-all group"
+              >
+                <div className="flex items-center gap-6">
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
+                    totalHousekeepingItems > 0 
+                      ? 'bg-yellow-500/20 text-yellow-600' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    <Sparkles className="w-10 h-10" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold group-hover:text-yellow-600 transition-colors">Housekeeping</h3>
+                    <p className="text-muted-foreground mt-1">Cleaning tasks</p>
+                  </div>
+                  {totalHousekeepingItems > 0 && (
+                    <span className="px-4 py-2 rounded-full bg-yellow-500 text-white font-bold text-2xl">
+                      {totalHousekeepingItems}
+                    </span>
+                  )}
+                </div>
+              </button>
             </div>
           </section>
         )}
