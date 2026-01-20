@@ -11,8 +11,11 @@ interface TentCardProps {
   showGrouped?: boolean;
 }
 
-// Gender color styles
-const getGenderStyles = (gender?: TentGender) => {
+// Gender color styles - only apply when tent has an active reservation
+const getGenderStyles = (gender?: TentGender, hasReservation?: boolean) => {
+  // Only show gender colors if there's an active reservation
+  if (!hasReservation) return '';
+  
   switch (gender) {
     case 'FEMALE':
       return 'border-l-4 border-l-pink-400 bg-gradient-to-r from-pink-50 to-card';
@@ -25,7 +28,11 @@ const getGenderStyles = (gender?: TentGender) => {
   }
 };
 
-const getGenderBadge = (gender?: TentGender) => {
+// Gender badge - only show when tent has an active reservation
+const getGenderBadge = (gender?: TentGender, hasReservation?: boolean) => {
+  // Only show gender badge if there's an active reservation
+  if (!hasReservation) return null;
+  
   switch (gender) {
     case 'FEMALE':
       return { label: '♀️', className: 'bg-pink-100 text-pink-700' };
@@ -43,15 +50,18 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
     ? Math.round((summary.occupiedBeds / summary.totalBeds) * 100) 
     : 0;
 
-  const genderBadge = getGenderBadge(summary.gender);
+  // Determine if tent has an active reservation (groupName or dates set)
+  const hasReservation = !!(summary.groupName || summary.checkInDate || summary.checkOutDate);
+  
+  const genderBadge = getGenderBadge(summary.gender, hasReservation);
 
   return (
     <Link 
       to={to}
       className={cn(
         'tile flex flex-col gap-3 animate-slide-up transition-all',
-        getGenderStyles(summary.gender),
-        summary.isVIP && !summary.gender && 'border-vip/50 bg-gradient-to-br from-card to-vip/10',
+        getGenderStyles(summary.gender, hasReservation),
+        summary.isVIP && !hasReservation && 'border-vip/50 bg-gradient-to-br from-card to-vip/10',
         summary.cleaningStatus === 'NEEDS_CLEANING' && 'border-status-dirty'
       )}
     >

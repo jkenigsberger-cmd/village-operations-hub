@@ -2,8 +2,11 @@ import React from "react";
 import { TentNode } from "./NeighborhoodMap";
 import { TentGender } from "@/types/village";
 
-// Gender-based colors for tent fill
-function genderColor(gender?: TentGender): string {
+// Gender-based colors for tent fill - only when tent has reservation
+function genderColor(gender?: TentGender, hasReservation?: boolean): string {
+  // Only show gender colors if there's an active reservation
+  if (!hasReservation) return "hsl(40, 30%, 96%)"; // Default/neutral
+  
   switch (gender) {
     case 'FEMALE': return "hsl(330, 70%, 75%)"; // Pink
     case 'MALE': return "hsl(210, 70%, 65%)"; // Blue
@@ -12,7 +15,10 @@ function genderColor(gender?: TentGender): string {
   }
 }
 
-function genderStroke(gender?: TentGender): string {
+function genderStroke(gender?: TentGender, hasReservation?: boolean): string {
+  // Only show gender stroke if there's an active reservation
+  if (!hasReservation) return "hsl(30, 10%, 50%)";
+  
   switch (gender) {
     case 'FEMALE': return "hsl(330, 60%, 50%)";
     case 'MALE': return "hsl(210, 60%, 45%)";
@@ -200,8 +206,10 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
           const pos = VIP_POSITIONS[tentNum];
           if (!pos) return null;
 
-          const fill = genderColor(node.gender);
-          const stroke = genderStroke(node.gender);
+          // Check if tent has reservation (occupancy > 0 indicates reservation)
+          const hasReservation = node.occupancySummary && node.occupancySummary.used > 0;
+          const fill = genderColor(node.gender, hasReservation);
+          const stroke = genderStroke(node.gender, hasReservation);
           
           return (
             <g 

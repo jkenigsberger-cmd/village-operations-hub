@@ -1119,11 +1119,56 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     }
 
+    // Common facilities needing attention
     const facilitiesNeedAttention = Object.values(state.facilities).filter(
       f => f.cleaningStatus === 'NEEDS_CLEANING' || f.workingStatus === 'BROKEN'
     );
 
-    return { checkIns, checkOuts, tentsToCleaning, facilitiesNeedAttention };
+    // Also include VIP private bathroom/shower issues as "virtual" facilities
+    const vipFacilityIssues: Facility[] = [];
+    for (const tent of Object.values(state.tents)) {
+      if (tent.isVIP || tent.hasPrivateBathroom || tent.hasPrivateShower) {
+        // Check bathroom
+        if (tent.hasPrivateBathroom && tent.bathroomWorkingStatus && tent.bathroomWorkingStatus !== 'WORKING') {
+          vipFacilityIssues.push({
+            id: `vip_bathroom_${tent.id}`,
+            areaId: 'VIP',
+            label: `🚽 ${tent.code} - Baño`,
+            type: 'TOILET',
+            gender: 'UNISEX',
+            cleaningStatus: 'CLEAN',
+            workingStatus: tent.bathroomWorkingStatus,
+            notes: tent.bathroomMaintenanceNotes,
+            maintenanceImage: tent.bathroomMaintenanceImage,
+            maintenanceNotes: tent.bathroomMaintenanceNotes,
+            lastUpdated: tent.lastUpdated,
+          });
+        }
+        // Check shower
+        if (tent.hasPrivateShower && tent.showerWorkingStatus && tent.showerWorkingStatus !== 'WORKING') {
+          vipFacilityIssues.push({
+            id: `vip_shower_${tent.id}`,
+            areaId: 'VIP',
+            label: `🚿 ${tent.code} - Ducha`,
+            type: 'SHOWER',
+            gender: 'UNISEX',
+            cleaningStatus: 'CLEAN',
+            workingStatus: tent.showerWorkingStatus,
+            notes: tent.showerMaintenanceNotes,
+            maintenanceImage: tent.showerMaintenanceImage,
+            maintenanceNotes: tent.showerMaintenanceNotes,
+            lastUpdated: tent.lastUpdated,
+          });
+        }
+      }
+    }
+
+    return { 
+      checkIns, 
+      checkOuts, 
+      tentsToCleaning, 
+      facilitiesNeedAttention: [...facilitiesNeedAttention, ...vipFacilityIssues] 
+    };
   };
 
   const value: VillageContextType = {
