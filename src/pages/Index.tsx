@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
@@ -23,12 +23,18 @@ import {
   CheckCircle,
   Camera,
   ArrowLeft,
-  CalendarCheck
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { toast } from 'sonner';
+import { format, addDays, subDays, isToday } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
@@ -40,6 +46,7 @@ const Index = () => {
     isLoading, 
     getNeighborhoodSummary, 
     getTodaySummary,
+    getTentSummary,
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
     updateFacilityNotes,
@@ -59,6 +66,29 @@ const Index = () => {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Calculate check-ins and check-outs for selected date
+  const summaryForDate = useMemo(() => {
+    if (!state) return { checkIns: [], checkOuts: [] };
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    
+    const checkIns: NonNullable<ReturnType<typeof getTentSummary>>[] = [];
+    const checkOuts: NonNullable<ReturnType<typeof getTentSummary>>[] = [];
+    
+    Object.values(state.tents).forEach(tent => {
+      if (tent.checkInDate === dateStr) {
+        const summary = getTentSummary(tent.id);
+        if (summary) checkIns.push(summary);
+      }
+      if (tent.checkOutDate === dateStr) {
+        const summary = getTentSummary(tent.id);
+        if (summary) checkOuts.push(summary);
+      }
+    });
+    
+    return { checkIns, checkOuts };
+  }, [state, selectedDate, getTentSummary]);
 
   if (isLoading || !state) {
     return (
@@ -811,24 +841,73 @@ const Index = () => {
                 Back
               </Button>
             </div>
+            
+            {/* Date Selector */}
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="min-w-[200px]">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              
+              {!isToday(selectedDate) && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setSelectedDate(new Date())}
+                >
+                  Ir a Hoy
+                </Button>
+              )}
+            </div>
+            
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-green-500/20 rounded-xl">
                 <Calendar className="w-8 h-8 text-green-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Check-ins Today</h2>
-                <p className="text-muted-foreground">{todaySummary.checkIns.length} groups arriving</p>
+                <h2 className="text-2xl font-bold">
+                  Check-ins {isToday(selectedDate) ? 'Hoy' : format(selectedDate, "d/MM/yyyy")}
+                </h2>
+                <p className="text-muted-foreground">{summaryForDate.checkIns.length} grupos llegando</p>
               </div>
             </div>
             
-            {todaySummary.checkIns.length === 0 ? (
+            {summaryForDate.checkIns.length === 0 ? (
               <div className="tile p-8 text-center text-muted-foreground">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-xl">No check-ins today</p>
+                <p className="text-xl">No hay check-ins {isToday(selectedDate) ? 'hoy' : 'este día'}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {todaySummary.checkIns.map((tent) => (
+                {summaryForDate.checkIns.map((tent) => tent && (
                   <TentCard
                     key={tent.tentId}
                     summary={tent}
@@ -854,24 +933,73 @@ const Index = () => {
                 Back
               </Button>
             </div>
+            
+            {/* Date Selector */}
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="min-w-[200px]">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              
+              {!isToday(selectedDate) && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setSelectedDate(new Date())}
+                >
+                  Ir a Hoy
+                </Button>
+              )}
+            </div>
+            
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-blue-500/20 rounded-xl">
                 <CalendarCheck className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Check-outs Today</h2>
-                <p className="text-muted-foreground">{todaySummary.checkOuts.length} groups leaving</p>
+                <h2 className="text-2xl font-bold">
+                  Check-outs {isToday(selectedDate) ? 'Hoy' : format(selectedDate, "d/MM/yyyy")}
+                </h2>
+                <p className="text-muted-foreground">{summaryForDate.checkOuts.length} grupos saliendo</p>
               </div>
             </div>
             
-            {todaySummary.checkOuts.length === 0 ? (
+            {summaryForDate.checkOuts.length === 0 ? (
               <div className="tile p-8 text-center text-muted-foreground">
                 <CalendarCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-xl">No check-outs today</p>
+                <p className="text-xl">No hay check-outs {isToday(selectedDate) ? 'hoy' : 'este día'}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {todaySummary.checkOuts.map((tent) => (
+                {summaryForDate.checkOuts.map((tent) => tent && (
                   <TentCard
                     key={tent.tentId}
                     summary={tent}
