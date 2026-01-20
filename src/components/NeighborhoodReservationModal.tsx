@@ -274,7 +274,13 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        // Only reset when closing. (In controlled mode Radix may request open changes.)
+        if (!nextOpen) handleClose();
+      }}
+    >
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
