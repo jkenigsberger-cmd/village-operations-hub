@@ -31,13 +31,17 @@ interface VillageContextType {
   clearBedGuest: (bedId: string) => void;
   
   // Tent operations
-  updateTentCleaningStatus: (tentId: string, status: CleaningStatus) => void;
+  updateTentCleaningStatus: (tentId: string, status: CleaningStatus, assignedTo?: string) => void;
   updateTentGroupName: (tentId: string, groupName: string) => void;
   updateTentDates: (tentId: string, checkIn?: string, checkOut?: string) => void;
   updateTentNotes: (tentId: string, notes: string) => void;
   updateTentGender: (tentId: string, gender: TentGender) => void;
   updateTentPrivateBathroom: (tentId: string, hasPrivateBathroom: boolean) => void;
   updateTentPrivateShower: (tentId: string, hasPrivateShower: boolean) => void;
+  updateTentCleaningAssignment: (tentId: string, assignedTo: string) => void;
+  // VIP private facility maintenance
+  reportTentFacilityIssue: (tentId: string, facilityType: 'bathroom' | 'shower', status: WorkingStatus, notes: string, image?: string) => void;
+  resolveTentFacilityIssue: (tentId: string, facilityType: 'bathroom' | 'shower') => void;
   clearAllBeds: (tentId: string) => void;
   
   // Facility operations
@@ -188,7 +192,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   // TENT OPERATIONS
   // ============================================================
 
-  const updateTentCleaningStatus = (tentId: string, cleaningStatus: CleaningStatus) => {
+  const updateTentCleaningStatus = (tentId: string, cleaningStatus: CleaningStatus, assignedTo?: string) => {
     if (!state) return;
     
     const tent = state.tents[tentId];
@@ -196,7 +200,12 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const updatedTents = {
       ...state.tents,
-      [tentId]: { ...tent, cleaningStatus, lastUpdated: new Date().toISOString() },
+      [tentId]: { 
+        ...tent, 
+        cleaningStatus, 
+        cleaningAssignedTo: assignedTo ?? tent.cleaningAssignedTo,
+        lastUpdated: new Date().toISOString() 
+      },
     };
 
     saveState({ ...state, tents: updatedTents });
@@ -310,6 +319,62 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
 
     saveState({ ...state, beds: updatedBeds, tents: updatedTents });
+  };
+
+  const updateTentCleaningAssignment = (tentId: string, assignedTo: string) => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, cleaningAssignedTo: assignedTo, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const reportTentFacilityIssue = (
+    tentId: string, 
+    facilityType: 'bathroom' | 'shower', 
+    status: WorkingStatus, 
+    notes: string, 
+    image?: string
+  ) => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    const updates = facilityType === 'bathroom' 
+      ? { bathroomWorkingStatus: status, bathroomMaintenanceNotes: notes, bathroomMaintenanceImage: image }
+      : { showerWorkingStatus: status, showerMaintenanceNotes: notes, showerMaintenanceImage: image };
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, ...updates, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const resolveTentFacilityIssue = (tentId: string, facilityType: 'bathroom' | 'shower') => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    const updates = facilityType === 'bathroom' 
+      ? { bathroomWorkingStatus: 'WORKING' as WorkingStatus, bathroomMaintenanceNotes: undefined, bathroomMaintenanceImage: undefined }
+      : { showerWorkingStatus: 'WORKING' as WorkingStatus, showerMaintenanceNotes: undefined, showerMaintenanceImage: undefined };
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, ...updates, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
   };
 
   // ============================================================
@@ -1067,6 +1132,9 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateTentGender,
     updateTentPrivateBathroom,
     updateTentPrivateShower,
+    updateTentCleaningAssignment,
+    reportTentFacilityIssue,
+    resolveTentFacilityIssue,
     clearAllBeds,
     updateFacilityCleaningStatus,
     updateFacilityWorkingStatus,
