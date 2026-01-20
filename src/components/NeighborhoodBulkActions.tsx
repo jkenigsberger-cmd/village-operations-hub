@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
-import { NeighborhoodId } from '@/types/village';
+import { NeighborhoodId, NeighborhoodReservation } from '@/types/village';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -13,7 +13,13 @@ import {
   Check,
   AlertCircle,
   CalendarCheck,
-  CalendarX
+  CalendarX,
+  Tent as TentIcon,
+  Bed,
+  Phone,
+  User,
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -40,6 +46,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
   neighborhoodName,
 }) => {
   const { 
+    state,
     reserveNeighborhood, 
     markNeighborhoodDirty, 
     markNeighborhoodClean,
@@ -51,6 +58,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
 
   const [showReserveDialog, setShowReserveDialog] = useState(false);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<NeighborhoodReservation | null>(null);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [reservationForm, setReservationForm] = useState({
     groupName: '',
@@ -68,6 +76,34 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
       .filter(r => r.checkOutDate >= today)
       .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
   }, [reservations, today]);
+
+  // Get reservation details (tents and beds info)
+  const getReservationDetails = (reservation: NeighborhoodReservation) => {
+    if (!state) return { tents: [], totalBeds: 0, genderSummary: { female: 0, male: 0, mixed: 0 } };
+
+    const neighborhood = state.neighborhoods[neighborhoodId];
+    if (!neighborhood) return { tents: [], totalBeds: 0, genderSummary: { female: 0, male: 0, mixed: 0 } };
+
+    let tentIds: string[] = [];
+    
+    if (reservation.reservationType === 'SPECIFIC_TENTS' && reservation.tentIds) {
+      tentIds = reservation.tentIds;
+    } else {
+      // Full neighborhood - get all tents
+      tentIds = neighborhood.tentIds;
+    }
+
+    const tents = tentIds.map(id => state.tents[id]).filter(Boolean);
+    const totalBeds = tents.reduce((acc, tent) => acc + tent.beds.length, 0);
+    
+    const genderSummary = {
+      female: tents.filter(t => t.gender === 'FEMALE').length,
+      male: tents.filter(t => t.gender === 'MALE').length,
+      mixed: tents.filter(t => t.gender === 'MIXED' || !t.gender).length,
+    };
+
+    return { tents, totalBeds, genderSummary };
+  };
 
   // Check availability when dates change
   const handleDateChange = (field: 'checkInDate' | 'checkOutDate', value: string) => {
@@ -320,11 +356,12 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                 <div 
                   key={r.id} 
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg border-2",
-                    isCheckInToday ? "bg-green-50 border-green-300" :
-                    isCheckOutToday ? "bg-orange-50 border-orange-300" :
-                    "bg-muted border-transparent"
+                    "flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer hover:shadow-md transition-all",
+                    isCheckInToday ? "bg-green-50 border-green-300 hover:bg-green-100" :
+                    isCheckOutToday ? "bg-orange-50 border-orange-300 hover:bg-orange-100" :
+                    "bg-muted border-transparent hover:border-primary/30"
                   )}
+                  onClick={() => setSelectedReservation(r)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -344,17 +381,24 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
                       📅 {r.checkInDate} → {r.checkOutDate}
-                      {r.notes && <span className="ml-2 italic">({r.notes})</span>}
+                      {r.tentCount && <span className="ml-2">• {r.tentCount} carpas</span>}
+                      {r.totalBeds && <span className="ml-2">• {r.totalBeds} camas</span>}
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => handleRemoveReservation(r.id, r.groupName)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveReservation(r.id, r.groupName);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               );
             })}
@@ -369,6 +413,187 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
           <p>No hay reservas programadas para este vecindario</p>
         </div>
       )}
+
+      {/* Reservation Detail Modal */}
+      <Dialog open={!!selectedReservation} onOpenChange={(open) => !open && setSelectedReservation(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedReservation && (() => {
+            const details = getReservationDetails(selectedReservation);
+            const isCheckInToday = selectedReservation.checkInDate === today;
+            const isCheckOutToday = selectedReservation.checkOutDate === today;
+            
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    {selectedReservation.groupName}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Detalles de la reserva para preparación
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  {/* Status badges */}
+                  <div className="flex flex-wrap gap-2">
+                    {isCheckInToday && (
+                      <span className="text-sm bg-green-600 text-white px-3 py-1 rounded-full flex items-center gap-1">
+                        <CalendarCheck className="w-4 h-4" />
+                        CHECK-IN HOY
+                      </span>
+                    )}
+                    {isCheckOutToday && (
+                      <span className="text-sm bg-orange-600 text-white px-3 py-1 rounded-full flex items-center gap-1">
+                        <CalendarX className="w-4 h-4" />
+                        CHECK-OUT HOY
+                      </span>
+                    )}
+                    <span className="text-sm bg-muted px-3 py-1 rounded-full">
+                      {selectedReservation.reservationType === 'FULL_NEIGHBORHOOD' ? 'Vecindario Completo' : 'Carpas Específicas'}
+                    </span>
+                  </div>
+
+                  {/* Dates */}
+                  <div className="p-4 bg-muted/50 rounded-xl space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Fechas
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Check-in:</span>
+                        <p className="font-medium">{selectedReservation.checkInDate}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Check-out:</span>
+                        <p className="font-medium">{selectedReservation.checkOutDate}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tents and Beds Summary */}
+                  <div className="p-4 bg-muted/50 rounded-xl space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <TentIcon className="w-4 h-4" />
+                      Carpas y Camas
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 bg-background rounded-lg">
+                        <TentIcon className="w-6 h-6 mx-auto mb-1 text-primary" />
+                        <p className="text-2xl font-bold">{details.tents.length}</p>
+                        <p className="text-xs text-muted-foreground">Carpas</p>
+                      </div>
+                      <div className="text-center p-3 bg-background rounded-lg">
+                        <Bed className="w-6 h-6 mx-auto mb-1 text-primary" />
+                        <p className="text-2xl font-bold">{details.totalBeds}</p>
+                        <p className="text-xs text-muted-foreground">Camas</p>
+                      </div>
+                    </div>
+
+                    {/* Gender distribution */}
+                    {(selectedReservation.genderDistribution || details.genderSummary) && (
+                      <div className="pt-3 border-t">
+                        <p className="text-sm font-medium mb-2">Distribución por Género:</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(selectedReservation.genderDistribution?.female || details.genderSummary.female > 0) && (
+                            <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full">
+                              ♀ {selectedReservation.genderDistribution?.female || details.genderSummary.female} Femenino
+                            </span>
+                          )}
+                          {(selectedReservation.genderDistribution?.male || details.genderSummary.male > 0) && (
+                            <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+                              ♂ {selectedReservation.genderDistribution?.male || details.genderSummary.male} Masculino
+                            </span>
+                          )}
+                          {(selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed > 0) && (
+                            <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+                              👥 {selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed} Mixto
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tent list for specific tents */}
+                  {selectedReservation.reservationType === 'SPECIFIC_TENTS' && details.tents.length > 0 && (
+                    <div className="p-4 bg-muted/50 rounded-xl">
+                      <h4 className="font-semibold mb-2">Carpas Reservadas:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {details.tents.map(tent => (
+                          <span 
+                            key={tent.id} 
+                            className={cn(
+                              "text-sm px-3 py-1 rounded-full border",
+                              tent.gender === 'FEMALE' ? "bg-pink-50 border-pink-300 text-pink-700" :
+                              tent.gender === 'MALE' ? "bg-blue-50 border-blue-300 text-blue-700" :
+                              "bg-purple-50 border-purple-300 text-purple-700"
+                            )}
+                          >
+                            {tent.code} ({tent.beds.length} camas)
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contact info */}
+                  {(selectedReservation.contactName || selectedReservation.contactPhone) && (
+                    <div className="p-4 bg-muted/50 rounded-xl space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Contacto
+                      </h4>
+                      {selectedReservation.contactName && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span>{selectedReservation.contactName}</span>
+                        </div>
+                      )}
+                      {selectedReservation.contactPhone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <a href={`tel:${selectedReservation.contactPhone}`} className="text-primary hover:underline">
+                            {selectedReservation.contactPhone}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {selectedReservation.notes && (
+                    <div className="p-4 bg-muted/50 rounded-xl space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Notas
+                      </h4>
+                      <p className="text-sm text-muted-foreground">{selectedReservation.notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setSelectedReservation(null)}>
+                    Cerrar
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => {
+                      handleRemoveReservation(selectedReservation.id, selectedReservation.groupName);
+                      setSelectedReservation(null);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar Reserva
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
