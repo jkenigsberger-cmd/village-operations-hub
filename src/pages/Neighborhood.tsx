@@ -364,7 +364,7 @@ const Neighborhood = () => {
       <TentDetailModal
         open={!!selectedTent}
         onOpenChange={(open) => !open && setSelectedTent(null)}
-        tent={selectedTent}
+        tent={selectedTent ? state.tents[selectedTent.id] : null}
       />
     </div>
   );
