@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 
@@ -293,6 +294,9 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
               <Plus className="w-5 h-5" />
               Nueva Reserva
             </DialogTitle>
+            <DialogDescription>
+              Completa los datos para reservar este espacio
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
