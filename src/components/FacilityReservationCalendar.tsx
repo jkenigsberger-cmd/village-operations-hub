@@ -16,8 +16,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   Users,
-  X
+  Check
 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -138,6 +139,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
     });
 
     if (success) {
+      toast.success('Reserva guardada exitosamente');
       setNewReservation({ startHour: 9, endHour: 10, groupName: '', numberOfPeople: '', notes: '' });
       setShowAddDialog(false);
       setSelectedSlotHour(null);
@@ -395,7 +397,8 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
               disabled={!newReservation.groupName.trim() || newReservation.startHour >= newReservation.endHour}
               className="flex-1"
             >
-              Crear Reserva
+              <Check className="w-4 h-4 mr-2" />
+              Guardar y Salir
             </Button>
           </DialogFooter>
         </DialogContent>
