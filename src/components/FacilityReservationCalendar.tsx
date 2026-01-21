@@ -290,8 +290,8 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
 
       {/* Add Reservation Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Plus className="w-5 h-5" />
               Nueva Reserva
@@ -301,7 +301,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1">
             <div className="bg-muted/50 rounded-lg p-3 text-center">
               <span className="text-muted-foreground">Fecha:</span>{' '}
               <span className="font-bold">{format(selectedDate, "d 'de' MMMM, yyyy", { locale: es })}</span>
@@ -384,7 +384,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 shrink-0 pt-4 border-t">
             <Button
               variant="outline"
               onClick={handleCloseDialog}
