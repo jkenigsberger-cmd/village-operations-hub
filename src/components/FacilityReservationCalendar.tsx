@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { format, addDays, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { FacilityReservation } from '@/types/village';
 import { cn } from '@/lib/utils';
 import { 
@@ -13,8 +15,16 @@ import {
   Trash2, 
   ChevronLeft, 
   ChevronRight,
-  Users
+  Users,
+  X
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface FacilityReservationCalendarProps {
   facilityId: string;
@@ -24,10 +34,29 @@ interface FacilityReservationCalendarProps {
   onRemoveReservation: (reservationId: string) => void;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6:00 to 22:00
 
 const formatHour = (hour: number) => {
   return `${hour.toString().padStart(2, '0')}:00`;
+};
+
+// Generate a random pleasant color for groups
+const generateGroupColor = (): string => {
+  const hues = [0, 30, 60, 120, 180, 210, 270, 300, 330]; // Various hue values
+  const hue = hues[Math.floor(Math.random() * hues.length)];
+  const saturation = 55 + Math.random() * 25; // 55-80%
+  const lightness = 55 + Math.random() * 15; // 55-70%
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
+// Get contrasting text color
+const getContrastColor = (hslColor: string): string => {
+  const match = hslColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (match) {
+    const lightness = parseInt(match[3]);
+    return lightness > 60 ? 'hsl(30, 20%, 15%)' : 'hsl(40, 40%, 98%)';
+  }
+  return 'hsl(30, 20%, 15%)';
 };
 
 export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarProps> = ({
@@ -39,11 +68,13 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedSlotHour, setSelectedSlotHour] = useState<number | null>(null);
   const [newReservation, setNewReservation] = useState({
     startHour: 9,
     endHour: 10,
     groupName: '',
+    numberOfPeople: '',
     notes: '',
   });
 
@@ -56,7 +87,6 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
   // Build hourly grid showing which slots are booked
   const hourlySlots = useMemo(() => {
     return HOURS.map(hour => {
-      const hourStr = formatHour(hour);
       const reservation = dayReservations.find(r => {
         const start = parseInt(r.startTime.split(':')[0]);
         const end = parseInt(r.endTime.split(':')[0]);
@@ -74,6 +104,23 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
     setSelectedDate(prev => addDays(prev, 1));
   };
 
+  const handleSlotClick = (hour: number, reservation: FacilityReservation | undefined) => {
+    if (reservation) {
+      // If slot is booked, we could show details or do nothing
+      return;
+    }
+    // Open reservation dialog with selected hour
+    setSelectedSlotHour(hour);
+    setNewReservation({
+      startHour: hour,
+      endHour: hour + 1,
+      groupName: '',
+      numberOfPeople: '',
+      notes: '',
+    });
+    setShowAddDialog(true);
+  };
+
   const handleAddReservation = () => {
     if (!newReservation.groupName.trim()) return;
     if (newReservation.startHour >= newReservation.endHour) return;
@@ -84,13 +131,22 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
       startTime: formatHour(newReservation.startHour),
       endTime: formatHour(newReservation.endHour),
       groupName: newReservation.groupName.trim(),
+      numberOfPeople: newReservation.numberOfPeople ? parseInt(newReservation.numberOfPeople) : undefined,
+      groupColor: generateGroupColor(),
       notes: newReservation.notes.trim() || undefined,
     });
 
     if (success) {
-      setNewReservation({ startHour: 9, endHour: 10, groupName: '', notes: '' });
-      setShowAddForm(false);
+      setNewReservation({ startHour: 9, endHour: 10, groupName: '', numberOfPeople: '', notes: '' });
+      setShowAddDialog(false);
+      setSelectedSlotHour(null);
     }
+  };
+
+  const handleCloseDialog = () => {
+    setShowAddDialog(false);
+    setSelectedSlotHour(null);
+    setNewReservation({ startHour: 9, endHour: 10, groupName: '', numberOfPeople: '', notes: '' });
   };
 
   const isToday = isSameDay(selectedDate, new Date());
@@ -100,18 +156,15 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
       {/* Date Navigation */}
       <div className="flex items-center justify-between gap-4">
         <Button variant="outline" size="icon" onClick={handlePrevDay}>
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-5 h-5" />
         </Button>
 
         <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="flex-1 justify-center gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              <span className="font-semibold">
-                {isToday ? 'Today' : format(selectedDate, 'EEE, MMM d')}
-              </span>
-              <span className="text-muted-foreground">
-                {format(selectedDate, 'yyyy')}
+            <Button variant="outline" className="flex-1 justify-center gap-2 text-base">
+              <CalendarIcon className="w-5 h-5" />
+              <span className="font-bold">
+                {isToday ? 'Hoy' : format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
               </span>
             </Button>
           </PopoverTrigger>
@@ -132,70 +185,98 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
         </Popover>
 
         <Button variant="outline" size="icon" onClick={handleNextDay}>
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
 
       {/* Hourly Timeline */}
       <div className="border-2 border-border rounded-xl overflow-hidden">
         <div className="bg-muted/50 px-4 py-3 border-b-2 border-border flex items-center justify-between">
-          <h4 className="font-bold flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Hourly Schedule
+          <h4 className="font-bold flex items-center gap-2 text-lg">
+            <Clock className="w-5 h-5" />
+            Horario
           </h4>
-          <Button
-            size="sm"
-            onClick={() => setShowAddForm(true)}
-            className="gap-1"
-          >
-            <Plus className="w-4 h-4" />
-            Reserve
-          </Button>
+          <span className="text-sm text-muted-foreground">
+            Toca un horario libre para reservar
+          </span>
         </div>
 
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="max-h-[450px] overflow-y-auto">
           {hourlySlots.map(({ hour, reservation }) => {
             const isBookedStart = reservation && 
               parseInt(reservation.startTime.split(':')[0]) === hour;
+            const isBooked = !!reservation;
+            const bgColor = reservation?.groupColor || 'transparent';
+            const textColor = reservation?.groupColor ? getContrastColor(reservation.groupColor) : undefined;
 
             return (
               <div
                 key={hour}
+                onClick={() => handleSlotClick(hour, reservation)}
                 className={cn(
-                  'flex items-stretch border-b border-border last:border-b-0',
-                  reservation ? 'bg-primary/10' : 'hover:bg-muted/30'
+                  'flex items-stretch border-b border-border last:border-b-0 transition-all',
+                  !isBooked && 'hover:bg-primary/10 cursor-pointer active:scale-[0.99]',
+                  isBooked && 'cursor-default'
                 )}
               >
                 {/* Time label */}
-                <div className="w-16 shrink-0 px-3 py-2 text-sm font-mono text-muted-foreground border-r border-border bg-muted/30">
+                <div className="w-20 shrink-0 px-3 py-3 text-base font-mono text-muted-foreground border-r border-border bg-muted/30 flex items-center">
                   {formatHour(hour)}
                 </div>
 
                 {/* Slot content */}
-                <div className="flex-1 px-3 py-2 min-h-[48px]">
+                <div 
+                  className={cn(
+                    'flex-1 px-4 py-3 min-h-[56px] flex items-center',
+                    isBooked && 'relative'
+                  )}
+                  style={isBooked ? { 
+                    backgroundColor: bgColor,
+                    color: textColor 
+                  } : undefined}
+                >
                   {isBookedStart && reservation && (
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="font-semibold text-foreground">
-                          {reservation.groupName}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {reservation.startTime} - {reservation.endTime}
-                        </span>
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Users className="w-5 h-5 shrink-0" style={{ color: textColor }} />
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-base truncate" style={{ color: textColor }}>
+                            {reservation.groupName}
+                          </span>
+                          <div className="flex items-center gap-2 text-sm opacity-80">
+                            <span>{reservation.startTime} - {reservation.endTime}</span>
+                            {reservation.numberOfPeople && (
+                              <span>• {reservation.numberOfPeople} personas</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => onRemoveReservation(reservation.id)}
+                        className="h-10 w-10 shrink-0 hover:bg-black/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveReservation(reservation.id);
+                        }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" style={{ color: textColor }} />
                       </Button>
                     </div>
                   )}
-                  {reservation && !isBookedStart && (
-                    <div className="h-full w-1 bg-primary/30 rounded-full" />
+                  {isBooked && !isBookedStart && (
+                    <div className="flex items-center gap-2 opacity-60">
+                      <div className="h-1 w-8 rounded-full" style={{ backgroundColor: textColor }} />
+                      <span className="text-sm font-medium" style={{ color: textColor }}>
+                        {reservation.groupName} (cont.)
+                      </span>
+                    </div>
+                  )}
+                  {!isBooked && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Plus className="w-4 h-4" />
+                      <span className="text-sm">Disponible</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -204,95 +285,140 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
         </div>
       </div>
 
-      {/* Add Reservation Form */}
-      {showAddForm && (
-        <div className="border-2 border-primary rounded-xl p-4 space-y-4 bg-primary/5">
-          <h4 className="font-bold flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            New Reservation
-          </h4>
+      {/* Add Reservation Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Plus className="w-5 h-5" />
+              Nueva Reserva
+            </DialogTitle>
+          </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Start Time</label>
-              <select
-                value={newReservation.startHour}
-                onChange={(e) => setNewReservation(prev => ({
-                  ...prev,
-                  startHour: parseInt(e.target.value)
-                }))}
-                className="w-full px-3 py-2 rounded-lg border-2 border-input bg-background"
-              >
-                {HOURS.map(h => (
-                  <option key={h} value={h}>{formatHour(h)}</option>
-                ))}
-              </select>
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <span className="text-muted-foreground">Fecha:</span>{' '}
+              <span className="font-bold">{format(selectedDate, "d 'de' MMMM, yyyy", { locale: es })}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Hora Inicio</label>
+                <select
+                  value={newReservation.startHour}
+                  onChange={(e) => setNewReservation(prev => ({
+                    ...prev,
+                    startHour: parseInt(e.target.value),
+                    endHour: Math.max(prev.endHour, parseInt(e.target.value) + 1)
+                  }))}
+                  className="w-full px-3 py-3 rounded-lg border-2 border-input bg-background text-base"
+                >
+                  {HOURS.map(h => (
+                    <option key={h} value={h}>{formatHour(h)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Hora Fin</label>
+                <select
+                  value={newReservation.endHour}
+                  onChange={(e) => setNewReservation(prev => ({
+                    ...prev,
+                    endHour: parseInt(e.target.value)
+                  }))}
+                  className="w-full px-3 py-3 rounded-lg border-2 border-input bg-background text-base"
+                >
+                  {HOURS.filter(h => h > newReservation.startHour).map(h => (
+                    <option key={h} value={h}>{formatHour(h)}</option>
+                  ))}
+                  <option value={23}>23:00</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">End Time</label>
-              <select
-                value={newReservation.endHour}
+              <label className="text-sm font-semibold">Nombre del Grupo *</label>
+              <Input
+                value={newReservation.groupName}
                 onChange={(e) => setNewReservation(prev => ({
                   ...prev,
-                  endHour: parseInt(e.target.value)
+                  groupName: e.target.value
                 }))}
-                className="w-full px-3 py-2 rounded-lg border-2 border-input bg-background"
-              >
-                {HOURS.filter(h => h > newReservation.startHour).map(h => (
-                  <option key={h} value={h}>{formatHour(h)}</option>
-                ))}
-              </select>
+                placeholder="Ej: Grupo Juvenil Maccabi"
+                className="text-base py-3"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Cantidad de Personas</label>
+              <Input
+                type="number"
+                value={newReservation.numberOfPeople}
+                onChange={(e) => setNewReservation(prev => ({
+                  ...prev,
+                  numberOfPeople: e.target.value
+                }))}
+                placeholder="Ej: 25"
+                className="text-base py-3"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Notas Importantes</label>
+              <Textarea
+                value={newReservation.notes}
+                onChange={(e) => setNewReservation(prev => ({
+                  ...prev,
+                  notes: e.target.value
+                }))}
+                placeholder="Ej: Necesitan proyector, traen comida kosher..."
+                className="text-base min-h-[80px]"
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Group / Person Name *</label>
-            <Input
-              value={newReservation.groupName}
-              onChange={(e) => setNewReservation(prev => ({
-                ...prev,
-                groupName: e.target.value
-              }))}
-              placeholder="Enter name..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Notes (optional)</label>
-            <Input
-              value={newReservation.notes}
-              onChange={(e) => setNewReservation(prev => ({
-                ...prev,
-                notes: e.target.value
-              }))}
-              placeholder="Any special notes..."
-            />
-          </div>
-
-          <div className="flex gap-2">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
+              onClick={handleCloseDialog}
               className="flex-1"
-              onClick={() => setShowAddForm(false)}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
-              className="flex-1"
               onClick={handleAddReservation}
               disabled={!newReservation.groupName.trim() || newReservation.startHour >= newReservation.endHour}
+              className="flex-1"
             >
-              Add Reservation
+              Crear Reserva
             </Button>
-          </div>
-        </div>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Quick Info */}
       {dayReservations.length > 0 && (
-        <div className="text-sm text-muted-foreground text-center">
-          {dayReservations.length} reservation{dayReservations.length !== 1 ? 's' : ''} on this day
+        <div className="bg-muted/50 rounded-xl p-4">
+          <h5 className="font-semibold mb-2 flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Reservas del día ({dayReservations.length})
+          </h5>
+          <div className="flex flex-wrap gap-2">
+            {dayReservations.map(r => (
+              <div
+                key={r.id}
+                className="px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2"
+                style={{ 
+                  backgroundColor: r.groupColor || 'hsl(var(--primary))',
+                  color: r.groupColor ? getContrastColor(r.groupColor) : 'hsl(var(--primary-foreground))'
+                }}
+              >
+                <span>{r.groupName}</span>
+                <span className="opacity-70">{r.startTime}-{r.endTime}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

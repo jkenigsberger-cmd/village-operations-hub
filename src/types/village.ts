@@ -115,6 +115,8 @@ export interface FacilityReservation {
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   groupName: string;
+  numberOfPeople?: number;
+  groupColor?: string; // HSL color for visual distinction
   notes?: string;
   createdAt: string;
 }
