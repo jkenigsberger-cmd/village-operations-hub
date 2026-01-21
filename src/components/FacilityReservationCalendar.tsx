@@ -16,7 +16,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   Users,
-  Check
+  Check,
+  StickyNote,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -71,6 +73,8 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<FacilityReservation | null>(null);
   const [selectedSlotHour, setSelectedSlotHour] = useState<number | null>(null);
   const [newReservation, setNewReservation] = useState({
     startHour: 9,
@@ -108,7 +112,9 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
 
   const handleSlotClick = (hour: number, reservation: FacilityReservation | undefined) => {
     if (reservation) {
-      // If slot is booked, we could show details or do nothing
+      // Show reservation details with notes
+      setSelectedReservation(reservation);
+      setShowNotesDialog(true);
       return;
     }
     // Open reservation dialog with selected hour
@@ -217,9 +223,9 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
                 key={hour}
                 onClick={() => handleSlotClick(hour, reservation)}
                 className={cn(
-                  'flex items-stretch border-b border-border last:border-b-0 transition-all',
-                  !isBooked && 'hover:bg-primary/10 cursor-pointer active:scale-[0.99]',
-                  isBooked && 'cursor-default'
+                  'flex items-stretch border-b border-border last:border-b-0 transition-all cursor-pointer',
+                  !isBooked && 'hover:bg-primary/10 active:scale-[0.99]',
+                  isBooked && 'hover:opacity-90'
                 )}
               >
                 {/* Time label */}
@@ -243,9 +249,14 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Users className="w-5 h-5 shrink-0" style={{ color: textColor }} />
                         <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-base truncate" style={{ color: textColor }}>
-                            {reservation.groupName}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-base truncate" style={{ color: textColor }}>
+                              {reservation.groupName}
+                            </span>
+                            {reservation.notes && (
+                              <StickyNote className="w-4 h-4 shrink-0 opacity-70" style={{ color: textColor }} />
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-sm opacity-80">
                             <span>{reservation.startTime} - {reservation.endTime}</span>
                             {reservation.numberOfPeople && (
@@ -404,6 +415,67 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
         </DialogContent>
       </Dialog>
 
+      {/* View Notes Dialog */}
+      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <StickyNote className="w-5 h-5" />
+              Detalles de Reserva
+            </DialogTitle>
+            <DialogDescription>
+              Información completa de la reserva
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedReservation && (
+            <div className="space-y-4 py-4">
+              <div 
+                className="rounded-xl p-4"
+                style={{ 
+                  backgroundColor: selectedReservation.groupColor || 'hsl(var(--primary))',
+                  color: selectedReservation.groupColor ? getContrastColor(selectedReservation.groupColor) : 'hsl(var(--primary-foreground))'
+                }}
+              >
+                <h3 className="font-bold text-lg">{selectedReservation.groupName}</h3>
+                <p className="opacity-80">
+                  {selectedReservation.startTime} - {selectedReservation.endTime}
+                  {selectedReservation.numberOfPeople && ` • ${selectedReservation.numberOfPeople} personas`}
+                </p>
+              </div>
+
+              {selectedReservation.notes ? (
+                <div className="space-y-2">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <StickyNote className="w-4 h-4" />
+                    Notas Importantes
+                  </h4>
+                  <div className="bg-muted/50 rounded-lg p-4 text-base">
+                    {selectedReservation.notes}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-muted/30 rounded-lg p-4 text-center text-muted-foreground">
+                  No hay notas para esta reserva
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowNotesDialog(false);
+                setSelectedReservation(null);
+              }}
+              className="w-full"
+            >
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Quick Info */}
       {dayReservations.length > 0 && (
         <div className="bg-muted/50 rounded-xl p-4">
@@ -415,7 +487,11 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
             {dayReservations.map(r => (
               <div
                 key={r.id}
-                className="px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2"
+                onClick={() => {
+                  setSelectedReservation(r);
+                  setShowNotesDialog(true);
+                }}
+                className="px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ 
                   backgroundColor: r.groupColor || 'hsl(var(--primary))',
                   color: r.groupColor ? getContrastColor(r.groupColor) : 'hsl(var(--primary-foreground))'
@@ -423,6 +499,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
               >
                 <span>{r.groupName}</span>
                 <span className="opacity-70">{r.startTime}-{r.endTime}</span>
+                {r.notes && <StickyNote className="w-3 h-3 opacity-70" />}
               </div>
             ))}
           </div>
