@@ -130,6 +130,9 @@ export interface ActivitySpace {
   id: string;
   name: string;
   description?: string;
+  cleaningStatus?: CleaningStatus;
+  workingStatus?: WorkingStatus;
+  notes?: string;
 }
 
 export interface ActivityReservation {
