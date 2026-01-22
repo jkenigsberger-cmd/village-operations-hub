@@ -29,6 +29,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { GroupSelector, ActiveGroup } from '@/components/GroupSelector';
 
 interface FacilityReservationCalendarProps {
   facilityId: string;
@@ -83,6 +84,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
     numberOfPeople: '',
     notes: '',
   });
+  const [selectedActiveGroup, setSelectedActiveGroup] = useState<ActiveGroup | undefined>();
 
   // Get reservations for selected date
   const dayReservations = useMemo(() => {
@@ -126,6 +128,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
       numberOfPeople: '',
       notes: '',
     });
+    setSelectedActiveGroup(undefined);
     setShowAddDialog(true);
   };
 
@@ -156,6 +159,16 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
     setShowAddDialog(false);
     setSelectedSlotHour(null);
     setNewReservation({ startHour: 9, endHour: 10, groupName: '', numberOfPeople: '', notes: '' });
+    setSelectedActiveGroup(undefined);
+  };
+
+  const handleGroupSelect = (groupName: string, activeGroup?: ActiveGroup) => {
+    setNewReservation(prev => ({
+      ...prev,
+      groupName,
+      numberOfPeople: activeGroup?.totalBeds?.toString() || prev.numberOfPeople,
+    }));
+    setSelectedActiveGroup(activeGroup);
   };
 
   const isToday = isSameDay(selectedDate, new Date());
@@ -356,14 +369,11 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
 
             <div className="space-y-2">
               <label className="text-sm font-semibold">Nombre del Grupo *</label>
-              <Input
-                value={newReservation.groupName}
-                onChange={(e) => setNewReservation(prev => ({
-                  ...prev,
-                  groupName: e.target.value
-                }))}
-                placeholder="Ej: Grupo Juvenil Maccabi"
-                className="text-base py-3"
+              <GroupSelector
+                date={format(selectedDate, 'yyyy-MM-dd')}
+                selectedGroup={newReservation.groupName}
+                onSelectGroup={handleGroupSelect}
+                placeholder="Seleccionar grupo..."
               />
             </div>
 
