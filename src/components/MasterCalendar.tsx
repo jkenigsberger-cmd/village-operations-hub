@@ -1,0 +1,391 @@
+import React, { useState, useMemo } from 'react';
+import { useVillage } from '@/context/VillageContext';
+import { CalendarEvent, CalendarEventType } from '@/types/village';
+import { CalendarDayView } from './CalendarDayView';
+import { CalendarWeekView } from './CalendarWeekView';
+import { CalendarMonthView } from './CalendarMonthView';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { 
+  CalendarDays, 
+  ChevronLeft, 
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Filter,
+  Tent,
+  Flame,
+  LogIn,
+  LogOut
+} from 'lucide-react';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isWithinInterval, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+type ViewMode = 'day' | 'week' | 'month';
+
+// Color palette for event types
+const EVENT_COLORS: Record<CalendarEventType, string> = {
+  NEIGHBORHOOD: 'hsl(270, 70%, 50%)', // Purple
+  FACILITY: 'hsl(30, 90%, 50%)',      // Orange
+  ACTIVITY: 'hsl(30, 90%, 50%)',      // Orange (same as facility)
+  TENT_CHECKIN: 'hsl(142, 70%, 45%)', // Green
+  TENT_CHECKOUT: 'hsl(210, 80%, 50%)', // Blue
+};
+
+interface FilterState {
+  showNeighborhoods: boolean;
+  showFacilities: boolean;
+  showCheckIns: boolean;
+  showCheckOuts: boolean;
+}
+
+export const MasterCalendar: React.FC = () => {
+  const { state, getFacilityReservations } = useVillage();
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    showNeighborhoods: true,
+    showFacilities: true,
+    showCheckIns: true,
+    showCheckOuts: true,
+  });
+
+  // Generate all calendar events from different sources
+  const allEvents = useMemo((): CalendarEvent[] => {
+    if (!state) return [];
+
+    const events: CalendarEvent[] = [];
+
+    // 1. Neighborhood reservations (multi-day)
+    Object.values(state.neighborhoodReservations || {}).forEach(reservation => {
+      events.push({
+        id: `neighborhood_${reservation.id}`,
+        type: 'NEIGHBORHOOD',
+        title: `${state.neighborhoods[reservation.neighborhoodId]?.displayName || reservation.neighborhoodId}`,
+        groupName: reservation.groupName,
+        startDate: reservation.checkInDate,
+        endDate: reservation.checkOutDate,
+        location: state.neighborhoods[reservation.neighborhoodId]?.displayName || reservation.neighborhoodId,
+        color: EVENT_COLORS.NEIGHBORHOOD,
+        metadata: {
+          reservationType: reservation.reservationType,
+          tentCount: reservation.tentCount,
+          genderDistribution: reservation.genderDistribution,
+          contactName: reservation.contactName,
+          contactPhone: reservation.contactPhone,
+          notes: reservation.notes,
+        },
+      });
+    });
+
+    // 2. Facility reservations (hourly)
+    Object.values(state.facilityReservations || {}).forEach(reservation => {
+      const space = state.activitySpaces[reservation.facilityId];
+      events.push({
+        id: `facility_${reservation.id}`,
+        type: 'FACILITY',
+        title: space?.name || reservation.facilityId,
+        groupName: reservation.groupName,
+        startDate: reservation.date,
+        startTime: reservation.startTime,
+        endTime: reservation.endTime,
+        location: space?.name || reservation.facilityId,
+        color: reservation.groupColor || EVENT_COLORS.FACILITY,
+        metadata: {
+          numberOfPeople: reservation.numberOfPeople,
+          notes: reservation.notes,
+        },
+      });
+    });
+
+    // 3. Activity reservations (hourly)
+    Object.values(state.activityReservations || {}).forEach(reservation => {
+      const space = state.activitySpaces[reservation.spaceId];
+      events.push({
+        id: `activity_${reservation.id}`,
+        type: 'ACTIVITY',
+        title: space?.name || reservation.spaceId,
+        groupName: reservation.groupName,
+        startDate: reservation.date,
+        startTime: reservation.startTime,
+        endTime: reservation.endTime,
+        location: space?.name || reservation.spaceId,
+        color: EVENT_COLORS.ACTIVITY,
+        metadata: {
+          notes: reservation.notes,
+        },
+      });
+    });
+
+    // 4. Tent check-ins and check-outs
+    Object.values(state.tents).forEach(tent => {
+      if (tent.checkInDate && tent.groupName) {
+        events.push({
+          id: `checkin_${tent.id}`,
+          type: 'TENT_CHECKIN',
+          title: tent.code,
+          groupName: tent.groupName,
+          startDate: tent.checkInDate,
+          location: state.neighborhoods[tent.neighborhoodId]?.displayName || tent.neighborhoodId,
+          color: EVENT_COLORS.TENT_CHECKIN,
+          metadata: {
+            tentId: tent.id,
+            neighborhoodId: tent.neighborhoodId,
+            beds: tent.beds.length,
+          },
+        });
+      }
+      if (tent.checkOutDate && tent.groupName) {
+        events.push({
+          id: `checkout_${tent.id}`,
+          type: 'TENT_CHECKOUT',
+          title: tent.code,
+          groupName: tent.groupName,
+          startDate: tent.checkOutDate,
+          location: state.neighborhoods[tent.neighborhoodId]?.displayName || tent.neighborhoodId,
+          color: EVENT_COLORS.TENT_CHECKOUT,
+          metadata: {
+            tentId: tent.id,
+            neighborhoodId: tent.neighborhoodId,
+            beds: tent.beds.length,
+          },
+        });
+      }
+    });
+
+    return events;
+  }, [state]);
+
+  // Filter events based on active filters
+  const filteredEvents = useMemo(() => {
+    return allEvents.filter(event => {
+      if (event.type === 'NEIGHBORHOOD' && !filters.showNeighborhoods) return false;
+      if ((event.type === 'FACILITY' || event.type === 'ACTIVITY') && !filters.showFacilities) return false;
+      if (event.type === 'TENT_CHECKIN' && !filters.showCheckIns) return false;
+      if (event.type === 'TENT_CHECKOUT' && !filters.showCheckOuts) return false;
+      return true;
+    });
+  }, [allEvents, filters]);
+
+  // Navigation handlers
+  const handlePrevious = () => {
+    switch (viewMode) {
+      case 'day':
+        setSelectedDate(prev => subDays(prev, 1));
+        break;
+      case 'week':
+        setSelectedDate(prev => subWeeks(prev, 1));
+        break;
+      case 'month':
+        setSelectedDate(prev => subMonths(prev, 1));
+        break;
+    }
+  };
+
+  const handleNext = () => {
+    switch (viewMode) {
+      case 'day':
+        setSelectedDate(prev => addDays(prev, 1));
+        break;
+      case 'week':
+        setSelectedDate(prev => addWeeks(prev, 1));
+        break;
+      case 'month':
+        setSelectedDate(prev => addMonths(prev, 1));
+        break;
+    }
+  };
+
+  const handleToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      setIsDatePickerOpen(false);
+    }
+  };
+
+  // Get date range label based on view mode
+  const getDateLabel = (): string => {
+    switch (viewMode) {
+      case 'day':
+        return format(selectedDate, "EEEE, d 'de' MMMM yyyy", { locale: es });
+      case 'week': {
+        const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+        const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
+        return `${format(weekStart, "d MMM", { locale: es })} - ${format(weekEnd, "d MMM yyyy", { locale: es })}`;
+      }
+      case 'month':
+        return format(selectedDate, "MMMM yyyy", { locale: es });
+    }
+  };
+
+  const toggleFilter = (key: keyof FilterState) => {
+    setFilters(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Count active events for today indicator
+  const todayEventsCount = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return filteredEvents.filter(e => e.startDate === todayStr).length;
+  }, [filteredEvents]);
+
+  return (
+    <div className="space-y-4">
+      {/* Header with view selector and navigation */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="w-8 h-8 text-primary" />
+          <h2 className="text-2xl font-bold">Calendario General</h2>
+        </div>
+
+        {/* View mode tabs */}
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+          <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+            <TabsTrigger value="day" className="px-6">Día</TabsTrigger>
+            <TabsTrigger value="week" className="px-6">Semana</TabsTrigger>
+            <TabsTrigger value="month" className="px-6">Mes</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Date navigation and filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={handlePrevious}>
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          
+          <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="min-w-[200px] justify-start gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                <span className="capitalize">{getDateLabel()}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button variant="outline" size="icon" onClick={handleNext}>
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+
+          <Button variant="ghost" onClick={handleToday} className="ml-2">
+            Hoy
+          </Button>
+        </div>
+
+        {/* Filter buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground mr-2">
+            <Filter className="w-4 h-4 inline mr-1" />
+            Filtros:
+          </span>
+          <Button
+            variant={filters.showNeighborhoods ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleFilter('showNeighborhoods')}
+            className="gap-1"
+            style={{ backgroundColor: filters.showNeighborhoods ? EVENT_COLORS.NEIGHBORHOOD : undefined }}
+          >
+            <Tent className="w-4 h-4" />
+            Vecindarios
+          </Button>
+          <Button
+            variant={filters.showFacilities ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleFilter('showFacilities')}
+            className="gap-1"
+            style={{ backgroundColor: filters.showFacilities ? EVENT_COLORS.FACILITY : undefined }}
+          >
+            <Flame className="w-4 h-4" />
+            Espacios
+          </Button>
+          <Button
+            variant={filters.showCheckIns ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleFilter('showCheckIns')}
+            className="gap-1"
+            style={{ backgroundColor: filters.showCheckIns ? EVENT_COLORS.TENT_CHECKIN : undefined }}
+          >
+            <LogIn className="w-4 h-4" />
+            Check-ins
+          </Button>
+          <Button
+            variant={filters.showCheckOuts ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleFilter('showCheckOuts')}
+            className="gap-1"
+            style={{ backgroundColor: filters.showCheckOuts ? EVENT_COLORS.TENT_CHECKOUT : undefined }}
+          >
+            <LogOut className="w-4 h-4" />
+            Check-outs
+          </Button>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.NEIGHBORHOOD }} />
+          <span>Reservas de Vecindario</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.FACILITY }} />
+          <span>Espacios Comunes</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.TENT_CHECKIN }} />
+          <span>Check-ins</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.TENT_CHECKOUT }} />
+          <span>Check-outs</span>
+        </div>
+      </div>
+
+      {/* Calendar views */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        {viewMode === 'day' && (
+          <CalendarDayView 
+            selectedDate={selectedDate} 
+            events={filteredEvents} 
+          />
+        )}
+        {viewMode === 'week' && (
+          <CalendarWeekView 
+            selectedDate={selectedDate} 
+            events={filteredEvents}
+            onDayClick={(date) => {
+              setSelectedDate(date);
+              setViewMode('day');
+            }}
+          />
+        )}
+        {viewMode === 'month' && (
+          <CalendarMonthView 
+            selectedDate={selectedDate} 
+            events={filteredEvents}
+            onDayClick={(date) => {
+              setSelectedDate(date);
+              setViewMode('day');
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+};

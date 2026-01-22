@@ -7,6 +7,7 @@ import { FacilityReservationCalendar } from '@/components/FacilityReservationCal
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { TentCard } from '@/components/TentCard';
+import { MasterCalendar } from '@/components/MasterCalendar';
 import { 
   Calendar, 
   Bath, 
@@ -38,7 +39,7 @@ import { es } from 'date-fns/locale';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
-type MenuSection = 'overview' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
+type MenuSection = 'overview' | 'calendar' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 const Index = () => {
   const { 
@@ -135,6 +136,7 @@ const Index = () => {
 
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: 'Overview', icon: Home },
+    { key: 'calendar', label: 'Calendario', icon: CalendarDays },
     { key: 'neighborhoods', label: 'Neighborhoods', icon: Tent },
     { key: 'facilities', label: 'Common Facilities', icon: Flame },
     { key: 'bathrooms', label: 'Bathrooms', icon: ShowerHead, count: facilitiesNeedingAttention.length },
@@ -354,6 +356,11 @@ const Index = () => {
               </div>
             </section>
           </>
+        )}
+
+        {/* Calendar Section */}
+        {activeSection === 'calendar' && (
+          <MasterCalendar />
         )}
 
         {/* Neighborhoods Section */}
