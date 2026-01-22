@@ -72,6 +72,7 @@ interface VillageContextType {
     groupName: string;
     checkInDate: string;
     checkOutDate: string;
+    totalPeople?: number;
     contactName?: string;
     contactPhone?: string;
     notes?: string;
@@ -265,20 +266,22 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   const updateTentPeopleCount = (tentId: string, peopleCount: number | undefined) => {
     if (!state) return;
     
-    const tent = state.tents[tentId];
-    if (!tent) return;
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
 
-    // Validate count doesn't exceed beds
-    const validCount = peopleCount !== undefined 
-      ? Math.min(Math.max(0, peopleCount), tent.beds.length)
-      : undefined;
+      // Validate count doesn't exceed beds
+      const validCount = peopleCount !== undefined 
+        ? Math.min(Math.max(0, peopleCount), tent.beds.length)
+        : undefined;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, peopleCount: validCount, lastUpdated: new Date().toISOString() },
-    };
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: { ...tent, peopleCount: validCount, lastUpdated: new Date().toISOString() },
+      };
 
-    saveState({ ...state, tents: updatedTents });
+      return { ...prev, tents: updatedTents };
+    });
   };
 
   const updateTentGender = (tentId: string, gender: TentGender) => {
@@ -806,13 +809,14 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     groupName: string;
     checkInDate: string;
     checkOutDate: string;
+    totalPeople?: number;
     contactName?: string;
     contactPhone?: string;
     notes?: string;
   }): { success: boolean; error?: string } => {
     if (!state) return { success: false, error: 'Estado no disponible' };
 
-    const { neighborhoodId, tentIds, tentGenders, groupName, checkInDate, checkOutDate, contactName, contactPhone, notes } = params;
+    const { neighborhoodId, tentIds, tentGenders, groupName, checkInDate, checkOutDate, totalPeople, contactName, contactPhone, notes } = params;
 
     // Validate dates
     if (checkInDate >= checkOutDate) {
@@ -847,6 +851,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       reservationType: 'SPECIFIC_TENTS',
       tentIds,
       totalBeds,
+      totalPeople,
       contactName,
       contactPhone,
       notes,
