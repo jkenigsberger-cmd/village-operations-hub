@@ -35,6 +35,7 @@ interface VillageContextType {
   updateTentGroupName: (tentId: string, groupName: string) => void;
   updateTentDates: (tentId: string, checkIn?: string, checkOut?: string) => void;
   updateTentNotes: (tentId: string, notes: string) => void;
+  updateTentPeopleCount: (tentId: string, count: number | undefined) => void;
   updateTentGender: (tentId: string, gender: TentGender) => void;
   updateTentPrivateBathroom: (tentId: string, hasPrivateBathroom: boolean) => void;
   updateTentPrivateShower: (tentId: string, hasPrivateShower: boolean) => void;
@@ -256,6 +257,25 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updatedTents = {
       ...state.tents,
       [tentId]: { ...tent, notes, lastUpdated: new Date().toISOString() },
+    };
+
+    saveState({ ...state, tents: updatedTents });
+  };
+
+  const updateTentPeopleCount = (tentId: string, peopleCount: number | undefined) => {
+    if (!state) return;
+    
+    const tent = state.tents[tentId];
+    if (!tent) return;
+
+    // Validate count doesn't exceed beds
+    const validCount = peopleCount !== undefined 
+      ? Math.min(Math.max(0, peopleCount), tent.beds.length)
+      : undefined;
+
+    const updatedTents = {
+      ...state.tents,
+      [tentId]: { ...tent, peopleCount: validCount, lastUpdated: new Date().toISOString() },
     };
 
     saveState({ ...state, tents: updatedTents });
@@ -1182,6 +1202,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateTentGroupName,
     updateTentDates,
     updateTentNotes,
+    updateTentPeopleCount,
     updateTentGender,
     updateTentPrivateBathroom,
     updateTentPrivateShower,
