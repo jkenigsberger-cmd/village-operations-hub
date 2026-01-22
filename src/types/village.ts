@@ -261,6 +261,7 @@ export interface NeighborhoodReservation {
   tentCount?: number; // Number of tents to prepare (for FULL_NEIGHBORHOOD)
   genderDistribution?: GenderCount; // Distribution of tents by gender
   totalBeds?: number;
+  totalPeople?: number; // Total people expected for the reservation
   contactName?: string;
   contactPhone?: string;
   notes?: string;

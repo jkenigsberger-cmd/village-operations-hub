@@ -64,6 +64,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   // Gender assignments for specific tent mode
   const [tentGenders, setTentGenders] = useState<Record<string, TentGender>>({});
   
+  const [peopleCount, setPeopleCount] = useState<number | undefined>(undefined);
+  
   const [form, setForm] = useState({
     groupName: '',
     checkInDate: new Date().toISOString().split('T')[0],
@@ -218,6 +220,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         reservationType: 'FULL_NEIGHBORHOOD',
         tentCount: totalGenderTents || tentCount || neighborhoodTents.length,
         genderDistribution: totalGenderTents > 0 ? genderCounts : undefined,
+        totalPeople: peopleCount,
         contactName: form.contactName || undefined,
         contactPhone: form.contactPhone || undefined,
         notes: form.notes || undefined,
@@ -230,6 +233,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         groupName: form.groupName.trim(),
         checkInDate: form.checkInDate,
         checkOutDate: form.checkOutDate,
+        totalPeople: peopleCount,
         contactName: form.contactName || undefined,
         contactPhone: form.contactPhone || undefined,
         notes: form.notes || undefined,
@@ -261,6 +265,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     setAvailabilityError(null);
     setShowOptionalFields(false);
     setTentCount(0);
+    setPeopleCount(undefined);
     setGenderCounts({ female: 0, male: 0, mixed: 0 });
     setTentGenders({});
     onOpenChange(false);
@@ -358,6 +363,28 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   min={form.checkInDate || today}
                 />
               </div>
+            </div>
+
+            {/* People Count */}
+            <div className="space-y-2">
+              <Label htmlFor="peopleCount" className="flex items-center justify-between">
+                <span>Cantidad de Personas</span>
+                <span className="text-sm text-muted-foreground font-normal">
+                  Máximo: {mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds} camas
+                </span>
+              </Label>
+              <Input
+                id="peopleCount"
+                type="number"
+                min={1}
+                max={mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds}
+                value={peopleCount ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? undefined : parseInt(e.target.value);
+                  setPeopleCount(val);
+                }}
+                placeholder="Número de personas esperadas..."
+              />
             </div>
 
             {/* Availability Error */}
