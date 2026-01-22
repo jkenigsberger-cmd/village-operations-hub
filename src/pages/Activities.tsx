@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { GroupSelector, ActiveGroup } from '@/components/GroupSelector';
 import { ActivityReservation, ActivitySpace } from '@/types/village';
 import { 
   Loader2, 
@@ -290,12 +289,12 @@ const Activities = () => {
                   {/* Group Name */}
                   <div className="space-y-2">
                     <label className="text-base font-semibold">Nombre del Grupo</label>
-                    <GroupSelector
-                      date={selectedDate}
-                      selectedGroup={formData.groupName}
-                      onSelectGroup={(groupName) => setFormData({ ...formData, groupName })}
-                      state={state}
-                      placeholder="Seleccionar grupo..."
+                    <input
+                      type="text"
+                      value={formData.groupName}
+                      onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
+                      placeholder="Nombre del grupo..."
+                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
                     />
                   </div>
 

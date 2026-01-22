@@ -4,7 +4,6 @@ import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
 import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
-import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { TentCard } from '@/components/TentCard';
@@ -33,7 +32,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { toast } from 'sonner';
@@ -56,9 +54,6 @@ const Index = () => {
     updateFacilityNotes,
     updateFacilityMaintenanceImage,
     updateTentCleaningStatus,
-    addFacilityReservation,
-    removeFacilityReservation,
-    getFacilityReservations,
     reportFacilityIssue,
     resolveFacilityIssue,
     getDailyTasks,
@@ -416,58 +411,29 @@ const Index = () => {
               Common Facilities
             </h2>
             <p className="text-muted-foreground mb-6">
-              Click on any facility to view or add reservations
+              Activity spaces available for group use
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.values(state.activitySpaces).map((space) => {
-                // Check if there are reservations for today
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const todayReservations = getFacilityReservations(space.id).filter(
-                  r => r.date === todayStr
-                );
-                const hasTodayReservations = todayReservations.length > 0;
-
-                return (
-                  <div
-                    key={space.id}
-                    onClick={() => {
-                      // Create a fake facility object for activity spaces
-                      const fakeFacility: Facility = {
-                        id: space.id,
-                        areaId: 'activities',
-                        label: space.name,
-                        type: 'TOILET', // We're reusing the facility system
-                        gender: 'UNISEX',
-                        cleaningStatus: 'CLEAN',
-                        workingStatus: 'WORKING',
-                        lastUpdated: new Date().toISOString(),
-                      };
-                      setSelectedFacility(fakeFacility);
-                    }}
-                    className="tile p-6 cursor-pointer hover:shadow-lg transition-all relative"
-                  >
-                    {hasTodayReservations && (
-                      <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1">
-                        <CalendarCheck className="w-3 h-3" />
-                        {todayReservations.length} hoy
-                      </div>
-                    )}
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Flame className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{space.name}</h3>
-                        {space.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {space.description}
-                          </p>
-                        )}
-                      </div>
+              {Object.values(state.activitySpaces).map((space) => (
+                <div
+                  key={space.id}
+                  className="tile p-6"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Flame className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">{space.name}</h3>
+                      {space.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {space.description}
+                        </p>
+                      )}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </section>
         )}
@@ -1109,7 +1075,7 @@ const Index = () => {
         </footer>
       </main>
 
-      {/* Facility Detail Modal with Reservations */}
+      {/* Facility Detail Modal */}
       <Dialog open={!!selectedFacility} onOpenChange={(open) => !open && setSelectedFacility(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1119,46 +1085,22 @@ const Index = () => {
           </DialogHeader>
           
           {selectedFacility && (
-            <Tabs defaultValue="reservations" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="reservations">Reservations</TabsTrigger>
-                <TabsTrigger value="status">Status</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="reservations" className="mt-4">
-                <FacilityReservationCalendar
-                  facilityId={selectedFacility.id}
-                  facilityLabel={selectedFacility.label}
-                  reservations={getFacilityReservations(selectedFacility.id)}
-                  onAddReservation={(reservation) => {
-                    return addFacilityReservation({
-                      ...reservation,
-                      facilityId: selectedFacility.id,
-                    });
-                  }}
-                  onRemoveReservation={removeFacilityReservation}
-                />
-              </TabsContent>
-              
-              <TabsContent value="status" className="mt-4">
-                <FacilityCard
-                  facility={selectedFacility}
-                  onCleaningChange={(status) => {
-                    updateFacilityCleaningStatus(selectedFacility.id, status);
-                    setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
-                  }}
-                  onWorkingChange={(status) => {
-                    updateFacilityWorkingStatus(selectedFacility.id, status);
-                    setSelectedFacility({ ...selectedFacility, workingStatus: status });
-                  }}
-                  onNotesChange={(notes) => {
-                    updateFacilityNotes(selectedFacility.id, notes);
-                    setSelectedFacility({ ...selectedFacility, notes });
-                  }}
-                  onReportIssue={handleReportIssue}
-                />
-              </TabsContent>
-            </Tabs>
+            <FacilityCard
+              facility={selectedFacility}
+              onCleaningChange={(status) => {
+                updateFacilityCleaningStatus(selectedFacility.id, status);
+                setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
+              }}
+              onWorkingChange={(status) => {
+                updateFacilityWorkingStatus(selectedFacility.id, status);
+                setSelectedFacility({ ...selectedFacility, workingStatus: status });
+              }}
+              onNotesChange={(notes) => {
+                updateFacilityNotes(selectedFacility.id, notes);
+                setSelectedFacility({ ...selectedFacility, notes });
+              }}
+              onReportIssue={handleReportIssue}
+            />
           )}
         </DialogContent>
       </Dialog>
