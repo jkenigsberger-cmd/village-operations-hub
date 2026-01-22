@@ -281,3 +281,31 @@
     text-wrap: balance;
   }
 }
+
+/* RTL Support */
+[dir="rtl"] {
+  /* Flip directional elements */
+  .breadcrumb svg.lucide-chevron-right {
+    transform: scaleX(-1);
+  }
+  
+  /* Ensure proper text alignment */
+  input, textarea, select {
+    text-align: right;
+  }
+  
+  /* Date inputs keep LTR for numbers */
+  input[type="date"],
+  input[type="time"] {
+    direction: ltr;
+    text-align: right;
+  }
+  
+  /* Navigation arrows */
+  .lucide-chevron-left,
+  .lucide-chevron-right,
+  .lucide-arrow-left,
+  .lucide-arrow-right {
+    transform: scaleX(-1);
+  }
+}

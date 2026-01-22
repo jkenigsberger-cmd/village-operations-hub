@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Facility, CleaningStatus, WorkingStatus } from '@/types/village';
 import { CleaningToggle, WorkingToggle } from './StatusBadge';
 import { cn } from '@/lib/utils';
 import { Droplets, Accessibility, MessageSquare } from 'lucide-react';
+import { HE } from '@/lib/translations';
 
 interface FacilityCardProps {
   facility: Facility;
@@ -49,7 +50,7 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
             <div>
               <h4 className="text-xl font-bold">{facility.label}</h4>
               <span className="text-muted-foreground">
-                {isToilet ? 'Toilet' : 'Shower'}
+                {isToilet ? HE.entities.toilet : HE.entities.shower}
               </span>
             </div>
           </div>
@@ -71,7 +72,7 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
         {/* Cleaning Status */}
         <div className="space-y-2">
           <label className="text-base font-semibold text-muted-foreground">
-            Cleaning Status
+            {HE.forms.cleaningStatus}
           </label>
           <CleaningToggle
             status={facility.cleaningStatus}
@@ -83,7 +84,7 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
         {/* Working Status */}
         <div className="space-y-2">
           <label className="text-base font-semibold text-muted-foreground">
-            Working Status
+            {HE.forms.workingStatus}
           </label>
           <WorkingToggle
             status={facility.workingStatus}
@@ -96,12 +97,12 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
         <div className="space-y-2">
           <label className="text-base font-semibold text-muted-foreground flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
-            Notes
+            {HE.forms.notes}
           </label>
           <textarea
             value={facility.notes || ''}
             onChange={(e) => onNotesChange(e.target.value)}
-            placeholder="Add notes..."
+            placeholder={HE.messages.addNotes}
             className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background resize-none focus:outline-none focus:border-primary"
             rows={2}
           />
@@ -109,7 +110,7 @@ export const FacilityCard = React.forwardRef<HTMLDivElement, FacilityCardProps>(
 
         {/* Last updated */}
         <div className="text-sm text-muted-foreground">
-          Updated: {new Date(facility.lastUpdated).toLocaleString()}
+          {HE.dataManagement.lastModified} {new Date(facility.lastUpdated).toLocaleString('he-IL')}
         </div>
       </div>
     );
@@ -170,7 +171,9 @@ export const FacilityTile: React.FC<FacilityTileProps> = ({ facility, onClick })
                 'px-2 py-0.5 rounded-full text-sm font-medium',
                 'bg-status-broken'
               )}>
-                {facility.workingStatus}
+                {facility.workingStatus === 'BROKEN' ? HE.status.broken : 
+                 facility.workingStatus === 'MAINTENANCE' ? HE.status.maintenance : 
+                 HE.status.closed}
               </span>
             )}
           </div>
