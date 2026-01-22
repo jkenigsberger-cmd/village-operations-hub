@@ -45,6 +45,7 @@ export interface Tent {
   isAlef?: boolean; // For N1-N3 double tent identification
   beds: Bed[];
   groupName?: string;
+  peopleCount?: number; // Number of people expected (max = beds.length)
   checkInDate?: string; // ISO date string
   checkOutDate?: string;
   notes?: string;

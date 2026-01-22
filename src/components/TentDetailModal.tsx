@@ -59,6 +59,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     updateTentGroupName,
     updateTentDates,
     updateTentNotes,
+    updateTentPeopleCount,
     updateTentGender,
     updateTentPrivateBathroom,
     updateTentPrivateShower,
@@ -372,6 +373,47 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                 onChange={(e) => updateTentGroupName(tent.id, e.target.value)}
                 placeholder="Nombre del grupo..."
               />
+            </div>
+
+            {/* People Count */}
+            <div className="space-y-2">
+              <Label className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Cantidad de Personas
+                </span>
+                <span className="text-sm text-muted-foreground font-normal">
+                  Máximo: {tent.beds.length} camas
+                </span>
+              </Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  min={0}
+                  max={tent.beds.length}
+                  value={tent.peopleCount ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? undefined : parseInt(e.target.value);
+                    updateTentPeopleCount(tent.id, value);
+                  }}
+                  placeholder={`0 - ${tent.beds.length}`}
+                  className="flex-1"
+                />
+                {tent.peopleCount !== undefined && tent.peopleCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-primary">
+                      {tent.peopleCount}/{tent.beds.length}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {tent.peopleCount !== undefined && tent.peopleCount > tent.beds.length && (
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  La cantidad excede el número de camas
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
