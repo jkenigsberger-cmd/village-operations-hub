@@ -370,21 +370,25 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <Label htmlFor="peopleCount" className="flex items-center justify-between">
                 <span>Cantidad de Personas</span>
                 <span className="text-sm text-muted-foreground font-normal">
-                  Máximo: {mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds} camas
+                  Máximo: {mode === 'FULL' ? totalNeighborhoodBeds : (selectedBeds || totalNeighborhoodBeds)} camas
                 </span>
               </Label>
               <Input
                 id="peopleCount"
                 type="number"
-                min={1}
-                max={mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds}
+                min={0}
+                max={mode === 'FULL' ? totalNeighborhoodBeds : (selectedBeds || totalNeighborhoodBeds)}
                 value={peopleCount ?? ''}
                 onChange={(e) => {
                   const val = e.target.value === '' ? undefined : parseInt(e.target.value);
                   setPeopleCount(val);
                 }}
                 placeholder="Número de personas esperadas..."
+                disabled={mode === 'SPECIFIC' && selectedTentIds.length === 0}
               />
+              {mode === 'SPECIFIC' && selectedTentIds.length === 0 && (
+                <p className="text-sm text-muted-foreground">Selecciona carpas primero</p>
+              )}
             </div>
 
             {/* Availability Error */}
