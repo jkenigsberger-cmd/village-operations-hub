@@ -176,6 +176,26 @@ export interface VillageState {
 }
 
 // ============================================================
+// CALENDAR EVENT TYPES (for Master Calendar)
+// ============================================================
+
+export type CalendarEventType = 'NEIGHBORHOOD' | 'FACILITY' | 'TENT_CHECKIN' | 'TENT_CHECKOUT' | 'ACTIVITY';
+
+export interface CalendarEvent {
+  id: string;
+  type: CalendarEventType;
+  title: string;
+  groupName: string;
+  startDate: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD for multi-day events
+  startTime?: string; // HH:mm for time-based events
+  endTime?: string; // HH:mm
+  location: string;
+  color: string; // HSL color
+  metadata: Record<string, unknown>;
+}
+
+// ============================================================
 // HELPER TYPES
 // ============================================================
 
