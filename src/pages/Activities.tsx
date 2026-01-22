@@ -177,10 +177,18 @@ const Activities = () => {
             const reservations = getSpaceReservations(space.id);
             
             return (
-              <div key={space.id} className="tile">
+              <button
+                key={space.id}
+                type="button"
+                onClick={() => {
+                  setSelectedSpaceId(space.id);
+                  setShowAddForm(true);
+                }}
+                className="tile text-left hover:shadow-lg hover:border-primary/30 transition-all group"
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-2xl font-bold">{space.name}</h3>
+                    <h3 className="text-2xl font-bold group-hover:text-primary transition-colors">{space.name}</h3>
                     {space.description && (
                       <p className="text-muted-foreground">{space.description}</p>
                     )}
@@ -191,11 +199,12 @@ const Activities = () => {
                 </div>
 
                 {reservations.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No reservations for this date
-                  </p>
+                  <div className="text-center py-6">
+                    <Plus className="w-8 h-8 mx-auto text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                    <p className="text-muted-foreground mt-2">Click to add reservation</p>
+                  </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
                     {reservations.map((res) => (
                       <div 
                         key={res.id}
@@ -219,13 +228,19 @@ const Activities = () => {
                           {deleteConfirmId === res.id ? (
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleDeleteReservation(res.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteReservation(res.id);
+                                }}
                                 className="px-3 py-1 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium"
                               >
                                 Delete
                               </button>
                               <button
-                                onClick={() => setDeleteConfirmId(null)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmId(null);
+                                }}
                                 className="px-3 py-1 bg-muted rounded-lg text-sm font-medium"
                               >
                                 Cancel
@@ -233,7 +248,10 @@ const Activities = () => {
                             </div>
                           ) : (
                             <button
-                              onClick={() => setDeleteConfirmId(res.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmId(res.id);
+                              }}
                               className="p-2 hover:bg-destructive/20 rounded-lg text-muted-foreground hover:text-destructive"
                             >
                               <Trash2 className="w-5 h-5" />
@@ -244,7 +262,7 @@ const Activities = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -303,25 +321,132 @@ const Activities = () => {
                     />
                   </div>
 
-                  {/* Time */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-base font-semibold">Start Time</label>
-                      <input
-                        type="time"
-                        value={formData.startTime}
-                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                        className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
-                      />
+                  {/* Time - Modern Visual Selector */}
+                  <div className="space-y-3">
+                    <label className="text-base font-semibold flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-muted-foreground" />
+                      Horario
+                    </label>
+                    
+                    {/* Quick time blocks */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'Mañana', start: '08:00', end: '12:00', icon: '🌅' },
+                        { label: 'Tarde', start: '12:00', end: '17:00', icon: '☀️' },
+                        { label: 'Noche', start: '17:00', end: '21:00', icon: '🌙' },
+                      ].map((block) => (
+                        <button
+                          key={block.label}
+                          type="button"
+                          onClick={() => setFormData({ 
+                            ...formData, 
+                            startTime: block.start, 
+                            endTime: block.end 
+                          })}
+                          className={cn(
+                            "p-3 rounded-xl border-2 transition-all text-center",
+                            formData.startTime === block.start && formData.endTime === block.end
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-muted/30 hover:bg-muted border-transparent"
+                          )}
+                        >
+                          <span className="text-2xl">{block.icon}</span>
+                          <p className="font-semibold text-sm mt-1">{block.label}</p>
+                          <p className="text-xs opacity-70">{block.start}-{block.end}</p>
+                        </button>
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-base font-semibold">End Time</label>
-                      <input
-                        type="time"
-                        value={formData.endTime}
-                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                        className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
-                      />
+
+                    {/* Hour picker for custom times */}
+                    <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground font-medium">O selecciona hora exacta:</p>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="text-xs text-muted-foreground mb-1 block">Inicio</label>
+                          <div className="flex gap-1">
+                            {['07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map((time) => (
+                              <button
+                                key={`start-${time}`}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, startTime: time })}
+                                className={cn(
+                                  "flex-1 py-2 text-xs font-medium rounded-lg transition-all",
+                                  formData.startTime === time
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-background hover:bg-muted"
+                                )}
+                              >
+                                {time.split(':')[0]}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-1 mt-1">
+                            {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00'].map((time) => (
+                              <button
+                                key={`start-${time}`}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, startTime: time })}
+                                className={cn(
+                                  "flex-1 py-2 text-xs font-medium rounded-lg transition-all",
+                                  formData.startTime === time
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-background hover:bg-muted"
+                                )}
+                              >
+                                {time.split(':')[0]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <span className="text-2xl text-muted-foreground">→</span>
+                        
+                        <div className="flex-1">
+                          <label className="text-xs text-muted-foreground mb-1 block">Fin</label>
+                          <div className="flex gap-1">
+                            {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00'].map((time) => (
+                              <button
+                                key={`end-${time}`}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, endTime: time })}
+                                className={cn(
+                                  "flex-1 py-2 text-xs font-medium rounded-lg transition-all",
+                                  formData.endTime === time
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-background hover:bg-muted"
+                                )}
+                              >
+                                {time.split(':')[0]}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-1 mt-1">
+                            {['14:00', '15:00', '16:00', '17:00', '18:00', '21:00'].map((time) => (
+                              <button
+                                key={`end-${time}`}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, endTime: time })}
+                                className={cn(
+                                  "flex-1 py-2 text-xs font-medium rounded-lg transition-all",
+                                  formData.endTime === time
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-background hover:bg-muted"
+                                )}
+                              >
+                                {time.split(':')[0]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Display selected time range */}
+                      <div className="text-center pt-2 border-t border-border">
+                        <span className="text-lg font-bold text-primary">
+                          {formData.startTime} - {formData.endTime}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
