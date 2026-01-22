@@ -133,6 +133,8 @@ export interface ActivitySpace {
   cleaningStatus?: CleaningStatus;
   workingStatus?: WorkingStatus;
   notes?: string;
+  maintenanceImage?: string;
+  maintenanceNotes?: string;
 }
 
 export interface ActivityReservation {

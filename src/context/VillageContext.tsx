@@ -64,6 +64,8 @@ interface VillageContextType {
   removeActivityReservation: (reservationId: string) => void;
   updateActivitySpaceStatus: (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus) => void;
   updateActivitySpaceNotes: (spaceId: string, notes: string) => void;
+  reportActivitySpaceIssue: (spaceId: string, status: WorkingStatus, notes: string, image?: string) => void;
+  resolveActivitySpaceIssue: (spaceId: string) => void;
   
   // Neighborhood bulk operations
   reserveNeighborhood: (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => { success: boolean; error?: string };
@@ -661,6 +663,46 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
         [spaceId]: {
           ...space,
           notes,
+        },
+      },
+    });
+  };
+
+  const reportActivitySpaceIssue = (spaceId: string, status: WorkingStatus, notes: string, image?: string) => {
+    if (!state) return;
+
+    const space = state.activitySpaces[spaceId];
+    if (!space) return;
+
+    saveState({
+      ...state,
+      activitySpaces: {
+        ...state.activitySpaces,
+        [spaceId]: {
+          ...space,
+          workingStatus: status,
+          maintenanceNotes: notes,
+          maintenanceImage: image,
+        },
+      },
+    });
+  };
+
+  const resolveActivitySpaceIssue = (spaceId: string) => {
+    if (!state) return;
+
+    const space = state.activitySpaces[spaceId];
+    if (!space) return;
+
+    saveState({
+      ...state,
+      activitySpaces: {
+        ...state.activitySpaces,
+        [spaceId]: {
+          ...space,
+          workingStatus: 'WORKING',
+          maintenanceNotes: undefined,
+          maintenanceImage: undefined,
         },
       },
     });
@@ -1269,6 +1311,8 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     removeActivityReservation,
     updateActivitySpaceStatus,
     updateActivitySpaceNotes,
+    reportActivitySpaceIssue,
+    resolveActivitySpaceIssue,
     reserveNeighborhood,
     reserveSpecificTents,
     removeNeighborhoodReservation,

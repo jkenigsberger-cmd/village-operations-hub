@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { CleaningStatus, WorkingStatus, ActivityReservation } from '@/types/village';
+import { CleaningStatus, WorkingStatus, ActivityReservation, ActivitySpace } from '@/types/village';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ActivitySpaceReportModal } from '@/components/ActivitySpaceReportModal';
 import { 
   Loader2, 
   CalendarDays, 
@@ -19,7 +20,8 @@ import {
   Ban,
   Settings,
   Calendar,
-  Save
+  Save,
+  Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,7 +51,9 @@ const Activities = () => {
     addActivityReservation,
     removeActivityReservation,
     updateActivitySpaceStatus,
-    updateActivitySpaceNotes
+    updateActivitySpaceNotes,
+    reportActivitySpaceIssue,
+    resolveActivitySpaceIssue
   } = useVillage();
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -63,6 +67,8 @@ const Activities = () => {
   });
   const [error, setError] = useState('');
   const [selectedReservation, setSelectedReservation] = useState<ActivityReservation | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
 
   // Get active groups: groups with reservations that include the selected date
   const activeGroups = useMemo(() => {
@@ -206,7 +212,22 @@ const Activities = () => {
     if (type === 'cleaning') {
       updateActivitySpaceStatus(spaceId, value as CleaningStatus, undefined);
     } else {
-      updateActivitySpaceStatus(spaceId, undefined, value as WorkingStatus);
+      // For BROKEN or MAINTENANCE, open the report modal
+      if (value === 'BROKEN' || value === 'MAINTENANCE') {
+        setReportStatus(value as WorkingStatus);
+        setShowReportModal(true);
+      } else if (value === 'WORKING') {
+        // Resolve the issue
+        resolveActivitySpaceIssue(spaceId);
+      } else {
+        updateActivitySpaceStatus(spaceId, undefined, value as WorkingStatus);
+      }
+    }
+  };
+
+  const handleReportSubmit = (data: { status: WorkingStatus; notes: string; image?: string }) => {
+    if (currentSpace) {
+      reportActivitySpaceIssue(currentSpace.id, data.status, data.notes, data.image);
     }
   };
 
@@ -460,6 +481,38 @@ const Activities = () => {
                     </div>
                   </div>
 
+                  {/* Current Maintenance Info */}
+                  {(currentSpace.workingStatus === 'BROKEN' || currentSpace.workingStatus === 'MAINTENANCE') && (
+                    <div className="p-4 rounded-xl bg-destructive/10 border-2 border-destructive/30">
+                      <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2">
+                        <Wrench className="w-4 h-4" />
+                        Problema Reportado
+                      </h4>
+                      {currentSpace.maintenanceImage && (
+                        <img
+                          src={currentSpace.maintenanceImage}
+                          alt="Imagen del problema"
+                          className="w-full max-h-48 object-cover rounded-lg mb-3"
+                        />
+                      )}
+                      {currentSpace.maintenanceNotes && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {currentSpace.maintenanceNotes}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => {
+                          setReportStatus(currentSpace.workingStatus as WorkingStatus);
+                          setShowReportModal(true);
+                        }}
+                        className="px-4 py-2 bg-muted rounded-lg text-sm font-medium flex items-center gap-2"
+                      >
+                        <Camera className="w-4 h-4" />
+                        Editar Reporte
+                      </button>
+                    </div>
+                  )}
+
                   {/* Notes */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
@@ -689,6 +742,17 @@ const Activities = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Report Issue Modal */}
+        {currentSpace && (
+          <ActivitySpaceReportModal
+            isOpen={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            space={currentSpace}
+            selectedStatus={reportStatus}
+            onSubmit={handleReportSubmit}
+          />
         )}
       </main>
     </div>
