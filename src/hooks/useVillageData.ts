@@ -16,7 +16,9 @@ export const useVillageData = () => {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as VillageState;
-        // Ensure facilityReservations exists (for backwards compatibility)
+        const initial = generateInitialVillageState();
+        
+        // Ensure all required fields exist (for backwards compatibility / migration)
         if (!parsed.facilityReservations) {
           parsed.facilityReservations = {};
         }
@@ -25,6 +27,19 @@ export const useVillageData = () => {
         }
         if (!parsed.dailyTasks) {
           parsed.dailyTasks = {};
+        }
+        // Migrate missing facility and activity data from initial state
+        if (!parsed.facilityAreas || Object.keys(parsed.facilityAreas).length === 0) {
+          parsed.facilityAreas = initial.facilityAreas;
+        }
+        if (!parsed.facilities || Object.keys(parsed.facilities).length === 0) {
+          parsed.facilities = initial.facilities;
+        }
+        if (!parsed.activitySpaces || Object.keys(parsed.activitySpaces).length === 0) {
+          parsed.activitySpaces = initial.activitySpaces;
+        }
+        if (!parsed.activityReservations) {
+          parsed.activityReservations = {};
         }
         setState(parsed);
       } else {
