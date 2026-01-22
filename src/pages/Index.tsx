@@ -332,7 +332,12 @@ const Index = () => {
             {/* Interactive Neighborhoods Mini-Maps */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Neighborhoods</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold">Neighborhoods</h2>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}
+                  </span>
+                </div>
                 <button 
                   onClick={() => setActiveSection('neighborhoods')}
                   className="text-primary hover:underline font-semibold"
