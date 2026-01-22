@@ -17,30 +17,49 @@ export const useVillageData = () => {
       if (stored) {
         const parsed = JSON.parse(stored) as VillageState;
         const initial = generateInitialVillageState();
+        let needsMigration = false;
         
         // Ensure all required fields exist (for backwards compatibility / migration)
         if (!parsed.facilityReservations) {
           parsed.facilityReservations = {};
+          needsMigration = true;
         }
         if (!parsed.neighborhoodReservations) {
           parsed.neighborhoodReservations = {};
+          needsMigration = true;
         }
         if (!parsed.dailyTasks) {
           parsed.dailyTasks = {};
+          needsMigration = true;
         }
         // Migrate missing facility and activity data from initial state
         if (!parsed.facilityAreas || Object.keys(parsed.facilityAreas).length === 0) {
           parsed.facilityAreas = initial.facilityAreas;
+          needsMigration = true;
         }
         if (!parsed.facilities || Object.keys(parsed.facilities).length === 0) {
           parsed.facilities = initial.facilities;
+          needsMigration = true;
         }
         if (!parsed.activitySpaces || Object.keys(parsed.activitySpaces).length === 0) {
           parsed.activitySpaces = initial.activitySpaces;
+          needsMigration = true;
         }
         if (!parsed.activityReservations) {
           parsed.activityReservations = {};
+          needsMigration = true;
         }
+        
+        // Persist migrated state
+        if (needsMigration) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            console.log('[migration] Updated localStorage with missing data');
+          } catch (error) {
+            console.warn('Unable to persist migrated state:', error);
+          }
+        }
+        
         setState(parsed);
       } else {
         // Generate initial state on first load
