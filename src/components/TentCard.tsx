@@ -46,8 +46,9 @@ const getGenderBadge = (gender?: TentGender, hasReservation?: boolean) => {
 };
 
 export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) => {
+  const usedBeds = summary.occupiedBeds + summary.reservedBeds;
   const occupancyPercent = summary.totalBeds > 0 
-    ? Math.round((summary.occupiedBeds / summary.totalBeds) * 100) 
+    ? Math.round((usedBeds / summary.totalBeds) * 100) 
     : 0;
 
   // Determine if tent has an active reservation (groupName or dates set)
@@ -116,7 +117,7 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
           </div>
         </div>
         <span className="font-semibold text-base">
-          {summary.occupiedBeds}/{summary.totalBeds}
+          {usedBeds}/{summary.totalBeds}
         </span>
       </div>
 

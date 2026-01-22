@@ -1062,7 +1062,8 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!tent) continue;
 
       totalBeds += tent.beds.length;
-      occupiedBeds += tent.beds.filter(b => b.status === 'OCCUPIED').length;
+      // Treat RESERVED beds as "occupied" for occupancy/availability displays.
+      occupiedBeds += tent.beds.filter(b => b.status === 'OCCUPIED' || b.status === 'RESERVED').length;
       freeBeds += tent.beds.filter(b => b.status === 'FREE').length;
 
       if (tent.cleaningStatus === 'NEEDS_CLEANING') {

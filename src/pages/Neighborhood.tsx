@@ -143,7 +143,7 @@ const Neighborhood = () => {
         type: tentType,
         cleaning,
         occupancySummary: {
-          used: summary.occupiedBeds,
+            used: summary.occupiedBeds + summary.reservedBeds,
           total: summary.totalBeds,
         },
         onClick: () => setSelectedTent(tent),
@@ -202,7 +202,7 @@ const Neighborhood = () => {
               </span>
               <span className="px-4 py-2 bg-primary/10 rounded-xl">
                 <strong>
-                  {tentSummaries.reduce((acc, t) => acc + t.summary.occupiedBeds, 0)}
+                  {tentSummaries.reduce((acc, t) => acc + t.summary.occupiedBeds + t.summary.reservedBeds, 0)}
                 </strong> / {tentSummaries.reduce((acc, t) => acc + t.summary.totalBeds, 0)} beds
               </span>
               <Button onClick={() => setShowReservationModal(true)} className="flex items-center gap-2">
