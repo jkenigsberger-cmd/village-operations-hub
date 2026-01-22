@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { CleaningStatus, WorkingStatus, ActivityReservation } from '@/types/village';
@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Ban,
   Settings,
-  Calendar
+  Calendar,
+  Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,7 @@ const HOURS = Array.from({ length: 17 }, (_, i) => {
 });
 
 const Activities = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const spaceIdFromUrl = searchParams.get('spaceId') ?? '';
   const { 
@@ -469,6 +471,17 @@ const Activities = () => {
                       placeholder="Agregar notas sobre este espacio..."
                       className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary min-h-[120px] text-base"
                     />
+                  </div>
+
+                  {/* Save and Exit Button */}
+                  <div className="pt-4 border-t">
+                    <button
+                      onClick={() => navigate('/')}
+                      className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-primary/90 transition-colors"
+                    >
+                      <Save className="w-6 h-6" />
+                      Guardar y Salir
+                    </button>
                   </div>
                 </div>
               </TabsContent>
