@@ -1,6 +1,7 @@
 import React from 'react';
 import { CleaningStatus, WorkingStatus, BedStatus } from '@/types/village';
 import { cn } from '@/lib/utils';
+import { HE } from '@/lib/translations';
 
 interface StatusBadgeProps {
   status: BedStatus | CleaningStatus | WorkingStatus;
@@ -10,21 +11,21 @@ interface StatusBadgeProps {
 
 const statusConfig: Record<string, { bg: string; label: string }> = {
   // Bed status
-  FREE: { bg: 'bg-status-free', label: 'Free' },
-  RESERVED: { bg: 'bg-status-reserved', label: 'Reserved' },
-  OCCUPIED: { bg: 'bg-status-occupied', label: 'Occupied' },
-  BLOCKED: { bg: 'bg-status-blocked', label: 'Blocked' },
+  FREE: { bg: 'bg-status-free', label: HE.status.free },
+  RESERVED: { bg: 'bg-status-reserved', label: HE.status.reserved },
+  OCCUPIED: { bg: 'bg-status-occupied', label: HE.status.occupied },
+  BLOCKED: { bg: 'bg-status-blocked', label: HE.status.blocked },
   
   // Cleaning status
-  CLEAN: { bg: 'bg-status-clean', label: 'Clean' },
-  NEEDS_CLEANING: { bg: 'bg-status-dirty', label: 'Needs Cleaning' },
-  CLEANING_IN_PROGRESS: { bg: 'bg-status-cleaning', label: 'Cleaning...' },
+  CLEAN: { bg: 'bg-status-clean', label: HE.status.clean },
+  NEEDS_CLEANING: { bg: 'bg-status-dirty', label: HE.status.needsCleaning },
+  CLEANING_IN_PROGRESS: { bg: 'bg-status-cleaning', label: HE.status.inProgress },
   
   // Working status
-  WORKING: { bg: 'bg-status-working', label: 'Working' },
-  BROKEN: { bg: 'bg-status-broken', label: 'Broken' },
-  MAINTENANCE: { bg: 'bg-status-maintenance', label: 'Maintenance' },
-  CLOSED: { bg: 'bg-status-blocked', label: 'Closed' },
+  WORKING: { bg: 'bg-status-working', label: HE.status.working },
+  BROKEN: { bg: 'bg-status-broken', label: HE.status.broken },
+  MAINTENANCE: { bg: 'bg-status-maintenance', label: HE.status.maintenance },
+  CLOSED: { bg: 'bg-status-blocked', label: HE.status.closed },
 };
 
 const sizeClasses = {

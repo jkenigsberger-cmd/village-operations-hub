@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Bed, BedStatus } from '@/types/village';
 import { cn } from '@/lib/utils';
 import { User, X, Edit2, Check } from 'lucide-react';
+import { HE } from '@/lib/translations';
 
 interface BedTileProps {
   bed: Bed;
@@ -18,10 +19,10 @@ const statusColors: Record<BedStatus, string> = {
 };
 
 const statusLabels: Record<BedStatus, string> = {
-  FREE: 'Free',
-  RESERVED: 'Reserved',
-  OCCUPIED: 'Occupied',
-  BLOCKED: 'Blocked',
+  FREE: HE.status.free,
+  RESERVED: HE.status.reserved,
+  OCCUPIED: HE.status.occupied,
+  BLOCKED: HE.status.blocked,
 };
 
 export const BedTile: React.FC<BedTileProps> = ({
@@ -58,7 +59,7 @@ export const BedTile: React.FC<BedTileProps> = ({
         </span>
         {bed.type !== 'SINGLE' && (
           <span className="text-xs px-2 py-0.5 bg-background/50 rounded-full">
-            {isBunkTop ? '↑ Top' : '↓ Bottom'}
+            {isBunkTop ? `↑ ${HE.entities.top}` : `↓ ${HE.entities.bottom}`}
           </span>
         )}
       </div>
@@ -71,7 +72,7 @@ export const BedTile: React.FC<BedTileProps> = ({
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              placeholder="Guest name"
+              placeholder={HE.forms.guestName}
               className="flex-1 px-3 py-2 rounded-lg border-2 border-primary bg-background text-base focus:outline-none"
               autoFocus
               onKeyDown={(e) => {
@@ -98,13 +99,13 @@ export const BedTile: React.FC<BedTileProps> = ({
                     onClearGuest(bed.id);
                   }}
                   className="p-1 hover:bg-background/50 rounded"
-                  title="Clear guest"
+                  title={HE.actions.clearAll}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </>
             ) : (
-              <span className="text-sm opacity-70">No guest</span>
+              <span className="text-sm opacity-70">{HE.messages.noGuest}</span>
             )}
             <button
               onClick={(e) => {
@@ -112,8 +113,8 @@ export const BedTile: React.FC<BedTileProps> = ({
                 setEditName(bed.guestName || '');
                 setIsEditing(true);
               }}
-              className="p-1 hover:bg-background/50 rounded ml-auto"
-              title="Edit guest name"
+              className="p-1 hover:bg-background/50 rounded mr-auto"
+              title={HE.actions.edit}
             >
               <Edit2 className="w-4 h-4" />
             </button>
@@ -159,7 +160,7 @@ export const BunkBedGroup: React.FC<BunkBedGroupProps> = ({
   return (
     <div className="space-y-1 p-2 bg-muted/30 rounded-xl">
       <div className="text-center text-sm font-medium text-muted-foreground mb-2">
-        Bunk {topBed.bunkNumber}
+        {HE.entities.bunk} {topBed.bunkNumber}
       </div>
       <BedTile
         bed={topBed}

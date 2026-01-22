@@ -11,6 +11,7 @@ import { TentCard } from '@/components/TentCard';
 import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
 import { GENDER_LEGEND } from '@/lib/tentColors';
+import { HE } from '@/lib/translations';
 import { 
   Calendar, 
   Bath, 
@@ -37,7 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { format, addDays, subDays, isToday } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
@@ -97,7 +98,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-          <p className="mt-4 text-xl">Loading village...</p>
+          <p className="mt-4 text-xl">{HE.messages.loadingVillage}</p>
         </div>
       </div>
     );
@@ -136,14 +137,14 @@ const Index = () => {
   const totalHousekeepingItems = tentsNeedingCleaning.length + facilitiesNeedingCleaning.length;
 
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
-    { key: 'overview', label: 'Overview', icon: Home },
-    { key: 'calendar', label: 'Calendario', icon: CalendarDays },
-    { key: 'neighborhoods', label: 'Neighborhoods', icon: Tent },
-    { key: 'facilities', label: 'Common Facilities', icon: Flame },
-    { key: 'bathrooms', label: 'Bathrooms', icon: ShowerHead, count: facilitiesNeedingAttention.length },
-    { key: 'maintenance', label: 'Maintenance', icon: Wrench, count: totalMaintenanceCount },
-    { key: 'housekeeping', label: 'Housekeeping', icon: Sparkles, count: totalHousekeepingItems },
-    { key: 'notes', label: 'Important Notes', icon: StickyNote },
+    { key: 'overview', label: HE.nav.overview, icon: Home },
+    { key: 'calendar', label: HE.nav.calendar, icon: CalendarDays },
+    { key: 'neighborhoods', label: HE.nav.neighborhoods, icon: Tent },
+    { key: 'facilities', label: HE.nav.facilities, icon: Flame },
+    { key: 'bathrooms', label: HE.nav.bathrooms, icon: ShowerHead, count: facilitiesNeedingAttention.length },
+    { key: 'maintenance', label: HE.nav.maintenance, icon: Wrench, count: totalMaintenanceCount },
+    { key: 'housekeeping', label: HE.nav.housekeeping, icon: Sparkles, count: totalHousekeepingItems },
+    { key: 'notes', label: HE.nav.notes, icon: StickyNote },
   ];
 
   const handleReportIssue = (status: WorkingStatus) => {
@@ -160,13 +161,13 @@ const Index = () => {
         maintenanceNotes: data.notes,
         maintenanceImage: data.image,
       });
-      toast.success('Issue reported successfully');
+      toast.success(HE.messages.issueReported);
     }
   };
 
   const handleResolveMaintenance = (facilityId: string) => {
     resolveFacilityIssue(facilityId);
-    toast.success('Task marked as complete');
+    toast.success(HE.messages.taskCompleted);
   };
 
   return (
@@ -178,7 +179,7 @@ const Index = () => {
             <Tent className="w-10 h-10 text-primary" />
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                Aharonson Farm
+                חוות אהרונסון
               </h1>
               <p className="text-muted-foreground text-lg">
                 Glow Glamping & Ha-Dor Ha-Ba
@@ -205,7 +206,7 @@ const Index = () => {
                 <item.icon className="w-5 h-5" />
                 {item.label}
                 {item.count !== undefined && item.count > 0 && (
-                  <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-destructive text-destructive-foreground">
+                  <span className="mr-1 px-2 py-0.5 text-xs rounded-full bg-destructive text-destructive-foreground">
                     {item.count}
                   </span>
                 )}
@@ -222,13 +223,13 @@ const Index = () => {
             <section className="mb-10">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
                 <CalendarDays className="w-8 h-8" />
-                Today's Overview
+                {HE.pages.todayOverview}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Check-ins Tile */}
                 <div 
                   onClick={() => setActiveSection('check-ins')}
-                  className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 ${
+                  className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 ${
                     todaySummary.checkIns.length > 0 ? 'border-green-500' : 'border-muted'
                   }`}
                 >
@@ -241,8 +242,8 @@ const Index = () => {
                       <Calendar className="w-8 h-8" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Check-ins</h3>
-                      <p className="text-sm text-muted-foreground">Today's arrivals</p>
+                      <h3 className="text-xl font-bold">{HE.nav.checkIns}</h3>
+                      <p className="text-sm text-muted-foreground">{HE.stats.todaysArrivals}</p>
                     </div>
                     {todaySummary.checkIns.length > 0 && (
                       <span className="px-3 py-1.5 rounded-full bg-green-500 text-white font-bold text-lg">
@@ -255,7 +256,7 @@ const Index = () => {
                 {/* Check-outs Tile */}
                 <div 
                   onClick={() => setActiveSection('check-outs')}
-                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 border-muted"
+                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 border-muted"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
@@ -266,8 +267,8 @@ const Index = () => {
                       <Calendar className="w-8 h-8" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Check-outs</h3>
-                      <p className="text-sm text-muted-foreground">Today's departures</p>
+                      <h3 className="text-xl font-bold">{HE.nav.checkOuts}</h3>
+                      <p className="text-sm text-muted-foreground">{HE.stats.todaysDepartures}</p>
                     </div>
                     {todaySummary.checkOuts.length > 0 && (
                       <span className="px-3 py-1.5 rounded-full bg-blue-500 text-white font-bold text-lg">
@@ -280,7 +281,7 @@ const Index = () => {
                 {/* Needs Cleaning Tile */}
                 <div 
                   onClick={() => setActiveSection('needs-cleaning')}
-                  className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 ${
+                  className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 ${
                     todaySummary.tentsToCleaning.length > 0 ? 'border-yellow-500' : 'border-muted'
                   }`}
                 >
@@ -293,8 +294,8 @@ const Index = () => {
                       <Tent className="w-8 h-8" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Needs Cleaning</h3>
-                      <p className="text-sm text-muted-foreground">Tents to clean</p>
+                      <h3 className="text-xl font-bold">{HE.nav.needsCleaning}</h3>
+                      <p className="text-sm text-muted-foreground">{HE.stats.tentsToCleanToday}</p>
                     </div>
                     {todaySummary.tentsToCleaning.length > 0 && (
                       <span className="px-3 py-1.5 rounded-full bg-yellow-500 text-white font-bold text-lg">
@@ -307,7 +308,7 @@ const Index = () => {
                 {/* Facilities Alert Tile */}
                 <div 
                   onClick={() => setActiveSection('facilities-alert')}
-                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-l-4 border-destructive"
+                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 border-destructive"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
@@ -318,8 +319,8 @@ const Index = () => {
                       <Bath className="w-8 h-8" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Facilities Alert</h3>
-                      <p className="text-sm text-muted-foreground">Maintenance & Housekeeping</p>
+                      <h3 className="text-xl font-bold">{HE.stats.facilitiesAlert}</h3>
+                      <p className="text-sm text-muted-foreground">{HE.stats.maintenanceHousekeeping}</p>
                     </div>
                     {(totalMaintenanceCount + totalHousekeepingItems) > 0 && (
                       <span className="px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground font-bold text-lg">
@@ -335,16 +336,16 @@ const Index = () => {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold">Neighborhoods</h2>
+                  <h2 className="text-2xl font-bold">{HE.nav.neighborhoods}</h2>
                   <span className="text-sm text-muted-foreground capitalize">
-                    {format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}
+                    {format(new Date(), "EEEE, d 'ב'MMMM", { locale: he })}
                   </span>
                 </div>
                 <button 
                   onClick={() => setActiveSection('neighborhoods')}
                   className="text-primary hover:underline font-semibold"
                 >
-                  View All →
+                  {HE.actions.viewAll} ←
                 </button>
               </div>
               
@@ -370,7 +371,7 @@ const Index = () => {
                     <NeighborhoodMiniMap
                       key={id}
                       neighborhoodId={id}
-                      displayName={neighborhood.displayName}
+                      displayName={HE.neighborhoodNames[id] || neighborhood.displayName}
                       tents={tents}
                       summary={summary}
                       onTentClick={(tentId) => setSelectedTentId(tentId)}
@@ -392,7 +393,7 @@ const Index = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <Tent className="w-8 h-8" />
-              All Neighborhoods
+              {HE.pages.allNeighborhoods}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {neighborhoodOrder.map((id) => {
@@ -401,7 +402,7 @@ const Index = () => {
                 return (
                   <NeighborhoodTile
                     key={id}
-                    summary={summary}
+                    summary={{...summary, displayName: HE.neighborhoodNames[id] || summary.displayName}}
                     to={`/neighborhood/${id}`}
                   />
                 );
@@ -415,99 +416,27 @@ const Index = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <Flame className="w-8 h-8" />
-              Common Facilities
+              {HE.nav.facilities}
             </h2>
             <p className="text-muted-foreground mb-6">
-              Activity spaces available for group use
+              מרחבי פעילות זמינים לשימוש קבוצתי
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.values(state.activitySpaces).map((space) => (
-                <button
+                <div
                   key={space.id}
-                  type="button"
-                  onClick={() => navigate(`/activities?spaceId=${encodeURIComponent(space.id)}`)}
-                  className="tile p-6 text-left hover:bg-muted/40 transition-colors"
+                  onClick={() => navigate(`/activities?spaceId=${space.id}`)}
+                  className="tile flex items-center gap-4 cursor-pointer hover:shadow-lg transition-all"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Flame className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{space.name}</h3>
-                      {space.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {space.description}
-                        </p>
-                      )}
-                    </div>
+                  <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Flame className="w-8 h-8 text-primary" />
                   </div>
-                </button>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold">{space.name}</h3>
+                    <p className="text-sm text-muted-foreground">{space.description}</p>
+                  </div>
+                </div>
               ))}
-            </div>
-          </section>
-        )}
-
-        {/* Facilities Alert Submenu */}
-        {activeSection === 'facilities-alert' && (
-          <section>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <AlertTriangle className="w-8 h-8 text-destructive" />
-              Facilities Alert
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Choose a category to view pending tasks
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Maintenance Option */}
-              <button
-                onClick={() => setActiveSection('maintenance')}
-                className="tile p-8 text-left hover:shadow-lg hover:border-destructive/50 transition-all group"
-              >
-                <div className="flex items-center gap-6">
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
-                    totalMaintenanceCount > 0 
-                      ? 'bg-destructive/20 text-destructive' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    <Wrench className="w-10 h-10" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold group-hover:text-destructive transition-colors">Maintenance</h3>
-                    <p className="text-muted-foreground mt-1">Repairs & broken items</p>
-                  </div>
-                  {totalMaintenanceCount > 0 && (
-                    <span className="px-4 py-2 rounded-full bg-destructive text-destructive-foreground font-bold text-2xl">
-                      {totalMaintenanceCount}
-                    </span>
-                  )}
-                </div>
-              </button>
-
-              {/* Housekeeping Option */}
-              <button
-                onClick={() => setActiveSection('housekeeping')}
-                className="tile p-8 text-left hover:shadow-lg hover:border-yellow-500/50 transition-all group"
-              >
-                <div className="flex items-center gap-6">
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
-                    totalHousekeepingItems > 0 
-                      ? 'bg-yellow-500/20 text-yellow-600' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    <Sparkles className="w-10 h-10" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold group-hover:text-yellow-600 transition-colors">Housekeeping</h3>
-                    <p className="text-muted-foreground mt-1">Cleaning tasks</p>
-                  </div>
-                  {totalHousekeepingItems > 0 && (
-                    <span className="px-4 py-2 rounded-full bg-yellow-500 text-white font-bold text-2xl">
-                      {totalHousekeepingItems}
-                    </span>
-                  )}
-                </div>
-              </button>
             </div>
           </section>
         )}
@@ -515,42 +444,35 @@ const Index = () => {
         {/* Bathrooms Section */}
         {activeSection === 'bathrooms' && (
           <section>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <ShowerHead className="w-8 h-8" />
-              Bathrooms & Showers
-            </h2>
-
-            {facilitiesNeedingAttention.length > 0 && (
-              <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                <div className="flex items-center gap-2 text-destructive font-semibold mb-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  {facilitiesNeedingAttention.length} facilities need attention
-                </div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <ShowerHead className="w-8 h-8" />
+                {HE.nav.bathrooms}
+              </h2>
+              <button
+                onClick={() => navigate('/facilities')}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold"
+              >
+                {HE.actions.viewAll}
+              </button>
+            </div>
+            
+            {facilitiesNeedingAttention.length === 0 ? (
+              <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
+                <p className="text-xl font-medium">{HE.messages.allFacilitiesWorking}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {facilitiesNeedingAttention.map((facility) => (
+                  <FacilityTile
+                    key={facility.id}
+                    facility={facility}
+                    onClick={() => setSelectedFacility(facility)}
+                  />
+                ))}
               </div>
             )}
-
-            {/* Group by area */}
-            {Object.values(state.facilityAreas).map((area) => {
-              const areaFacilities = area.facilityIds
-                .map(id => state.facilities[id])
-                .filter(Boolean);
-
-              return (
-                <div key={area.id} className="mb-8">
-                  <h3 className="text-xl font-bold mb-4">{area.name}</h3>
-                  <p className="text-muted-foreground mb-4">{area.description}</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {areaFacilities.map((facility) => (
-                      <FacilityTile
-                        key={facility.id}
-                        facility={facility}
-                        onClick={() => setSelectedFacility(facility)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
           </section>
         )}
 
@@ -559,163 +481,91 @@ const Index = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <Wrench className="w-8 h-8" />
-              Maintenance Tasks
+              {HE.nav.maintenance}
             </h2>
-            <p className="text-muted-foreground mb-6">
-              Items that need repair or maintenance attention
-            </p>
-
-            {totalMaintenanceCount === 0 ? (
-              <div className="tile p-8 text-center">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-                <p className="text-xl text-muted-foreground">
-                  All clear! No maintenance tasks pending.
-                </p>
+            
+            {maintenanceItems.length === 0 && vipMaintenanceTasks.length === 0 ? (
+              <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
+                <p className="text-xl font-medium">{HE.messages.allFacilitiesWorking}</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Common Facilities Maintenance */}
-                {maintenanceItems.map((facility) => (
-                  <div 
-                    key={facility.id}
-                    className="tile p-4"
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Photo thumbnail or status icon */}
-                      {facility.maintenanceImage ? (
-                        <button
-                          onClick={() => setSelectedFacility(facility)}
-                          className="w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/50 hover:border-primary transition-all flex-shrink-0"
-                        >
-                          <img 
-                            src={facility.maintenanceImage} 
-                            alt="Maintenance issue" 
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ) : (
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          facility.workingStatus === 'BROKEN' 
-                            ? 'bg-destructive/10 text-destructive' 
-                            : 'bg-yellow-500/10 text-yellow-600'
-                        }`}>
-                          <Wrench className="w-6 h-6" />
+                {maintenanceItems.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">{HE.nav.facilities}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {maintenanceItems.map((facility) => (
+                        <div key={facility.id} className="tile border-destructive bg-destructive/5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <AlertTriangle className="w-6 h-6 text-destructive" />
+                            <div>
+                              <h4 className="font-bold text-lg">{facility.label}</h4>
+                              <span className={`text-sm ${facility.workingStatus === 'BROKEN' ? 'text-destructive' : 'text-yellow-600'}`}>
+                                {facility.workingStatus === 'BROKEN' ? HE.status.broken : HE.status.maintenance}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {facility.maintenanceImage && (
+                            <img 
+                              src={facility.maintenanceImage} 
+                              alt="Issue" 
+                              className="w-full h-32 object-cover rounded-lg mb-3"
+                            />
+                          )}
+                          
+                          {facility.maintenanceNotes && (
+                            <p className="text-muted-foreground mb-4">{facility.maintenanceNotes}</p>
+                          )}
+                          
+                          <button
+                            onClick={() => handleResolveMaintenance(facility.id)}
+                            className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle className="w-5 h-5" />
+                            {HE.messages.taskCompleted}
+                          </button>
                         </div>
-                      )}
-                      
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-lg">{facility.label}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {state.facilityAreas[facility.areaId]?.name || 'Unknown Area'}
-                        </p>
-                        <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-full mt-1 ${
-                          facility.workingStatus === 'BROKEN' 
-                            ? 'bg-destructive/10 text-destructive' 
-                            : 'bg-yellow-500/10 text-yellow-600'
-                        }`}>
-                          {facility.workingStatus === 'BROKEN' ? '🔧 Broken' : '⚠️ Maintenance'}
-                        </span>
-                        {/* Show maintenance notes if available */}
-                        {facility.maintenanceNotes && (
-                          <p className="text-sm text-foreground mt-2 p-2 bg-muted rounded-lg">
-                            📝 {facility.maintenanceNotes}
-                          </p>
-                        )}
-                        {/* Fallback to general notes */}
-                        {!facility.maintenanceNotes && facility.notes && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            📝 {facility.notes}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 flex-shrink-0">
-                        {!facility.maintenanceImage && (
-                          <MaintenancePhotoCapture
-                            facilityId={facility.id}
-                            currentImage={facility.maintenanceImage}
-                            onImageCapture={updateFacilityMaintenanceImage}
-                          />
-                        )}
-                        <Button
-                          onClick={() => handleResolveMaintenance(facility.id)}
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Done
-                        </Button>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
 
                 {/* VIP Tent Maintenance Tasks */}
-                {vipMaintenanceTasks.map((task) => {
-                  const tent = task.entityId ? state.tents[task.entityId] : null;
-                  const facilityType = task.title.includes('Baño') ? 'bathroom' : 'shower';
-                  
-                  return (
-                    <div 
-                      key={task.id}
-                      className="tile p-4 border-amber-300 bg-amber-50/50"
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Photo thumbnail or VIP icon */}
-                        {task.maintenanceImage ? (
-                          <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-amber-500/50 flex-shrink-0">
-                            <img 
-                              src={task.maintenanceImage} 
-                              alt="Maintenance issue" 
-                              className="w-full h-full object-cover"
-                            />
+                {vipMaintenanceTasks.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">{HE.badges.vip} - {HE.nav.bathrooms}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {vipMaintenanceTasks.map((task) => (
+                        <div key={task.id} className="tile border-vip bg-vip/5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <Sparkles className="w-6 h-6 text-vip" />
+                            <div>
+                              <h4 className="font-bold text-lg">{task.title}</h4>
+                              <span className="text-sm text-muted-foreground">{task.description}</span>
+                            </div>
                           </div>
-                        ) : (
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-500/10 text-amber-700">
-                            <Sparkles className="w-6 h-6" />
-                          </div>
-                        )}
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-lg flex items-center gap-2">
-                            {task.title}
-                            <span className="px-2 py-0.5 bg-amber-500 text-white rounded-full text-xs">VIP</span>
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Carpa VIP - {tent?.code || 'Unknown'}
-                          </p>
-                          <span className="inline-block text-xs font-semibold px-2 py-1 rounded-full mt-1 bg-destructive/10 text-destructive">
-                            {task.description?.includes('ROTO') ? '🔧 Roto' : '⚠️ Mantenimiento'}
-                          </span>
-                          {task.description && (
-                            <p className="text-sm text-foreground mt-2 p-2 bg-white/50 rounded-lg">
-                              📝 {task.description}
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col gap-2 flex-shrink-0">
-                          <Button
+                          
+                          <button
                             onClick={() => {
-                              // Resolve the tent facility issue
-                              if (tent) {
-                                resolveTentFacilityIssue(tent.id, facilityType);
+                              if (task.entityId) {
+                                resolveTentFacilityIssue(task.entityId, task.title.includes('אמבט') || task.title.includes('Bathroom') ? 'bathroom' : 'shower');
                               }
-                              // Remove the task
                               removeDailyTask(task.id);
-                              toast.success('Tarea VIP completada');
+                              toast.success(HE.messages.taskCompleted);
                             }}
-                            variant="outline"
-                            className="flex items-center gap-2"
+                            className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
                           >
-                            <CheckCircle className="w-4 h-4" />
-                            Done
-                          </Button>
+                            <CheckCircle className="w-5 h-5" />
+                            {HE.messages.taskCompleted}
+                          </button>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             )}
           </section>
@@ -726,98 +576,51 @@ const Index = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <Sparkles className="w-8 h-8" />
-              Housekeeping Tasks
+              {HE.nav.housekeeping}
             </h2>
-            <p className="text-muted-foreground mb-6">
-              Areas that need cleaning
-            </p>
-
+            
             {totalHousekeepingItems === 0 ? (
-              <div className="tile p-8 text-center">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-                <p className="text-xl text-muted-foreground">
-                  All clean! No housekeeping tasks pending.
-                </p>
+              <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
+                <Sparkles className="w-16 h-16 mx-auto mb-4 text-status-clean" />
+                <p className="text-xl font-medium">{HE.messages.allClean}</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Tents needing cleaning */}
+              <div className="space-y-8">
+                {/* Tents */}
                 {tentsNeedingCleaning.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                      <Tent className="w-5 h-5" />
-                      Tents ({tentsNeedingCleaning.length})
+                    <h3 className="text-xl font-semibold mb-4">
+                      {HE.entities.tents} ({tentsNeedingCleaning.length})
                     </h3>
-                    <div className="space-y-3">
-                      {tentsNeedingCleaning.map((tent) => (
-                        <div 
-                          key={tent.id}
-                          className="tile p-4 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                              <Tent className="w-6 h-6 text-yellow-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-lg">{tent.code}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {state.neighborhoods[tent.neighborhoodId]?.displayName || tent.neighborhoodId}
-                              </p>
-                              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-600">
-                                🧹 Needs Cleaning
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => updateTentCleaningStatus(tent.id, 'CLEAN')}
-                            variant="outline"
-                            className="flex items-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Done
-                          </Button>
-                        </div>
-                      ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {tentsNeedingCleaning.map((tent) => {
+                        const summary = getTentSummary(tent.id);
+                        if (!summary) return null;
+                        return (
+                          <TentCard
+                            key={tent.id}
+                            summary={summary}
+                            to={`/tent/${tent.id}`}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Facilities needing cleaning */}
+                {/* Facilities */}
                 {facilitiesNeedingCleaning.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                      <ShowerHead className="w-5 h-5" />
-                      Facilities ({facilitiesNeedingCleaning.length})
+                    <h3 className="text-xl font-semibold mb-4">
+                      {HE.entities.facilities} ({facilitiesNeedingCleaning.length})
                     </h3>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {facilitiesNeedingCleaning.map((facility) => (
-                        <div 
+                        <FacilityTile
                           key={facility.id}
-                          className="tile p-4 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                              <ShowerHead className="w-6 h-6 text-yellow-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-lg">{facility.label}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {state.facilityAreas[facility.areaId]?.name || 'Unknown Area'}
-                              </p>
-                              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-600">
-                                🧹 Needs Cleaning
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => updateFacilityCleaningStatus(facility.id, 'CLEAN')}
-                            variant="outline"
-                            className="flex items-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Done
-                          </Button>
-                        </div>
+                          facility={facility}
+                          onClick={() => setSelectedFacility(facility)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -827,106 +630,61 @@ const Index = () => {
           </section>
         )}
 
-        {/* Important Notes Section */}
-        {activeSection === 'notes' && (
-          <section>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <StickyNote className="w-8 h-8" />
-              Important Notes
-            </h2>
-            <div className="tile p-8 text-center">
-              <StickyNote className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-xl text-muted-foreground mb-4">
-                Notes feature coming soon
-              </p>
-              <p className="text-muted-foreground">
-                This section will allow you to add and manage important notes for the team.
-              </p>
-            </div>
-          </section>
-        )}
-
         {/* Check-ins Section */}
         {activeSection === 'check-ins' && (
           <section>
             <div className="flex items-center gap-4 mb-6">
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setActiveSection('overview')}
-                className="flex items-center gap-2"
+                className="p-2 hover:bg-muted rounded-xl"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <Calendar className="w-8 h-8" />
+                {HE.nav.checkIns} {HE.date.today}
+              </h2>
             </div>
             
-            {/* Date Selector */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-              >
-                <ChevronLeft className="w-4 h-4" />
+            {/* Date Navigator */}
+            <div className="flex items-center gap-4 mb-6">
+              <Button variant="outline" size="icon" onClick={() => setSelectedDate(prev => subDays(prev, 1))}>
+                <ChevronRight className="w-5 h-5" />
               </Button>
-              
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="min-w-[200px]">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                    <CalendarDays className="w-4 h-4 ml-2" />
+                    {isToday(selectedDate) ? HE.date.today : format(selectedDate, 'd MMM yyyy', { locale: he })}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0">
                   <CalendarComponent
                     mode="single"
                     selected={selectedDate}
                     onSelect={(date) => date && setSelectedDate(date)}
-                    initialFocus
-                    className="pointer-events-auto"
+                    locale={he}
                   />
                 </PopoverContent>
               </Popover>
-              
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-              >
-                <ChevronRight className="w-4 h-4" />
+              <Button variant="outline" size="icon" onClick={() => setSelectedDate(prev => addDays(prev, 1))}>
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-              
               {!isToday(selectedDate) && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelectedDate(new Date())}
-                >
-                  Ir a Hoy
+                <Button variant="secondary" onClick={() => setSelectedDate(new Date())}>
+                  {HE.actions.goToToday}
                 </Button>
               )}
             </div>
             
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-green-500/20 rounded-xl">
-                <Calendar className="w-8 h-8 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">
-                  Check-ins {isToday(selectedDate) ? 'Hoy' : format(selectedDate, "d/MM/yyyy")}
-                </h2>
-                <p className="text-muted-foreground">{summaryForDate.checkIns.length} grupos llegando</p>
-              </div>
-            </div>
-            
             {summaryForDate.checkIns.length === 0 ? (
-              <div className="tile p-8 text-center text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-xl">No hay check-ins {isToday(selectedDate) ? 'hoy' : 'este día'}</p>
+              <div className="tile p-8 text-center">
+                <Calendar className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-xl text-muted-foreground">{HE.messages.noCheckIns}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summaryForDate.checkIns.map((tent) => tent && (
+                {summaryForDate.checkIns.map((tent) => (
                   <TentCard
                     key={tent.tentId}
                     summary={tent}
@@ -942,83 +700,57 @@ const Index = () => {
         {activeSection === 'check-outs' && (
           <section>
             <div className="flex items-center gap-4 mb-6">
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setActiveSection('overview')}
-                className="flex items-center gap-2"
+                className="p-2 hover:bg-muted rounded-xl"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <CalendarCheck className="w-8 h-8" />
+                {HE.nav.checkOuts} {HE.date.today}
+              </h2>
             </div>
             
-            {/* Date Selector */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-              >
-                <ChevronLeft className="w-4 h-4" />
+            {/* Date Navigator */}
+            <div className="flex items-center gap-4 mb-6">
+              <Button variant="outline" size="icon" onClick={() => setSelectedDate(prev => subDays(prev, 1))}>
+                <ChevronRight className="w-5 h-5" />
               </Button>
-              
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="min-w-[200px]">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                    <CalendarDays className="w-4 h-4 ml-2" />
+                    {isToday(selectedDate) ? HE.date.today : format(selectedDate, 'd MMM yyyy', { locale: he })}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0">
                   <CalendarComponent
                     mode="single"
                     selected={selectedDate}
                     onSelect={(date) => date && setSelectedDate(date)}
-                    initialFocus
-                    className="pointer-events-auto"
+                    locale={he}
                   />
                 </PopoverContent>
               </Popover>
-              
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-              >
-                <ChevronRight className="w-4 h-4" />
+              <Button variant="outline" size="icon" onClick={() => setSelectedDate(prev => addDays(prev, 1))}>
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-              
               {!isToday(selectedDate) && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelectedDate(new Date())}
-                >
-                  Ir a Hoy
+                <Button variant="secondary" onClick={() => setSelectedDate(new Date())}>
+                  {HE.actions.goToToday}
                 </Button>
               )}
             </div>
             
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-blue-500/20 rounded-xl">
-                <CalendarCheck className="w-8 h-8 text-blue-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">
-                  Check-outs {isToday(selectedDate) ? 'Hoy' : format(selectedDate, "d/MM/yyyy")}
-                </h2>
-                <p className="text-muted-foreground">{summaryForDate.checkOuts.length} grupos saliendo</p>
-              </div>
-            </div>
-            
             {summaryForDate.checkOuts.length === 0 ? (
-              <div className="tile p-8 text-center text-muted-foreground">
-                <CalendarCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-xl">No hay check-outs {isToday(selectedDate) ? 'hoy' : 'este día'}</p>
+              <div className="tile p-8 text-center">
+                <CalendarCheck className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-xl text-muted-foreground">{HE.messages.noCheckOuts}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summaryForDate.checkOuts.map((tent) => tent && (
+                {summaryForDate.checkOuts.map((tent) => (
                   <TentCard
                     key={tent.tentId}
                     summary={tent}
@@ -1034,30 +766,22 @@ const Index = () => {
         {activeSection === 'needs-cleaning' && (
           <section>
             <div className="flex items-center gap-4 mb-6">
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setActiveSection('overview')}
-                className="flex items-center gap-2"
+                className="p-2 hover:bg-muted rounded-xl"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-            </div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-yellow-500/20 rounded-xl">
-                <Sparkles className="w-8 h-8 text-yellow-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">Tents Needing Cleaning</h2>
-                <p className="text-muted-foreground">{todaySummary.tentsToCleaning.length} tents to clean</p>
-              </div>
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <Sparkles className="w-8 h-8" />
+                {HE.nav.needsCleaning}
+              </h2>
             </div>
             
             {todaySummary.tentsToCleaning.length === 0 ? (
-              <div className="tile p-8 text-center bg-green-500/10 border-green-500">
-                <Sparkles className="w-12 h-12 mx-auto mb-3 text-green-500" />
-                <p className="text-xl font-medium">All tents are clean! ✨</p>
+              <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
+                <Sparkles className="w-16 h-16 mx-auto mb-4 text-status-clean" />
+                <p className="text-xl font-medium">{HE.messages.allClean}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1073,26 +797,65 @@ const Index = () => {
           </section>
         )}
 
-        {/* Footer with Settings link */}
-        <footer className="mt-12 pt-8 border-t-2 border-border text-center">
-          <a 
-            href="/settings" 
-            className="text-lg text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ⚙️ Settings & Data Management
-          </a>
-        </footer>
+        {/* Facilities Alert Section */}
+        {activeSection === 'facilities-alert' && (
+          <section>
+            <div className="flex items-center gap-4 mb-6">
+              <button
+                onClick={() => setActiveSection('overview')}
+                className="p-2 hover:bg-muted rounded-xl"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+                {HE.stats.facilitiesAlert}
+              </h2>
+            </div>
+            
+            <div className="space-y-8">
+              {/* Maintenance Items */}
+              {(maintenanceItems.length > 0 || vipMaintenanceTasks.length > 0) && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Wrench className="w-5 h-5" />
+                    {HE.nav.maintenance} ({maintenanceItems.length + vipMaintenanceTasks.length})
+                  </h3>
+                  <button
+                    onClick={() => setActiveSection('maintenance')}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold mb-4"
+                  >
+                    {HE.actions.viewAll}
+                  </button>
+                </div>
+              )}
+
+              {/* Housekeeping Items */}
+              {totalHousekeepingItems > 0 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    {HE.nav.housekeeping} ({totalHousekeepingItems})
+                  </h3>
+                  <button
+                    onClick={() => setActiveSection('housekeeping')}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold"
+                  >
+                    {HE.actions.viewAll}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Facility Detail Modal */}
       <Dialog open={!!selectedFacility} onOpenChange={(open) => !open && setSelectedFacility(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl">
-              {selectedFacility?.label}
-            </DialogTitle>
+            <DialogTitle className="text-2xl">{selectedFacility?.label}</DialogTitle>
           </DialogHeader>
-          
           {selectedFacility && (
             <FacilityCard
               facility={selectedFacility}
@@ -1125,7 +888,7 @@ const Index = () => {
         />
       )}
 
-      {/* Tent Detail Modal from mini-maps */}
+      {/* Tent Detail Modal */}
       <TentDetailModal
         open={!!selectedTentId}
         onOpenChange={(open) => !open && setSelectedTentId(null)}
