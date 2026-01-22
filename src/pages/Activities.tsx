@@ -11,7 +11,8 @@ import {
   Clock,
   Users,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Tent
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,48 @@ const Activities = () => {
   const [error, setError] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  // Get active groups: groups with reservations that include the selected date
+  const activeGroups = useMemo(() => {
+    if (!state) return [];
+    
+    const groups = new Map<string, { name: string; neighborhoodId?: string; tentIds?: string[] }>();
+    const today = selectedDate;
+
+    // From neighborhood reservations
+    Object.values(state.neighborhoodReservations).forEach((res) => {
+      if (res.checkInDate <= today && res.checkOutDate >= today) {
+        if (!groups.has(res.groupName)) {
+          groups.set(res.groupName, { 
+            name: res.groupName, 
+            neighborhoodId: res.neighborhoodId,
+            tentIds: res.tentIds 
+          });
+        }
+      }
+    });
+
+    // From individual tent reservations (tents with group name and active dates)
+    Object.values(state.tents).forEach((tent) => {
+      if (tent.groupName && tent.checkInDate && tent.checkOutDate) {
+        if (tent.checkInDate <= today && tent.checkOutDate >= today) {
+          if (!groups.has(tent.groupName)) {
+            groups.set(tent.groupName, { name: tent.groupName });
+          }
+        }
+      }
+    });
+
+    return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [state, selectedDate]);
+
+  // Get reservations for selected date
+  const dayReservations = useMemo(() => {
+    if (!state) return [];
+    return Object.values(state.activityReservations)
+      .filter(r => r.date === selectedDate)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [state, selectedDate]);
+
   if (isLoading || !state) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,13 +89,6 @@ const Activities = () => {
   }
 
   const activitySpaces = Object.values(state.activitySpaces);
-
-  // Get reservations for selected date
-  const dayReservations = useMemo(() => {
-    return Object.values(state.activityReservations)
-      .filter(r => r.date === selectedDate)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [state.activityReservations, selectedDate]);
 
   const getSpaceReservations = (spaceId: string) => {
     return dayReservations.filter(r => r.spaceId === spaceId);
@@ -289,14 +325,48 @@ const Activities = () => {
                     </div>
                   </div>
 
-                  {/* Group Name */}
+                  {/* Group Name - Intelligent Selector */}
                   <div className="space-y-2">
                     <label className="text-base font-semibold">Nombre del Grupo</label>
+                    
+                    {/* Active groups quick-select */}
+                    {activeGroups.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                          <Tent className="w-4 h-4" />
+                          Grupos hospedados actualmente:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {activeGroups.map((group) => (
+                            <button
+                              key={group.name}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, groupName: group.name })}
+                              className={cn(
+                                "px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all",
+                                formData.groupName === group.name
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-muted/50 hover:bg-muted border-transparent"
+                              )}
+                            >
+                              {group.name}
+                              {group.neighborhoodId && (
+                                <span className="ml-1 text-xs opacity-70">
+                                  ({group.neighborhoodId})
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom input */}
                     <input
                       type="text"
                       value={formData.groupName}
                       onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
-                      placeholder="Nombre del grupo..."
+                      placeholder={activeGroups.length > 0 ? "O ingresa un nombre personalizado..." : "Nombre del grupo..."}
                       className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
                     />
                   </div>
