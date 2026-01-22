@@ -3,18 +3,14 @@ import { useParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FacilityCard, FacilityTile } from '@/components/FacilityCard';
-import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { Facility, WorkingStatus } from '@/types/village';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Loader2, 
   Bath, 
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
-  CalendarDays,
-  Settings2
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -28,9 +24,6 @@ const Facilities = () => {
     updateFacilityWorkingStatus,
     updateFacilityNotes,
     reportFacilityIssue,
-    addFacilityReservation,
-    removeFacilityReservation,
-    getFacilityReservations,
   } = useVillage();
 
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(areaId || null);
@@ -179,47 +172,22 @@ const Facilities = () => {
                   </button>
                 </div>
 
-                <Tabs defaultValue="status" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="status" className="flex items-center gap-2">
-                      <Settings2 className="w-4 h-4" />
-                      Status
-                    </TabsTrigger>
-                    <TabsTrigger value="reservations" className="flex items-center gap-2">
-                      <CalendarDays className="w-4 h-4" />
-                      Reservations
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="status">
-                    <FacilityCard
-                      facility={selectedFacility}
-                      onCleaningChange={(status) => {
-                        updateFacilityCleaningStatus(selectedFacility.id, status);
-                        setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
-                      }}
-                      onWorkingChange={(status) => {
-                        updateFacilityWorkingStatus(selectedFacility.id, status);
-                        setSelectedFacility({ ...selectedFacility, workingStatus: status });
-                      }}
-                      onNotesChange={(notes) => {
-                        updateFacilityNotes(selectedFacility.id, notes);
-                        setSelectedFacility({ ...selectedFacility, notes });
-                      }}
-                      onReportIssue={handleReportIssue}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="reservations">
-                    <FacilityReservationCalendar
-                      facilityId={selectedFacility.id}
-                      facilityLabel={selectedFacility.label}
-                      reservations={getFacilityReservations(selectedFacility.id)}
-                      onAddReservation={addFacilityReservation}
-                      onRemoveReservation={removeFacilityReservation}
-                    />
-                  </TabsContent>
-                </Tabs>
+                <FacilityCard
+                  facility={selectedFacility}
+                  onCleaningChange={(status) => {
+                    updateFacilityCleaningStatus(selectedFacility.id, status);
+                    setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
+                  }}
+                  onWorkingChange={(status) => {
+                    updateFacilityWorkingStatus(selectedFacility.id, status);
+                    setSelectedFacility({ ...selectedFacility, workingStatus: status });
+                  }}
+                  onNotesChange={(notes) => {
+                    updateFacilityNotes(selectedFacility.id, notes);
+                    setSelectedFacility({ ...selectedFacility, notes });
+                  }}
+                  onReportIssue={handleReportIssue}
+                />
 
                 <button
                   onClick={closeFacilityDetail}
