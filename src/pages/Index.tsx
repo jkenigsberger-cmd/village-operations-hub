@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
@@ -43,6 +44,7 @@ const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6',
 type MenuSection = 'overview' | 'calendar' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 const Index = () => {
+  const navigate = useNavigate();
   const { 
     state, 
     isLoading, 
@@ -420,9 +422,11 @@ const Index = () => {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.values(state.activitySpaces).map((space) => (
-                <div
+                <button
                   key={space.id}
-                  className="tile p-6"
+                  type="button"
+                  onClick={() => navigate(`/activities?spaceId=${encodeURIComponent(space.id)}`)}
+                  className="tile p-6 text-left hover:bg-muted/40 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -437,7 +441,7 @@ const Index = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>

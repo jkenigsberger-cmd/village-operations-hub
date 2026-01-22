@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { ActivityReservation, ActivitySpace } from '@/types/village';
@@ -15,6 +16,8 @@ import {
 import { cn } from '@/lib/utils';
 
 const Activities = () => {
+  const [searchParams] = useSearchParams();
+  const spaceIdFromUrl = searchParams.get('spaceId') ?? '';
   const { 
     state, 
     isLoading,
@@ -24,7 +27,7 @@ const Activities = () => {
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>('');
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string>(spaceIdFromUrl);
   const [formData, setFormData] = useState({
     startTime: '09:00',
     endTime: '10:00',
