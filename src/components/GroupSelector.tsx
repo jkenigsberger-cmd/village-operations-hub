@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useVillage } from '@/context/VillageContext';
+import React, { useState, useMemo } from 'react';
+import { VillageState } from '@/types/village';
 import { cn } from '@/lib/utils';
 import { Users, Tent, MapPin, Pencil, ChevronDown, Check } from 'lucide-react';
 
@@ -16,92 +16,94 @@ interface GroupSelectorProps {
   date: string;
   selectedGroup: string;
   onSelectGroup: (groupName: string, activeGroup?: ActiveGroup) => void;
+  state: VillageState | null;
   allowCustom?: boolean;
   placeholder?: string;
   className?: string;
 }
 
+// Helper function to get active groups from state
+export const getActiveGroupsForDate = (state: VillageState | null, date: string): ActiveGroup[] => {
+  if (!state) return [];
+
+  const groups: ActiveGroup[] = [];
+  const seenGroups = new Set<string>();
+
+  // Check neighborhood reservations
+  Object.values(state.neighborhoodReservations || {}).forEach(reservation => {
+    if (
+      reservation.checkInDate <= date && 
+      reservation.checkOutDate > date &&
+      !seenGroups.has(reservation.groupName)
+    ) {
+      const neighborhood = state.neighborhoods[reservation.neighborhoodId];
+      groups.push({
+        groupName: reservation.groupName,
+        source: 'neighborhood',
+        location: neighborhood?.displayName || reservation.neighborhoodId,
+        checkInDate: reservation.checkInDate,
+        checkOutDate: reservation.checkOutDate,
+        totalBeds: reservation.totalBeds,
+      });
+      seenGroups.add(reservation.groupName);
+    }
+  });
+
+  // Check individual tents with group assignments
+  Object.values(state.tents).forEach(tent => {
+    if (
+      tent.groupName &&
+      tent.checkInDate &&
+      tent.checkOutDate &&
+      tent.checkInDate <= date &&
+      tent.checkOutDate > date &&
+      !seenGroups.has(tent.groupName)
+    ) {
+      // Count beds for this group across all tents
+      const tentCount = Object.values(state.tents).filter(
+        t => t.groupName === tent.groupName &&
+             t.checkInDate === tent.checkInDate &&
+             t.checkOutDate === tent.checkOutDate
+      ).length;
+
+      const totalBeds = Object.values(state.tents)
+        .filter(t => t.groupName === tent.groupName)
+        .reduce((sum, t) => sum + t.beds.length, 0);
+
+      const neighborhood = state.neighborhoods[tent.neighborhoodId];
+      groups.push({
+        groupName: tent.groupName,
+        source: 'tent',
+        location: tentCount > 1 
+          ? `${tentCount} carpas en ${neighborhood?.displayName || tent.neighborhoodId}`
+          : tent.code,
+        checkInDate: tent.checkInDate,
+        checkOutDate: tent.checkOutDate,
+        totalBeds,
+      });
+      seenGroups.add(tent.groupName);
+    }
+  });
+
+  // Sort by group name
+  return groups.sort((a, b) => a.groupName.localeCompare(b.groupName));
+};
+
 export const GroupSelector: React.FC<GroupSelectorProps> = ({
   date,
   selectedGroup,
   onSelectGroup,
+  state,
   allowCustom = true,
   placeholder = 'Seleccionar grupo...',
   className,
 }) => {
-  const { state } = useVillage();
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
   // Get active groups for the selected date
-  const getActiveGroups = (): ActiveGroup[] => {
-    if (!state) return [];
-
-    const groups: ActiveGroup[] = [];
-    const seenGroups = new Set<string>();
-
-    // Check neighborhood reservations
-    Object.values(state.neighborhoodReservations || {}).forEach(reservation => {
-      if (
-        reservation.checkInDate <= date && 
-        reservation.checkOutDate > date &&
-        !seenGroups.has(reservation.groupName)
-      ) {
-        const neighborhood = state.neighborhoods[reservation.neighborhoodId];
-        groups.push({
-          groupName: reservation.groupName,
-          source: 'neighborhood',
-          location: neighborhood?.displayName || reservation.neighborhoodId,
-          checkInDate: reservation.checkInDate,
-          checkOutDate: reservation.checkOutDate,
-          totalBeds: reservation.totalBeds,
-        });
-        seenGroups.add(reservation.groupName);
-      }
-    });
-
-    // Check individual tents with group assignments
-    Object.values(state.tents).forEach(tent => {
-      if (
-        tent.groupName &&
-        tent.checkInDate &&
-        tent.checkOutDate &&
-        tent.checkInDate <= date &&
-        tent.checkOutDate > date &&
-        !seenGroups.has(tent.groupName)
-      ) {
-        // Count beds for this group across all tents
-        const tentCount = Object.values(state.tents).filter(
-          t => t.groupName === tent.groupName &&
-               t.checkInDate === tent.checkInDate &&
-               t.checkOutDate === tent.checkOutDate
-        ).length;
-
-        const totalBeds = Object.values(state.tents)
-          .filter(t => t.groupName === tent.groupName)
-          .reduce((sum, t) => sum + t.beds.length, 0);
-
-        const neighborhood = state.neighborhoods[tent.neighborhoodId];
-        groups.push({
-          groupName: tent.groupName,
-          source: 'tent',
-          location: tentCount > 1 
-            ? `${tentCount} carpas en ${neighborhood?.displayName || tent.neighborhoodId}`
-            : tent.code,
-          checkInDate: tent.checkInDate,
-          checkOutDate: tent.checkOutDate,
-          totalBeds,
-        });
-        seenGroups.add(tent.groupName);
-      }
-    });
-
-    // Sort by group name
-    return groups.sort((a, b) => a.groupName.localeCompare(b.groupName));
-  };
-
-  const activeGroups = getActiveGroups();
+  const activeGroups = useMemo(() => getActiveGroupsForDate(state, date), [state, date]);
 
   const handleSelectGroup = (group: ActiveGroup) => {
     onSelectGroup(group.groupName, group);
@@ -127,9 +129,6 @@ export const GroupSelector: React.FC<GroupSelectorProps> = ({
     const date = new Date(dateStr);
     return date.toLocaleDateString('es', { day: 'numeric', month: 'short' });
   };
-
-  // Check if selected group is in the active groups list
-  const selectedActiveGroup = activeGroups.find(g => g.groupName === selectedGroup);
 
   return (
     <div className={cn('relative', className)}>

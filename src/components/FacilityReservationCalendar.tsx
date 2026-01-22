@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { GroupSelector, ActiveGroup } from '@/components/GroupSelector';
+import { useVillage } from '@/context/VillageContext';
 
 interface FacilityReservationCalendarProps {
   facilityId: string;
@@ -71,6 +72,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
   onAddReservation,
   onRemoveReservation,
 }) => {
+  const { state } = useVillage();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -373,6 +375,7 @@ export const FacilityReservationCalendar: React.FC<FacilityReservationCalendarPr
                 date={format(selectedDate, 'yyyy-MM-dd')}
                 selectedGroup={newReservation.groupName}
                 onSelectGroup={handleGroupSelect}
+                state={state}
                 placeholder="Seleccionar grupo..."
               />
             </div>

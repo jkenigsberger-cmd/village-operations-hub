@@ -294,6 +294,7 @@ const Activities = () => {
                       date={selectedDate}
                       selectedGroup={formData.groupName}
                       onSelectGroup={(groupName) => setFormData({ ...formData, groupName })}
+                      state={state}
                       placeholder="Seleccionar grupo..."
                     />
                   </div>
