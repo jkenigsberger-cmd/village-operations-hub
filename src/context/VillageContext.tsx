@@ -62,6 +62,8 @@ interface VillageContextType {
   // Activity operations
   addActivityReservation: (reservation: Omit<ActivityReservation, 'id' | 'createdAt'>) => boolean;
   removeActivityReservation: (reservationId: string) => void;
+  updateActivitySpaceStatus: (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus) => void;
+  updateActivitySpaceNotes: (spaceId: string, notes: string) => void;
   
   // Neighborhood bulk operations
   reserveNeighborhood: (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>) => { success: boolean; error?: string };
@@ -625,6 +627,43 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     delete updatedReservations[reservationId];
 
     saveState({ ...state, activityReservations: updatedReservations });
+  };
+
+  const updateActivitySpaceStatus = (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus) => {
+    if (!state) return;
+
+    const space = state.activitySpaces[spaceId];
+    if (!space) return;
+
+    saveState({
+      ...state,
+      activitySpaces: {
+        ...state.activitySpaces,
+        [spaceId]: {
+          ...space,
+          ...(cleaningStatus !== undefined && { cleaningStatus }),
+          ...(workingStatus !== undefined && { workingStatus }),
+        },
+      },
+    });
+  };
+
+  const updateActivitySpaceNotes = (spaceId: string, notes: string) => {
+    if (!state) return;
+
+    const space = state.activitySpaces[spaceId];
+    if (!space) return;
+
+    saveState({
+      ...state,
+      activitySpaces: {
+        ...state.activitySpaces,
+        [spaceId]: {
+          ...space,
+          notes,
+        },
+      },
+    });
   };
 
   // ============================================================
@@ -1228,6 +1267,8 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     getFacilityReservations,
     addActivityReservation,
     removeActivityReservation,
+    updateActivitySpaceStatus,
+    updateActivitySpaceNotes,
     reserveNeighborhood,
     reserveSpecificTents,
     removeNeighborhoodReservation,
