@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
+import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
 import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
 import { FacilityReservationCalendar } from '@/components/FacilityReservationCalendar';
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { TentCard } from '@/components/TentCard';
+import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
+import { GENDER_LEGEND } from '@/lib/tentColors';
 import { 
   Calendar, 
   Bath, 
@@ -68,6 +71,7 @@ const Index = () => {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTentId, setSelectedTentId] = useState<string | null>(null);
 
   // Calculate check-ins and check-outs for selected date
   const summaryForDate = useMemo(() => {
@@ -330,9 +334,9 @@ const Index = () => {
               </div>
             </section>
 
-            {/* Quick Neighborhoods Preview */}
+            {/* Interactive Neighborhoods Mini-Maps */}
             <section>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Neighborhoods</h2>
                 <button 
                   onClick={() => setActiveSection('neighborhoods')}
@@ -341,15 +345,33 @@ const Index = () => {
                   View All →
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                {neighborhoodOrder.slice(0, 4).map((id) => {
+              
+              {/* Gender Legend */}
+              <div className="flex flex-wrap gap-4 mb-4 text-sm">
+                {GENDER_LEGEND.map(({ color, label }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: color }} />
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {neighborhoodOrder.map((id) => {
                   const summary = getNeighborhoodSummary(id);
-                  if (!summary) return null;
+                  const neighborhood = state.neighborhoods[id];
+                  if (!summary || !neighborhood) return null;
+                  
+                  const tents = Object.values(state.tents).filter(t => t.neighborhoodId === id);
+                  
                   return (
-                    <NeighborhoodTile
+                    <NeighborhoodMiniMap
                       key={id}
+                      neighborhoodId={id}
+                      displayName={neighborhood.displayName}
+                      tents={tents}
                       summary={summary}
-                      to={`/neighborhood/${id}`}
+                      onTentClick={(tentId) => setSelectedTentId(tentId)}
                     />
                   );
                 })}
@@ -1151,6 +1173,13 @@ const Index = () => {
           onSubmit={handleReportSubmit}
         />
       )}
+
+      {/* Tent Detail Modal from mini-maps */}
+      <TentDetailModal
+        open={!!selectedTentId}
+        onOpenChange={(open) => !open && setSelectedTentId(null)}
+        tent={selectedTentId ? state.tents[selectedTentId] : null}
+      />
     </div>
   );
 };
