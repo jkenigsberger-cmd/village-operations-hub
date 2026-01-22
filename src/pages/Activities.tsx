@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { CleaningStatus, WorkingStatus } from '@/types/village';
+import { CleaningStatus, WorkingStatus, ActivityReservation } from '@/types/village';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Loader2, 
   CalendarDays, 
@@ -11,12 +12,13 @@ import {
   Clock,
   Users,
   X,
-  AlertTriangle,
   Tent,
   Sparkles,
   Wrench,
   CheckCircle,
-  Ban
+  Ban,
+  Settings,
+  Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +31,12 @@ const getGroupColor = (groupName: string): string => {
   const hue = Math.abs(hash % 360);
   return `hsl(${hue}, 70%, 45%)`;
 };
+
+// Hours range for the grid (6:00 - 22:00)
+const HOURS = Array.from({ length: 17 }, (_, i) => {
+  const hour = i + 6;
+  return `${hour.toString().padStart(2, '0')}:00`;
+});
 
 const Activities = () => {
   const [searchParams] = useSearchParams();
@@ -44,8 +52,7 @@ const Activities = () => {
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>(spaceIdFromUrl);
-  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string>(spaceIdFromUrl || '');
   const [formData, setFormData] = useState({
     startTime: '09:00',
     endTime: '10:00',
@@ -53,7 +60,7 @@ const Activities = () => {
     notes: '',
   });
   const [error, setError] = useState('');
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<ActivityReservation | null>(null);
 
   // Get active groups: groups with reservations that include the selected date
   const activeGroups = useMemo(() => {
@@ -92,13 +99,13 @@ const Activities = () => {
     return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [state, selectedDate]);
 
-  // Get reservations for selected date
-  const dayReservations = useMemo(() => {
-    if (!state) return [];
+  // Get reservations for selected date and space
+  const spaceReservations = useMemo(() => {
+    if (!state || !selectedSpaceId) return [];
     return Object.values(state.activityReservations)
-      .filter(r => r.date === selectedDate)
+      .filter(r => r.date === selectedDate && r.spaceId === selectedSpaceId)
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [state, selectedDate]);
+  }, [state, selectedDate, selectedSpaceId]);
 
   if (isLoading || !state) {
     return (
@@ -109,9 +116,50 @@ const Activities = () => {
   }
 
   const activitySpaces = Object.values(state.activitySpaces);
+  const currentSpace = activitySpaces.find(s => s.id === selectedSpaceId);
 
-  const getSpaceReservations = (spaceId: string) => {
-    return dayReservations.filter(r => r.spaceId === spaceId);
+  // Set first space if none selected
+  if (!selectedSpaceId && activitySpaces.length > 0) {
+    setSelectedSpaceId(activitySpaces[0].id);
+  }
+
+  // Get reservation for a specific hour slot
+  const getReservationForHour = (hour: string): ActivityReservation | null => {
+    return spaceReservations.find(r => {
+      const start = r.startTime;
+      const end = r.endTime;
+      return hour >= start && hour < end;
+    }) || null;
+  };
+
+  // Check if this is the start of a reservation block
+  const isReservationStart = (hour: string): boolean => {
+    return spaceReservations.some(r => r.startTime === hour);
+  };
+
+  // Get reservation span (how many hours)
+  const getReservationSpan = (reservation: ActivityReservation): number => {
+    const startHour = parseInt(reservation.startTime.split(':')[0]);
+    const endHour = parseInt(reservation.endTime.split(':')[0]);
+    return endHour - startHour;
+  };
+
+  const handleHourClick = (hour: string) => {
+    const reservation = getReservationForHour(hour);
+    if (reservation) {
+      setSelectedReservation(reservation);
+    } else {
+      // Open add form with this hour pre-selected
+      const startHour = parseInt(hour.split(':')[0]);
+      const endHour = Math.min(startHour + 1, 22);
+      setFormData({
+        startTime: hour,
+        endTime: `${endHour.toString().padStart(2, '0')}:00`,
+        groupName: '',
+        notes: '',
+      });
+      setShowAddForm(true);
+    }
   };
 
   const handleAddReservation = () => {
@@ -142,7 +190,6 @@ const Activities = () => {
     if (success) {
       setShowAddForm(false);
       setFormData({ startTime: '09:00', endTime: '10:00', groupName: '', notes: '' });
-      setSelectedSpaceId('');
     } else {
       setError('Este horario se cruza con una reserva existente');
     }
@@ -150,7 +197,7 @@ const Activities = () => {
 
   const handleDeleteReservation = (id: string) => {
     removeActivityReservation(id);
-    setDeleteConfirmId(null);
+    setSelectedReservation(null);
   };
 
   const handleStatusChange = (spaceId: string, type: 'cleaning' | 'working', value: string) => {
@@ -162,20 +209,12 @@ const Activities = () => {
   };
 
   const getStatusIcon = (space: typeof activitySpaces[0]) => {
-    if (space.workingStatus === 'BROKEN') return <Wrench className="w-5 h-5 text-destructive" />;
-    if (space.workingStatus === 'MAINTENANCE') return <Wrench className="w-5 h-5 text-yellow-600" />;
-    if (space.workingStatus === 'CLOSED') return <Ban className="w-5 h-5 text-muted-foreground" />;
-    if (space.cleaningStatus === 'NEEDS_CLEANING') return <Sparkles className="w-5 h-5 text-yellow-600" />;
-    if (space.cleaningStatus === 'CLEANING_IN_PROGRESS') return <Sparkles className="w-5 h-5 text-blue-500" />;
-    return <CheckCircle className="w-5 h-5 text-green-600" />;
-  };
-
-  const getStatusBg = (space: typeof activitySpaces[0]) => {
-    if (space.workingStatus === 'BROKEN') return 'bg-destructive/10 border-destructive/30';
-    if (space.workingStatus === 'MAINTENANCE') return 'bg-yellow-500/10 border-yellow-500/30';
-    if (space.workingStatus === 'CLOSED') return 'bg-muted border-muted-foreground/30';
-    if (space.cleaningStatus === 'NEEDS_CLEANING') return 'bg-yellow-500/10 border-yellow-500/30';
-    return '';
+    if (space.workingStatus === 'BROKEN') return <Wrench className="w-4 h-4 text-destructive" />;
+    if (space.workingStatus === 'MAINTENANCE') return <Wrench className="w-4 h-4 text-yellow-600" />;
+    if (space.workingStatus === 'CLOSED') return <Ban className="w-4 h-4 text-muted-foreground" />;
+    if (space.cleaningStatus === 'NEEDS_CLEANING') return <Sparkles className="w-4 h-4 text-yellow-600" />;
+    if (space.cleaningStatus === 'CLEANING_IN_PROGRESS') return <Sparkles className="w-4 h-4 text-blue-500" />;
+    return <CheckCircle className="w-4 h-4 text-green-600" />;
   };
 
   return (
@@ -203,13 +242,6 @@ const Activities = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
           />
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="ml-auto px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:bg-primary/90 flex items-center gap-2"
-          >
-            <Plus className="w-6 h-6" />
-            Nueva Reserva
-          </button>
         </div>
 
         {/* Active Groups Legend */}
@@ -234,362 +266,413 @@ const Activities = () => {
           </div>
         )}
 
-        {/* Spaces List */}
-        <div className="space-y-4">
-          {activitySpaces.map((space) => {
-            const reservations = getSpaceReservations(space.id);
-            const isExpanded = selectedSpace === space.id;
-            
-            return (
-              <div 
-                key={space.id} 
-                className={cn("tile overflow-hidden", getStatusBg(space))}
-              >
-                {/* Space Header */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedSpace(isExpanded ? null : space.id)}
-                  className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/30 transition-colors"
+        {/* Space Selector */}
+        <div className="flex flex-wrap gap-2">
+          {activitySpaces.map((space) => (
+            <button
+              key={space.id}
+              onClick={() => setSelectedSpaceId(space.id)}
+              className={cn(
+                "px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all border-2",
+                selectedSpaceId === space.id
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card border-border hover:border-primary/50"
+              )}
+            >
+              {getStatusIcon(space)}
+              {space.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Main Content with Tabs */}
+        {currentSpace && (
+          <div className="tile p-0 overflow-hidden">
+            <Tabs defaultValue="reservas" className="w-full">
+              <TabsList className="w-full justify-start rounded-none border-b bg-muted/30 p-0 h-auto">
+                <TabsTrigger 
+                  value="reservas" 
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 text-base font-semibold"
                 >
-                  <div className="flex items-center gap-4">
-                    {getStatusIcon(space)}
-                    <div>
-                      <h3 className="text-xl font-bold">{space.name}</h3>
-                      {space.description && (
-                        <p className="text-sm text-muted-foreground">{space.description}</p>
-                      )}
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Reservas
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="estado" 
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 text-base font-semibold"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Estado & Notas
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Reservations Tab - Hourly Grid */}
+              <TabsContent value="reservas" className="m-0 p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    {currentSpace.name} - {selectedDate}
+                  </h3>
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-medium flex items-center gap-2"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Nueva Reserva
+                  </button>
+                </div>
+
+                {/* Hourly Grid Table */}
+                <div className="border rounded-xl overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-3 font-semibold text-sm w-20 border-r">Hora</th>
+                        <th className="text-left p-3 font-semibold text-sm">Reserva</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {HOURS.map((hour, index) => {
+                        const reservation = getReservationForHour(hour);
+                        const isStart = reservation && isReservationStart(hour);
+                        const span = reservation ? getReservationSpan(reservation) : 1;
+                        const groupColor = reservation ? getGroupColor(reservation.groupName) : '';
+                        
+                        // Skip rendering if this hour is part of a reservation but not the start
+                        if (reservation && !isStart) {
+                          return null;
+                        }
+
+                        return (
+                          <tr 
+                            key={hour} 
+                            className={cn(
+                              "border-t transition-colors",
+                              !reservation && "hover:bg-muted/30 cursor-pointer"
+                            )}
+                            onClick={() => !reservation && handleHourClick(hour)}
+                          >
+                            <td className="p-3 font-mono text-sm font-semibold text-muted-foreground border-r bg-muted/20">
+                              {hour}
+                            </td>
+                            <td 
+                              className="p-0"
+                              rowSpan={reservation ? span : 1}
+                            >
+                              {reservation ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedReservation(reservation)}
+                                  className="w-full h-full text-left p-3 transition-all hover:brightness-110"
+                                  style={{ 
+                                    backgroundColor: groupColor,
+                                    minHeight: `${span * 44}px`
+                                  }}
+                                >
+                                  <div className="text-white font-bold text-lg">
+                                    {reservation.groupName}
+                                  </div>
+                                  <div className="text-white/90 text-sm flex items-center gap-2">
+                                    <Clock className="w-3 h-3" />
+                                    {reservation.startTime} - {reservation.endTime}
+                                  </div>
+                                  {reservation.notes && (
+                                    <div className="text-white/80 text-xs mt-1">
+                                      📝 {reservation.notes}
+                                    </div>
+                                  )}
+                                </button>
+                              ) : (
+                                <div className="p-3 text-muted-foreground/50 text-sm">
+                                  Click para reservar
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              {/* Status Tab */}
+              <TabsContent value="estado" className="m-0 p-6">
+                <h3 className="text-xl font-bold mb-6">{currentSpace.name}</h3>
+                
+                <div className="space-y-6">
+                  {/* Cleaning Status */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
+                      <Sparkles className="w-4 h-4" />
+                      Estado de Limpieza
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 'CLEAN', label: '✓ Limpio', bg: 'bg-green-500' },
+                        { value: 'NEEDS_CLEANING', label: '🧹 Necesita Limpieza', bg: 'bg-yellow-500' },
+                        { value: 'CLEANING_IN_PROGRESS', label: '⏳ Limpieza en Proceso', bg: 'bg-blue-500' },
+                      ].map((status) => (
+                        <button
+                          key={status.value}
+                          onClick={() => handleStatusChange(currentSpace.id, 'cleaning', status.value)}
+                          className={cn(
+                            "px-4 py-3 rounded-xl font-medium text-base transition-all border-2",
+                            currentSpace.cleaningStatus === status.value
+                              ? `${status.bg} text-white border-transparent`
+                              : "bg-muted border-border hover:border-primary/50"
+                          )}
+                        >
+                          {status.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {reservations.length > 0 && (
-                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
-                        {reservations.length} reserva{reservations.length !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                    <Plus 
-                      className={cn(
-                        "w-6 h-6 transition-transform",
-                        isExpanded && "rotate-45"
-                      )} 
+
+                  {/* Working Status */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
+                      <Wrench className="w-4 h-4" />
+                      Estado de Funcionamiento
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 'WORKING', label: '✓ Funcionando', bg: 'bg-green-500' },
+                        { value: 'MAINTENANCE', label: '⚠️ En Mantenimiento', bg: 'bg-yellow-500' },
+                        { value: 'BROKEN', label: '🔧 Requiere Reparación', bg: 'bg-destructive' },
+                        { value: 'CLOSED', label: '🚫 Cerrado', bg: 'bg-muted-foreground' },
+                      ].map((status) => (
+                        <button
+                          key={status.value}
+                          onClick={() => handleStatusChange(currentSpace.id, 'working', status.value)}
+                          className={cn(
+                            "px-4 py-3 rounded-xl font-medium text-base transition-all border-2",
+                            currentSpace.workingStatus === status.value
+                              ? `${status.bg} text-white border-transparent`
+                              : "bg-muted border-border hover:border-primary/50"
+                          )}
+                        >
+                          {status.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
+                      📝 Notas del Espacio
+                    </label>
+                    <textarea
+                      value={currentSpace.notes || ''}
+                      onChange={(e) => updateActivitySpaceNotes(currentSpace.id, e.target.value)}
+                      placeholder="Agregar notas sobre este espacio..."
+                      className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary min-h-[120px] text-base"
                     />
                   </div>
-                </button>
-
-                {/* Expanded Content */}
-                {isExpanded && (
-                  <div className="border-t border-border">
-                    {/* Status Controls */}
-                    <div className="p-4 bg-muted/20 border-b border-border">
-                      <div className="flex flex-wrap gap-4">
-                        {/* Cleaning Status */}
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">Limpieza:</span>
-                          <div className="flex gap-1">
-                            {[
-                              { value: 'CLEAN', label: '✓ Limpio', color: 'bg-green-500' },
-                              { value: 'NEEDS_CLEANING', label: '🧹 Necesita', color: 'bg-yellow-500' },
-                              { value: 'CLEANING_IN_PROGRESS', label: '⏳ En proceso', color: 'bg-blue-500' },
-                            ].map((status) => (
-                              <button
-                                key={status.value}
-                                onClick={() => handleStatusChange(space.id, 'cleaning', status.value)}
-                                className={cn(
-                                  "px-2 py-1 text-xs rounded-lg font-medium transition-all",
-                                  space.cleaningStatus === status.value
-                                    ? `${status.color} text-white`
-                                    : "bg-muted hover:bg-muted/80"
-                                )}
-                              >
-                                {status.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Working Status */}
-                        <div className="flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">Estado:</span>
-                          <div className="flex gap-1">
-                            {[
-                              { value: 'WORKING', label: '✓ OK', color: 'bg-green-500' },
-                              { value: 'MAINTENANCE', label: '⚠️ Mant.', color: 'bg-yellow-500' },
-                              { value: 'BROKEN', label: '🔧 Roto', color: 'bg-destructive' },
-                              { value: 'CLOSED', label: '🚫 Cerrado', color: 'bg-muted-foreground' },
-                            ].map((status) => (
-                              <button
-                                key={status.value}
-                                onClick={() => handleStatusChange(space.id, 'working', status.value)}
-                                className={cn(
-                                  "px-2 py-1 text-xs rounded-lg font-medium transition-all",
-                                  space.workingStatus === status.value
-                                    ? `${status.color} text-white`
-                                    : "bg-muted hover:bg-muted/80"
-                                )}
-                              >
-                                {status.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Notes */}
-                      <div className="mt-3">
-                        <input
-                          type="text"
-                          placeholder="Notas del espacio..."
-                          value={space.notes || ''}
-                          onChange={(e) => updateActivitySpaceNotes(space.id, e.target.value)}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-background"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Reservations Timeline */}
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Reservas del día
-                        </h4>
-                        <button
-                          onClick={() => {
-                            setSelectedSpaceId(space.id);
-                            setShowAddForm(true);
-                          }}
-                          className="px-3 py-1 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-1"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Agregar
-                        </button>
-                      </div>
-
-                      {reservations.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">
-                          Sin reservas para esta fecha
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {reservations.map((res) => {
-                            const groupColor = getGroupColor(res.groupName);
-                            return (
-                              <div 
-                                key={res.id}
-                                className="flex items-center gap-3 p-3 rounded-xl"
-                                style={{ 
-                                  backgroundColor: `${groupColor}15`,
-                                  borderLeft: `4px solid ${groupColor}`
-                                }}
-                              >
-                                <div 
-                                  className="w-3 h-3 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: groupColor }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-lg">
-                                      {res.startTime} - {res.endTime}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-muted-foreground" />
-                                    <span 
-                                      className="font-semibold"
-                                      style={{ color: groupColor }}
-                                    >
-                                      {res.groupName}
-                                    </span>
-                                  </div>
-                                  {res.notes && (
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      📝 {res.notes}
-                                    </p>
-                                  )}
-                                </div>
-                                
-                                {deleteConfirmId === res.id ? (
-                                  <div className="flex gap-2 flex-shrink-0">
-                                    <button
-                                      onClick={() => handleDeleteReservation(res.id)}
-                                      className="px-3 py-1 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium"
-                                    >
-                                      Eliminar
-                                    </button>
-                                    <button
-                                      onClick={() => setDeleteConfirmId(null)}
-                                      className="px-3 py-1 bg-muted rounded-lg text-sm font-medium"
-                                    >
-                                      No
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setDeleteConfirmId(res.id)}
-                                    className="p-2 hover:bg-destructive/20 rounded-lg text-muted-foreground hover:text-destructive flex-shrink-0"
-                                  >
-                                    <Trash2 className="w-5 h-5" />
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
 
         {/* Add Reservation Modal */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-background rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Nueva Reserva</h2>
-                  <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setError('');
-                    }}
-                    className="p-2 hover:bg-muted rounded-xl"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+            <div className="bg-card rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-card p-4 border-b flex items-center justify-between">
+                <h2 className="text-xl font-bold">Nueva Reserva</h2>
+                <button
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setError('');
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Space Display */}
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Espacio</label>
+                  <p className="text-lg font-bold">{currentSpace?.name}</p>
                 </div>
 
-                {error && (
-                  <div className="mb-4 p-4 bg-destructive/10 border-2 border-destructive rounded-xl flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-destructive" />
-                    <span className="font-medium">{error}</span>
-                  </div>
-                )}
+                {/* Date */}
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Fecha</label>
+                  <p className="text-lg font-bold">{selectedDate}</p>
+                </div>
 
-                <div className="space-y-4">
-                  {/* Space Selection */}
-                  <div className="space-y-2">
-                    <label className="text-base font-semibold">Espacio</label>
+                {/* Time Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-1 block">
+                      Hora Inicio
+                    </label>
                     <select
-                      value={selectedSpaceId}
-                      onChange={(e) => setSelectedSpaceId(e.target.value)}
-                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      className="w-full px-3 py-3 rounded-xl border-2 border-input bg-background text-lg font-mono"
                     >
-                      <option value="">Selecciona un espacio...</option>
-                      {activitySpaces.map((space) => (
-                        <option key={space.id} value={space.id}>
-                          {space.name}
-                        </option>
+                      {HOURS.map(hour => (
+                        <option key={hour} value={hour}>{hour}</option>
                       ))}
                     </select>
                   </div>
-
-                  {/* Date */}
-                  <div className="space-y-2">
-                    <label className="text-base font-semibold">Fecha</label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  {/* Time - Simple inputs */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-base font-semibold">Hora Inicio</label>
-                      <input
-                        type="time"
-                        value={formData.startTime}
-                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                        className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-base font-semibold">Hora Fin</label>
-                      <input
-                        type="time"
-                        value={formData.endTime}
-                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                        className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Group Name - with active groups */}
-                  <div className="space-y-2">
-                    <label className="text-base font-semibold">Nombre del Grupo</label>
-                    
-                    {activeGroups.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Grupos hospedados:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {activeGroups.map((group) => (
-                            <button
-                              key={group.name}
-                              type="button"
-                              onClick={() => setFormData({ ...formData, groupName: group.name })}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-sm font-medium transition-all border-2",
-                                formData.groupName === group.name
-                                  ? "text-white border-transparent"
-                                  : "bg-muted/50 hover:bg-muted border-transparent"
-                              )}
-                              style={formData.groupName === group.name ? { backgroundColor: group.color } : {}}
-                            >
-                              {group.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <input
-                      type="text"
-                      value={formData.groupName}
-                      onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
-                      placeholder="Nombre del grupo..."
-                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  {/* Notes */}
-                  <div className="space-y-2">
-                    <label className="text-base font-semibold">Notas (opcional)</label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Notas adicionales..."
-                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-input bg-background resize-none focus:outline-none focus:border-primary"
-                      rows={2}
-                    />
+                  <div>
+                    <label className="text-sm font-semibold text-muted-foreground mb-1 block">
+                      Hora Fin
+                    </label>
+                    <select
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      className="w-full px-3 py-3 rounded-xl border-2 border-input bg-background text-lg font-mono"
+                    >
+                      {HOURS.map(hour => (
+                        <option key={hour} value={hour}>{hour}</option>
+                      ))}
+                      <option value="22:00">22:00</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="flex gap-4 mt-6">
+                {/* Group Selection */}
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                    Grupo
+                  </label>
+                  
+                  {/* Quick select for active groups */}
+                  {activeGroups.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {activeGroups.map((group) => (
+                        <button
+                          key={group.name}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, groupName: group.name })}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-sm font-medium transition-all border-2",
+                            formData.groupName === group.name
+                              ? "text-white border-transparent"
+                              : "border-border hover:border-primary/50"
+                          )}
+                          style={{ 
+                            backgroundColor: formData.groupName === group.name ? group.color : undefined 
+                          }}
+                        >
+                          {group.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <input
+                    type="text"
+                    value={formData.groupName}
+                    onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
+                    placeholder="O escribe el nombre del grupo..."
+                    className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground mb-1 block">
+                    Notas (opcional)
+                  </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Agregar notas..."
+                    className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary min-h-[80px]"
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive rounded-xl text-sm font-medium">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              <div className="sticky bottom-0 bg-card p-4 border-t flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setError('');
+                  }}
+                  className="flex-1 px-4 py-3 bg-muted rounded-xl font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddReservation}
+                  className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-semibold"
+                >
+                  Guardar Reserva
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reservation Detail Modal */}
+        {selectedReservation && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-card rounded-2xl max-w-md w-full">
+              <div 
+                className="p-6 rounded-t-2xl"
+                style={{ backgroundColor: getGroupColor(selectedReservation.groupName) }}
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white">{selectedReservation.groupName}</h2>
                   <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setError('');
-                    }}
-                    className="flex-1 px-6 py-4 bg-muted text-foreground rounded-xl font-bold text-lg hover:bg-muted/80"
+                    onClick={() => setSelectedReservation(null)}
+                    className="p-2 hover:bg-white/20 rounded-lg text-white"
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleAddReservation}
-                    className="flex-1 px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:bg-primary/90"
-                  >
-                    Guardar
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-lg font-semibold">
+                    {selectedReservation.startTime} - {selectedReservation.endTime}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-lg">{selectedReservation.date}</span>
+                </div>
+
+                {selectedReservation.notes && (
+                  <div className="p-3 bg-muted/30 rounded-xl">
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">Notas:</p>
+                    <p>{selectedReservation.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t flex gap-3">
+                <button
+                  onClick={() => setSelectedReservation(null)}
+                  className="flex-1 px-4 py-3 bg-muted rounded-xl font-semibold"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={() => handleDeleteReservation(selectedReservation.id)}
+                  className="px-6 py-3 bg-destructive text-destructive-foreground rounded-xl font-semibold flex items-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Eliminar
+                </button>
               </div>
             </div>
           </div>
