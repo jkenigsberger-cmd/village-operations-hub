@@ -541,9 +541,9 @@ const createFacilities = (): { areas: FacilityArea[]; facilities: Facility[] } =
 
 const createActivitySpaces = (): ActivitySpace[] => [
   { id: 'ohel_moed', name: 'אוהל מועד', description: 'מרחב התכנסות מרכזי' },
-  { id: 'bunker_6', name: 'ממד 6', description: 'ממד פעילות' },
-  { id: 'bunker_7', name: 'ממד 7', description: 'ממד פעילות' },
-  { id: 'bunker_8', name: 'ממד 8', description: 'ממד פעילות' },
+  { id: 'bunker_6', name: 'ממ״ד 6', description: 'ממ״ד פעילות' },
+  { id: 'bunker_7', name: 'ממ״ד 7', description: 'ממ״ד פעילות' },
+  { id: 'bunker_8', name: 'ממ״ד 8', description: 'ממ״ד פעילות' },
   { id: 'dining_hall', name: 'חדר אוכל', description: 'אזור אוכל מרכזי' },
 ];
 
