@@ -538,31 +538,51 @@ const Index = () => {
                   <div>
                     <h3 className="text-xl font-semibold mb-4">{HE.badges.vip} - {HE.nav.bathrooms}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {vipMaintenanceTasks.map((task) => (
-                        <div key={task.id} className="tile border-vip bg-vip/5">
-                          <div className="flex items-center gap-3 mb-4">
-                            <Sparkles className="w-6 h-6 text-vip" />
-                            <div>
-                              <h4 className="font-bold text-lg">{task.title}</h4>
-                              <span className="text-sm text-muted-foreground">{task.description}</span>
+                      {vipMaintenanceTasks.map((task) => {
+                        // Get the tent to show current status
+                        const tent = task.entityId ? state.tents[task.entityId] : null;
+                        return (
+                          <div key={task.id} className="tile border-vip bg-vip/5">
+                            <div className="flex items-center gap-3 mb-4">
+                              <Sparkles className="w-6 h-6 text-vip" />
+                              <div>
+                                <h4 className="font-bold text-lg">{task.title}</h4>
+                                <span className="text-sm text-muted-foreground">{task.description}</span>
+                              </div>
                             </div>
+                            
+                            {/* Show maintenance image if available */}
+                            {task.maintenanceImage && (
+                              <img 
+                                src={task.maintenanceImage} 
+                                alt="Issue" 
+                                className="w-full h-32 object-cover rounded-lg mb-3"
+                              />
+                            )}
+                            
+                            {/* Show tent code for location context */}
+                            {tent && (
+                              <p className="text-sm text-muted-foreground mb-3">
+                                📍 {tent.code}
+                              </p>
+                            )}
+                            
+                            <button
+                              onClick={() => {
+                                if (task.entityId && task.facilityType) {
+                                  resolveTentFacilityIssue(task.entityId, task.facilityType);
+                                }
+                                removeDailyTask(task.id);
+                                toast.success(HE.messages.taskCompleted);
+                              }}
+                              className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                              {HE.messages.taskCompleted}
+                            </button>
                           </div>
-                          
-                          <button
-                            onClick={() => {
-                              if (task.entityId && task.facilityType) {
-                                resolveTentFacilityIssue(task.entityId, task.facilityType);
-                              }
-                              removeDailyTask(task.id);
-                              toast.success(HE.messages.taskCompleted);
-                            }}
-                            className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                            {HE.messages.taskCompleted}
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
