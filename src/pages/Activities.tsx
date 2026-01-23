@@ -174,15 +174,15 @@ const Activities = () => {
     setError('');
 
     if (!selectedSpaceId) {
-      setError('Selecciona un espacio');
+      setError('בחר מתקן');
       return;
     }
     if (!formData.groupName.trim()) {
-      setError('Ingresa el nombre del grupo');
+      setError('הכנס שם קבוצה');
       return;
     }
     if (formData.startTime >= formData.endTime) {
-      setError('La hora de fin debe ser después del inicio');
+      setError('שעת הסיום חייבת להיות אחרי ההתחלה');
       return;
     }
 
@@ -199,7 +199,7 @@ const Activities = () => {
       setShowAddForm(false);
       setFormData({ startTime: '09:00', endTime: '10:00', groupName: '', notes: '' });
     } else {
-      setError('Este horario se cruza con una reserva existente');
+      setError('הזמן מתנגש עם הזמנה קיימת');
     }
   };
 
@@ -244,13 +244,13 @@ const Activities = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b-2 border-border">
         <div className="container py-6">
-          <BreadcrumbNav items={[{ label: 'Common Facilities' }]} />
+          <BreadcrumbNav items={[{ label: 'מתקנים משותפים' }]} />
           <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
             <CalendarDays className="w-10 h-10" />
-            Common Facilities
+            מתקנים משותפים
           </h1>
           <p className="text-muted-foreground text-lg mt-2">
-            Gestiona reservas, limpieza y mantenimiento
+            ניהול הזמנות, ניקיון ותחזוקה
           </p>
         </div>
       </header>
@@ -258,7 +258,7 @@ const Activities = () => {
       <main className="container py-6 space-y-6">
         {/* Date Selector */}
         <div className="flex flex-wrap items-center gap-4">
-          <label className="text-lg font-semibold">Fecha:</label>
+          <label className="text-lg font-semibold">תאריך:</label>
           <input
             type="date"
             value={selectedDate}
@@ -272,7 +272,7 @@ const Activities = () => {
           <div className="p-4 bg-muted/30 rounded-xl">
             <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
               <Tent className="w-4 h-4" />
-              Grupos hospedados hoy:
+              קבוצות מאוכסנות היום:
             </p>
             <div className="flex flex-wrap gap-2">
               {activeGroups.map((group) => (
@@ -318,14 +318,14 @@ const Activities = () => {
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 text-base font-semibold"
                 >
                   <Calendar className="w-4 h-4 mr-2" />
-                  Reservas
+                  הזמנות
                 </TabsTrigger>
                 <TabsTrigger 
                   value="estado" 
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 text-base font-semibold"
                 >
                   <Settings className="w-4 h-4 mr-2" />
-                  Estado & Notas
+                  מצב והערות
                 </TabsTrigger>
               </TabsList>
 
@@ -341,7 +341,7 @@ const Activities = () => {
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-medium flex items-center gap-2"
                   >
                     <Plus className="w-5 h-5" />
-                    Nueva Reserva
+                    הזמנה חדשה
                   </button>
                 </div>
 
@@ -350,8 +350,8 @@ const Activities = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-muted/50">
-                        <th className="text-left p-3 font-semibold text-sm w-20 border-r">Hora</th>
-                        <th className="text-left p-3 font-semibold text-sm">Reserva</th>
+                        <th className="text-right p-3 font-semibold text-sm w-20 border-l">שעה</th>
+                        <th className="text-right p-3 font-semibold text-sm">הזמנה</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -407,7 +407,7 @@ const Activities = () => {
                                 </button>
                               ) : (
                                 <div className="p-3 text-muted-foreground/50 text-sm">
-                                  Click para reservar
+                                  לחץ להזמנה
                                 </div>
                               )}
                             </td>
@@ -428,13 +428,13 @@ const Activities = () => {
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
                       <Sparkles className="w-4 h-4" />
-                      Estado de Limpieza
+                      מצב ניקיון
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { value: 'CLEAN', label: '✓ Limpio', bg: 'bg-green-500' },
-                        { value: 'NEEDS_CLEANING', label: '🧹 Necesita Limpieza', bg: 'bg-yellow-500' },
-                        { value: 'CLEANING_IN_PROGRESS', label: '⏳ Limpieza en Proceso', bg: 'bg-blue-500' },
+                        { value: 'CLEAN', label: '✓ נקי', bg: 'bg-green-500' },
+                        { value: 'NEEDS_CLEANING', label: '🧹 דורש ניקיון', bg: 'bg-yellow-500' },
+                        { value: 'CLEANING_IN_PROGRESS', label: '⏳ בתהליך ניקיון', bg: 'bg-blue-500' },
                       ].map((status) => (
                         <button
                           key={status.value}
@@ -456,14 +456,14 @@ const Activities = () => {
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
                       <Wrench className="w-4 h-4" />
-                      Estado de Funcionamiento
+                      מצב תפעולי
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { value: 'WORKING', label: '✓ Funcionando', bg: 'bg-green-500' },
-                        { value: 'MAINTENANCE', label: '⚠️ En Mantenimiento', bg: 'bg-yellow-500' },
-                        { value: 'BROKEN', label: '🔧 Requiere Reparación', bg: 'bg-destructive' },
-                        { value: 'CLOSED', label: '🚫 Cerrado', bg: 'bg-muted-foreground' },
+                        { value: 'WORKING', label: '✓ תקין', bg: 'bg-green-500' },
+                        { value: 'MAINTENANCE', label: '⚠️ בתחזוקה', bg: 'bg-yellow-500' },
+                        { value: 'BROKEN', label: '🔧 תקול', bg: 'bg-destructive' },
+                        { value: 'CLOSED', label: '🚫 סגור', bg: 'bg-muted-foreground' },
                       ].map((status) => (
                         <button
                           key={status.value}
@@ -486,12 +486,12 @@ const Activities = () => {
                     <div className="p-4 rounded-xl bg-destructive/10 border-2 border-destructive/30">
                       <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2">
                         <Wrench className="w-4 h-4" />
-                        Problema Reportado
+                        בעיה שדווחה
                       </h4>
                       {currentSpace.maintenanceImage && (
                         <img
                           src={currentSpace.maintenanceImage}
-                          alt="Imagen del problema"
+                          alt="תמונת הבעיה"
                           className="w-full max-h-48 object-cover rounded-lg mb-3"
                         />
                       )}
@@ -508,7 +508,7 @@ const Activities = () => {
                         className="px-4 py-2 bg-muted rounded-lg text-sm font-medium flex items-center gap-2"
                       >
                         <Camera className="w-4 h-4" />
-                        Editar Reporte
+                        ערוך דיווח
                       </button>
                     </div>
                   )}
@@ -516,12 +516,12 @@ const Activities = () => {
                   {/* Notes */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3">
-                      📝 Notas del Espacio
+                      📝 הערות למתקן
                     </label>
                     <textarea
                       value={currentSpace.notes || ''}
                       onChange={(e) => updateActivitySpaceNotes(currentSpace.id, e.target.value)}
-                      placeholder="Agregar notas sobre este espacio..."
+                      placeholder="הוסף הערות על מתקן זה..."
                       className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary min-h-[120px] text-base"
                     />
                   </div>
@@ -533,7 +533,7 @@ const Activities = () => {
                       className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-primary/90 transition-colors"
                     >
                       <Save className="w-6 h-6" />
-                      Guardar y Salir
+                      שמור וצא
                     </button>
                   </div>
                 </div>
@@ -547,7 +547,7 @@ const Activities = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-card rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-card p-4 border-b flex items-center justify-between">
-                <h2 className="text-xl font-bold">Nueva Reserva</h2>
+                <h2 className="text-xl font-bold">הזמנה חדשה</h2>
                 <button
                   onClick={() => {
                     setShowAddForm(false);
@@ -562,13 +562,13 @@ const Activities = () => {
               <div className="p-4 space-y-4">
                 {/* Space Display */}
                 <div>
-                  <label className="text-sm font-semibold text-muted-foreground">Espacio</label>
+                  <label className="text-sm font-semibold text-muted-foreground">מתקן</label>
                   <p className="text-lg font-bold">{currentSpace?.name}</p>
                 </div>
 
                 {/* Date */}
                 <div>
-                  <label className="text-sm font-semibold text-muted-foreground">Fecha</label>
+                  <label className="text-sm font-semibold text-muted-foreground">תאריך</label>
                   <p className="text-lg font-bold">{selectedDate}</p>
                 </div>
 
@@ -576,7 +576,7 @@ const Activities = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold text-muted-foreground mb-1 block">
-                      Hora Inicio
+                      שעת התחלה
                     </label>
                     <select
                       value={formData.startTime}
@@ -590,7 +590,7 @@ const Activities = () => {
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-muted-foreground mb-1 block">
-                      Hora Fin
+                      שעת סיום
                     </label>
                     <select
                       value={formData.endTime}
@@ -608,7 +608,7 @@ const Activities = () => {
                 {/* Group Selection */}
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground mb-2 block">
-                    Grupo
+                    קבוצה
                   </label>
                   
                   {/* Quick select for active groups */}
@@ -639,7 +639,7 @@ const Activities = () => {
                     type="text"
                     value={formData.groupName}
                     onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
-                    placeholder="O escribe el nombre del grupo..."
+                    placeholder="או הקלד שם קבוצה..."
                     className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
                   />
                 </div>
@@ -647,12 +647,12 @@ const Activities = () => {
                 {/* Notes */}
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground mb-1 block">
-                    Notas (opcional)
+                    הערות (אופציונלי)
                   </label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Agregar notas..."
+                    placeholder="הוסף הערות..."
                     className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary min-h-[80px]"
                   />
                 </div>
@@ -672,13 +672,13 @@ const Activities = () => {
                   }}
                   className="flex-1 px-4 py-3 bg-muted rounded-xl font-semibold"
                 >
-                  Cancelar
+                  ביטול
                 </button>
                 <button
                   onClick={handleAddReservation}
                   className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-semibold"
                 >
-                  Guardar Reserva
+                  שמור הזמנה
                 </button>
               </div>
             </div>
@@ -719,7 +719,7 @@ const Activities = () => {
 
                 {selectedReservation.notes && (
                   <div className="p-3 bg-muted/30 rounded-xl">
-                    <p className="text-sm font-semibold text-muted-foreground mb-1">Notas:</p>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">הערות:</p>
                     <p>{selectedReservation.notes}</p>
                   </div>
                 )}
@@ -730,14 +730,14 @@ const Activities = () => {
                   onClick={() => setSelectedReservation(null)}
                   className="flex-1 px-4 py-3 bg-muted rounded-xl font-semibold"
                 >
-                  Cerrar
+                  סגור
                 </button>
                 <button
                   onClick={() => handleDeleteReservation(selectedReservation.id)}
                   className="px-6 py-3 bg-destructive text-destructive-foreground rounded-xl font-semibold flex items-center gap-2"
                 >
                   <Trash2 className="w-5 h-5" />
-                  Eliminar
+                  מחק
                 </button>
               </div>
             </div>

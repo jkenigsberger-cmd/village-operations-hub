@@ -185,9 +185,9 @@ export const HE = {
   // Activity Spaces - with Hebrew names
   activitySpaces: {
     ohel_moed: 'אוהל מועד',
-    bunker_6: 'ממד 6',
-    bunker_7: 'ממד 7',
-    bunker_8: 'ממד 8',
+    bunker_6: 'ממ״ד 6',
+    bunker_7: 'ממ״ד 7',
+    bunker_8: 'ממ״ד 8',
     dining_hall: 'חדר אוכל',
   },
   
