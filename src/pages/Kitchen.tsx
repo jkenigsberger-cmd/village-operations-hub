@@ -53,8 +53,8 @@ const Kitchen: React.FC = () => {
     setAddModalOpen(true);
   };
 
-  const handleAddConfirm = (time: string, location: 'DINING_HALL' | 'OUTSIDE', totalPax: number) => {
-    addTimeSlot(dateStr, addMealType, time, location, totalPax);
+  const handleAddConfirm = (time: string, location: 'DINING_HALL' | 'OUTSIDE', totalPax: number, specialDiets: import('@/types/kitchen').SpecialDiets) => {
+    addTimeSlot(dateStr, addMealType, time, location, totalPax, specialDiets);
   };
 
   const handleSaveSlot = (updates: Partial<Omit<TimeSlot, 'id' | 'date' | 'mealType'>>) => {

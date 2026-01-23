@@ -1,22 +1,32 @@
 import React, { useState } from 'react';
-import { MealType, MEAL_LABELS, LOCATION_LABELS } from '@/types/kitchen';
+import { MealType, SpecialDiets, MEAL_LABELS, LOCATION_LABELS, DIET_LABELS } from '@/types/kitchen';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Clock, MapPin, Users, Plus } from 'lucide-react';
+import { Clock, MapPin, Users, Plus, AlertTriangle } from 'lucide-react';
 
 interface AddTimeSlotModalProps {
   open: boolean;
   mealType: MealType;
   onClose: () => void;
-  onAdd: (time: string, location: 'DINING_HALL' | 'OUTSIDE', totalPax: number) => void;
+  onAdd: (time: string, location: 'DINING_HALL' | 'OUTSIDE', totalPax: number, specialDiets: SpecialDiets) => void;
 }
 
 const DEFAULT_TIMES: Record<MealType, string> = {
   BREAKFAST: '08:00',
   LUNCH: '13:00',
   DINNER: '19:00',
+};
+
+const DEFAULT_SPECIAL_DIETS: SpecialDiets = {
+  vegetarian: 0,
+  vegan: 0,
+  glutenFree: 0,
+  lactoseFree: 0,
+  allergies: 0,
+  notes: '',
 };
 
 export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
@@ -28,19 +38,32 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
   const [time, setTime] = useState(DEFAULT_TIMES[mealType]);
   const [location, setLocation] = useState<'DINING_HALL' | 'OUTSIDE'>('DINING_HALL');
   const [totalPax, setTotalPax] = useState(0);
+  const [specialDiets, setSpecialDiets] = useState<SpecialDiets>(DEFAULT_SPECIAL_DIETS);
 
   const handleAdd = () => {
-    onAdd(time, location, totalPax);
+    onAdd(time, location, totalPax, specialDiets);
     // Reset form
     setTime(DEFAULT_TIMES[mealType]);
     setLocation('DINING_HALL');
     setTotalPax(0);
+    setSpecialDiets(DEFAULT_SPECIAL_DIETS);
     onClose();
   };
 
+  const updateDiet = (key: keyof Omit<SpecialDiets, 'notes'>, value: number) => {
+    setSpecialDiets(prev => ({ ...prev, [key]: Math.max(0, value) }));
+  };
+
+  const totalSpecial = 
+    specialDiets.vegetarian + 
+    specialDiets.vegan + 
+    specialDiets.glutenFree + 
+    specialDiets.lactoseFree + 
+    specialDiets.allergies;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md" dir="rtl">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <Plus className="w-6 h-6" />
@@ -103,6 +126,53 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
               className="text-3xl font-bold h-16 text-center"
               placeholder="0"
             />
+            {totalPax === 0 && (
+              <p className="text-sm text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="w-4 h-4" />
+                מספר סועדים לא הוגדר
+              </p>
+            )}
+          </div>
+
+          {/* Special Diets - Always Visible */}
+          <div className="space-y-4 border-t pt-4">
+            <Label className="text-lg font-bold flex items-center gap-2">
+              ⚠️ דרישות מיוחדות
+              {totalSpecial > 0 && (
+                <span className="text-sm font-normal text-amber-600">({totalSpecial} מיוחדים)</span>
+              )}
+            </Label>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {(Object.keys(DIET_LABELS) as Array<keyof typeof DIET_LABELS>)
+                .filter(key => key !== 'notes')
+                .map(key => (
+                  <div key={key} className="flex items-center gap-2 bg-muted/30 rounded-lg p-3">
+                    <span className="text-sm flex-1">{DIET_LABELS[key]}</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={specialDiets[key as keyof Omit<SpecialDiets, 'notes'>]}
+                      onChange={e => updateDiet(
+                        key as keyof Omit<SpecialDiets, 'notes'>,
+                        parseInt(e.target.value) || 0
+                      )}
+                      className="w-16 h-10 text-center font-bold"
+                    />
+                  </div>
+                ))}
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label className="text-sm">{DIET_LABELS.notes}</Label>
+              <Textarea
+                value={specialDiets.notes}
+                onChange={e => setSpecialDiets(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="הערות נוספות..."
+                className="min-h-[80px]"
+              />
+            </div>
           </div>
 
           {/* Add Button */}
