@@ -1107,12 +1107,11 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const removeDailyTask = (taskId: string) => {
-    if (!state) return;
-
-    const updatedTasks = { ...(state.dailyTasks || {}) };
-    delete updatedTasks[taskId];
-
-    saveState({ ...state, dailyTasks: updatedTasks });
+    saveState((prev) => {
+      const updatedTasks = { ...(prev.dailyTasks || {}) };
+      delete updatedTasks[taskId];
+      return { ...prev, dailyTasks: updatedTasks };
+    });
   };
 
   const getDailyTasks = (date: string): DailyTask[] => {
