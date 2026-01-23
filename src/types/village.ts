@@ -291,6 +291,7 @@ export interface DailyTask {
   status: DailyTaskStatus;
   assignedTo?: string;
   maintenanceImage?: string; // Base64 image for maintenance tasks
+  facilityType?: 'bathroom' | 'shower'; // For VIP tent facility maintenance
   createdAt: string;
   completedAt?: string;
 }

@@ -38,15 +38,15 @@ interface TentDetailModalProps {
 }
 
 const genderOptions: { value: TentGender; label: string; icon: string }[] = [
-  { value: 'MIXED', label: 'Mixto', icon: '👥' },
-  { value: 'MALE', label: 'Hombres', icon: '♂️' },
-  { value: 'FEMALE', label: 'Mujeres', icon: '♀️' },
+  { value: 'MIXED', label: 'מעורב', icon: '👥' },
+  { value: 'MALE', label: 'גברים', icon: '♂️' },
+  { value: 'FEMALE', label: 'נשים', icon: '♀️' },
 ];
 
 const cleaningStatusOptions: { value: CleaningStatus; label: string; className: string }[] = [
-  { value: 'CLEAN', label: 'Limpio', className: 'bg-green-500 text-white' },
-  { value: 'NEEDS_CLEANING', label: 'Necesita Limpieza', className: 'bg-yellow-500 text-white' },
-  { value: 'CLEANING_IN_PROGRESS', label: 'En Progreso', className: 'bg-blue-500 text-white' },
+  { value: 'CLEAN', label: 'נקי', className: 'bg-green-500 text-white' },
+  { value: 'NEEDS_CLEANING', label: 'דורש ניקיון', className: 'bg-yellow-500 text-white' },
+  { value: 'CLEANING_IN_PROGRESS', label: 'בתהליך...', className: 'bg-blue-500 text-white' },
 ];
 
 export const TentDetailModal: React.FC<TentDetailModalProps> = ({
@@ -148,17 +148,17 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
 
   const handleGenderChange = (gender: TentGender) => {
     updateTentGender(tent.id, gender);
-    toast.success(`Carpa marcada como: ${genderOptions.find(g => g.value === gender)?.label}`);
+    toast.success(`האוהל סומן כ: ${genderOptions.find(g => g.value === gender)?.label}`);
   };
 
   const handleBathroomToggle = (checked: boolean) => {
     updateTentPrivateBathroom(tent.id, checked);
-    toast.success(checked ? 'Baño privado agregado' : 'Baño privado removido');
+    toast.success(checked ? 'שירותים פרטיים נוספו' : 'שירותים פרטיים הוסרו');
   };
 
   const handleShowerToggle = (checked: boolean) => {
     updateTentPrivateShower(tent.id, checked);
-    toast.success(checked ? 'Ducha privada agregada' : 'Ducha privada removida');
+    toast.success(checked ? 'מקלחת פרטית נוספה' : 'מקלחת פרטית הוסרה');
   };
 
   const handleGuestNameChange = (bedId: string, name: string) => {
@@ -174,12 +174,12 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     Object.entries(localGuestNames).forEach(([bedId, name]) => {
       updateBedGuestName(bedId, name);
     });
-    toast.success('Nombres guardados');
+    toast.success('שמות נשמרו');
   };
 
   const handleCleaningStatusChange = (status: CleaningStatus) => {
     updateTentCleaningStatus(tent.id, status, cleaningWorker || undefined);
-    toast.success(`Estado de limpieza: ${cleaningStatusOptions.find(s => s.value === status)?.label}`);
+    toast.success(`מצב ניקיון: ${cleaningStatusOptions.find(s => s.value === status)?.label}`);
   };
 
   const handleFileSelect = async (
@@ -206,42 +206,44 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     if (!tent) return;
     reportTentFacilityIssue(tent.id, 'bathroom', bathroomStatus, bathroomNotes, bathroomImage || undefined);
     
-    // Add maintenance task
+    // Add maintenance task with facility marker for reliable detection
     const today = new Date().toISOString().split('T')[0];
     addDailyTask({
       type: 'MAINTENANCE',
       status: 'PENDING',
       date: today,
-      title: `🚽 Baño VIP - ${tent.code}`,
-      description: `${bathroomStatus === 'BROKEN' ? 'ROTO' : 'MANTENIMIENTO'}: ${bathroomNotes || 'Sin descripción'}`,
+      title: `🚽 שירותים VIP - ${tent.code}`,
+      description: `${bathroomStatus === 'BROKEN' ? 'תקול' : 'תחזוקה'}: ${bathroomNotes || 'ללא תיאור'}`,
       entityType: 'TENT',
       entityId: tent.id,
       maintenanceImage: bathroomImage || undefined,
+      facilityType: 'bathroom',
     });
     
     setShowBathroomIssue(false);
-    toast.success('Problema de baño reportado y enviado a mantenimiento');
+    toast.success('הבעיה דווחה ונשלחה לתחזוקה');
   };
 
   const handleSubmitShowerIssue = () => {
     if (!tent) return;
     reportTentFacilityIssue(tent.id, 'shower', showerStatus, showerNotes, showerImage || undefined);
     
-    // Add maintenance task
+    // Add maintenance task with facility marker for reliable detection
     const today = new Date().toISOString().split('T')[0];
     addDailyTask({
       type: 'MAINTENANCE',
       status: 'PENDING',
       date: today,
-      title: `🚿 Ducha VIP - ${tent.code}`,
-      description: `${showerStatus === 'BROKEN' ? 'ROTO' : 'MANTENIMIENTO'}: ${showerNotes || 'Sin descripción'}`,
+      title: `🚿 מקלחת VIP - ${tent.code}`,
+      description: `${showerStatus === 'BROKEN' ? 'תקול' : 'תחזוקה'}: ${showerNotes || 'ללא תיאור'}`,
       entityType: 'TENT',
       entityId: tent.id,
       maintenanceImage: showerImage || undefined,
+      facilityType: 'shower',
     });
     
     setShowShowerIssue(false);
-    toast.success('Problema de ducha reportado y enviado a mantenimiento');
+    toast.success('הבעיה דווחה ונשלחה לתחזוקה');
   };
 
   const handleResolveBathroom = () => {
@@ -249,7 +251,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     resolveTentFacilityIssue(tent.id, 'bathroom');
     setBathroomNotes('');
     setBathroomImage(null);
-    toast.success('Baño marcado como funcionando');
+    toast.success('השירותים סומנו כתקינים');
   };
 
   const handleResolveShower = () => {
@@ -257,7 +259,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     resolveTentFacilityIssue(tent.id, 'shower');
     setShowerNotes('');
     setShowerImage(null);
-    toast.success('Ducha marcada como funcionando');
+    toast.success('המקלחת סומנה כתקינה');
   };
 
   const handleSaveAndClose = () => {
@@ -280,7 +282,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
       }, 50);
     }
     
-    toast.success('Cambios guardados');
+    toast.success('השינויים נשמרו');
     onOpenChange(false);
   };
 
@@ -308,13 +310,13 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
           {/* Stats */}
           <div className="flex gap-2 flex-wrap">
             <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
-              {stats.free} Libre
+              {stats.free} פנוי
             </span>
             <span className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
-              {stats.reserved} Reservada
+              {stats.reserved} שמור
             </span>
             <span className="px-3 py-1.5 bg-orange-100 text-orange-800 rounded-lg text-sm font-medium">
-              {stats.occupied} Ocupada
+              {stats.occupied} תפוס
             </span>
           </div>
 
@@ -322,7 +324,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
           <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
             <h3 className="font-semibold flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              Estado de Limpieza
+              מצב ניקיון
             </h3>
             
             <div className="flex gap-2 flex-wrap">
@@ -342,19 +344,19 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Trabajador Asignado
+                עובד מוקצה
               </Label>
               <Input
                 value={cleaningWorker}
                 onChange={(e) => setCleaningWorker(e.target.value)}
                 onBlur={() => updateTentCleaningStatus(tent.id, tent.cleaningStatus, cleaningWorker || undefined)}
-                placeholder="Nombre del trabajador..."
+                placeholder="שם העובד..."
               />
             </div>
             
             {tent.cleaningAssignedTo && (
               <div className="text-sm text-muted-foreground">
-                Asignado a: <span className="font-semibold">{tent.cleaningAssignedTo}</span>
+                מוקצה ל: <span className="font-semibold">{tent.cleaningAssignedTo}</span>
               </div>
             )}
           </div>
@@ -363,15 +365,15 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
           <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
             <h3 className="font-semibold flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Información del Grupo
+              פרטי הקבוצה
             </h3>
             
             <div className="space-y-2">
-              <Label>Nombre del Grupo</Label>
+              <Label>שם הקבוצה</Label>
               <Input
                 value={tent.groupName || ''}
                 onChange={(e) => updateTentGroupName(tent.id, e.target.value)}
-                placeholder="Nombre del grupo..."
+                placeholder="שם הקבוצה..."
               />
             </div>
 
@@ -380,10 +382,10 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
               <Label className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
-                  Cantidad de Personas
+                  מספר אנשים
                 </span>
                 <span className="text-sm text-muted-foreground font-normal">
-                  Máximo: {tent.beds.length} camas
+                  מקסימום: {tent.beds.length} מיטות
                 </span>
               </Label>
               <div className="flex items-center gap-3">
@@ -411,7 +413,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
               {tent.peopleCount !== undefined && tent.peopleCount > tent.beds.length && (
                 <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
-                  La cantidad excede el número de camas
+                  הכמות חורגת ממספר המיטות
                 </p>
               )}
             </div>
@@ -444,7 +446,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
 
           {/* Gender Designation */}
           <div className="space-y-3 p-4 bg-muted/50 rounded-xl">
-            <h3 className="font-semibold">Designación de Género</h3>
+            <h3 className="font-semibold">הקצאת מגדר</h3>
             <div className="flex gap-2">
               {genderOptions.map(option => (
                 <Button
@@ -454,7 +456,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                   onClick={() => handleGenderChange(option.value)}
                   className="flex-1"
                 >
-                  <span className="mr-2">{option.icon}</span>
+                  <span className="ml-2">{option.icon}</span>
                   {option.label}
                 </Button>
               ))}
@@ -466,7 +468,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             <div className="space-y-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <h3 className="font-semibold flex items-center gap-2 text-amber-800">
                 <Sparkles className="w-4 h-4" />
-                Opciones VIP
+                אפשרויות VIP
               </h3>
               
               {/* Bathroom Section */}
@@ -475,8 +477,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                   <div className="flex items-center gap-3">
                     <Bath className="w-5 h-5 text-amber-700" />
                     <div>
-                      <Label className="text-base">Baño Privado</Label>
-                      <p className="text-sm text-muted-foreground">Agregar baño a esta carpa</p>
+                      <Label className="text-base">שירותים פרטיים</Label>
+                      <p className="text-sm text-muted-foreground">הוסף שירותים לאוהל זה</p>
                     </div>
                   </div>
                   <Switch
@@ -495,11 +497,11 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                             'px-2 py-1 rounded-full text-xs font-semibold',
                             tent.bathroomWorkingStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
                           )}>
-                            {tent.bathroomWorkingStatus === 'BROKEN' ? '⚠️ Roto' : '🔧 Mantenimiento'}
+                            {tent.bathroomWorkingStatus === 'BROKEN' ? '⚠️ תקול' : '🔧 תחזוקה'}
                           </span>
                           <Button size="sm" variant="outline" onClick={handleResolveBathroom}>
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Marcar Funcionando
+                            <CheckCircle className="w-4 h-4 ml-1" />
+                            סמן כתקין
                           </Button>
                         </div>
                         {tent.bathroomMaintenanceImage && (
@@ -523,8 +525,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                               bathroomStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-muted'
                             )}
                           >
-                            <AlertTriangle className="w-4 h-4 inline mr-1" />
-                            Roto
+                            <AlertTriangle className="w-4 h-4 inline ml-1" />
+                            תקול
                           </button>
                           <button
                             onClick={() => setBathroomStatus('MAINTENANCE')}
@@ -533,8 +535,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                               bathroomStatus === 'MAINTENANCE' ? 'bg-yellow-500 text-white' : 'bg-muted'
                             )}
                           >
-                            <Wrench className="w-4 h-4 inline mr-1" />
-                            Mantenimiento
+                            <Wrench className="w-4 h-4 inline ml-1" />
+                            תחזוקה
                           </button>
                         </div>
                         
@@ -544,7 +546,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                             <Button 
                               size="sm" 
                               variant="destructive" 
-                              className="absolute top-1 right-1"
+                              className="absolute top-1 left-1"
                               onClick={() => setBathroomImage(null)}
                             >
                               <X className="w-3 h-3" />
@@ -556,7 +558,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                             className="w-full h-20 border-2 border-dashed border-amber-300 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-100"
                           >
                             <Camera className="w-5 h-5 text-amber-600" />
-                            <span className="text-sm text-amber-600">Agregar Foto</span>
+                            <span className="text-sm text-amber-600">הוסף תמונה</span>
                           </button>
                         )}
                         <input
@@ -571,16 +573,16 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                         <Textarea
                           value={bathroomNotes}
                           onChange={(e) => setBathroomNotes(e.target.value)}
-                          placeholder="Descripción del problema..."
+                          placeholder="תיאור הבעיה..."
                           rows={2}
                         />
                         
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => setShowBathroomIssue(false)} className="flex-1">
-                            Cancelar
+                            ביטול
                           </Button>
                           <Button size="sm" onClick={handleSubmitBathroomIssue} className="flex-1">
-                            Reportar
+                            דווח
                           </Button>
                         </div>
                       </div>
@@ -591,8 +593,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                         className="w-full text-amber-700 border-amber-300"
                         onClick={() => setShowBathroomIssue(true)}
                       >
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Reportar Problema
+                        <AlertTriangle className="w-4 h-4 ml-2" />
+                        דווח על בעיה
                       </Button>
                     )}
                   </div>
@@ -605,8 +607,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                   <div className="flex items-center gap-3">
                     <ShowerHead className="w-5 h-5 text-amber-700" />
                     <div>
-                      <Label className="text-base">Ducha Privada</Label>
-                      <p className="text-sm text-muted-foreground">Agregar ducha a esta carpa</p>
+                      <Label className="text-base">מקלחת פרטית</Label>
+                      <p className="text-sm text-muted-foreground">הוסף מקלחת לאוהל זה</p>
                     </div>
                   </div>
                   <Switch
@@ -625,11 +627,11 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                             'px-2 py-1 rounded-full text-xs font-semibold',
                             tent.showerWorkingStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
                           )}>
-                            {tent.showerWorkingStatus === 'BROKEN' ? '⚠️ Roto' : '🔧 Mantenimiento'}
+                            {tent.showerWorkingStatus === 'BROKEN' ? '⚠️ תקול' : '🔧 תחזוקה'}
                           </span>
                           <Button size="sm" variant="outline" onClick={handleResolveShower}>
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Marcar Funcionando
+                            <CheckCircle className="w-4 h-4 ml-1" />
+                            סמן כתקין
                           </Button>
                         </div>
                         {tent.showerMaintenanceImage && (
@@ -653,8 +655,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                               showerStatus === 'BROKEN' ? 'bg-red-500 text-white' : 'bg-muted'
                             )}
                           >
-                            <AlertTriangle className="w-4 h-4 inline mr-1" />
-                            Roto
+                            <AlertTriangle className="w-4 h-4 inline ml-1" />
+                            תקול
                           </button>
                           <button
                             onClick={() => setShowerStatus('MAINTENANCE')}
@@ -663,8 +665,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                               showerStatus === 'MAINTENANCE' ? 'bg-yellow-500 text-white' : 'bg-muted'
                             )}
                           >
-                            <Wrench className="w-4 h-4 inline mr-1" />
-                            Mantenimiento
+                            <Wrench className="w-4 h-4 inline ml-1" />
+                            תחזוקה
                           </button>
                         </div>
                         
@@ -674,7 +676,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                             <Button 
                               size="sm" 
                               variant="destructive" 
-                              className="absolute top-1 right-1"
+                              className="absolute top-1 left-1"
                               onClick={() => setShowerImage(null)}
                             >
                               <X className="w-3 h-3" />
@@ -686,7 +688,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                             className="w-full h-20 border-2 border-dashed border-amber-300 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-100"
                           >
                             <Camera className="w-5 h-5 text-amber-600" />
-                            <span className="text-sm text-amber-600">Agregar Foto</span>
+                            <span className="text-sm text-amber-600">הוסף תמונה</span>
                           </button>
                         )}
                         <input
@@ -701,16 +703,16 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                         <Textarea
                           value={showerNotes}
                           onChange={(e) => setShowerNotes(e.target.value)}
-                          placeholder="Descripción del problema..."
+                          placeholder="תיאור הבעיה..."
                           rows={2}
                         />
                         
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => setShowShowerIssue(false)} className="flex-1">
-                            Cancelar
+                            ביטול
                           </Button>
                           <Button size="sm" onClick={handleSubmitShowerIssue} className="flex-1">
-                            Reportar
+                            דווח
                           </Button>
                         </div>
                       </div>
@@ -721,8 +723,8 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                         className="w-full text-amber-700 border-amber-300"
                         onClick={() => setShowShowerIssue(true)}
                       >
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Reportar Problema
+                        <AlertTriangle className="w-4 h-4 ml-2" />
+                        דווח על בעיה
                       </Button>
                     )}
                   </div>
@@ -736,40 +738,40 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="font-semibold flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Nombres de Huéspedes
+                שמות האורחים
               </h3>
               <Button size="sm" variant="outline" onClick={handleSaveAllNames}>
-                <Save className="w-4 h-4 mr-1" />
-                Guardar
+                <Save className="w-4 h-4 ml-1" />
+                שמור
               </Button>
             </div>
 
             {/* Bunk Beds */}
             {bunkBeds.length > 0 && (
               <div className="space-y-3">
-                <Label className="text-sm text-muted-foreground">Literas</Label>
+                <Label className="text-sm text-muted-foreground">מיטות קומתיים</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {bunkBeds.map((bunk, index) => (
                     <div key={`bunk-${index}`} className="p-3 bg-background rounded-lg border">
-                      <div className="text-sm font-medium mb-2">Litera {bunk.top.bunkNumber}</div>
+                      <div className="text-sm font-medium mb-2">מיטת קומתיים {bunk.top.bunkNumber}</div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-16">Arriba:</span>
+                          <span className="text-xs text-muted-foreground w-16">למעלה:</span>
                           <Input
                             value={localGuestNames[bunk.top.id] || ''}
                             onChange={(e) => handleGuestNameChange(bunk.top.id, e.target.value)}
                             onBlur={() => handleGuestNameBlur(bunk.top.id)}
-                            placeholder="Nombre..."
+                            placeholder="שם..."
                             className="h-8 text-sm"
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-16">Abajo:</span>
+                          <span className="text-xs text-muted-foreground w-16">למטה:</span>
                           <Input
                             value={localGuestNames[bunk.bottom.id] || ''}
                             onChange={(e) => handleGuestNameChange(bunk.bottom.id, e.target.value)}
                             onBlur={() => handleGuestNameBlur(bunk.bottom.id)}
-                            placeholder="Nombre..."
+                            placeholder="שם..."
                             className="h-8 text-sm"
                           />
                         </div>
@@ -783,7 +785,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             {/* Single Beds */}
             {singleBeds.length > 0 && (
               <div className="space-y-3">
-                <Label className="text-sm text-muted-foreground">Camas Individuales</Label>
+                <Label className="text-sm text-muted-foreground">מיטות יחיד</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {singleBeds.map((bed) => (
                     <div key={bed.id} className="flex items-center gap-2">
@@ -792,7 +794,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                         value={localGuestNames[bed.id] || ''}
                         onChange={(e) => handleGuestNameChange(bed.id, e.target.value)}
                         onBlur={() => handleGuestNameBlur(bed.id)}
-                        placeholder="Nombre..."
+                        placeholder="שם..."
                         className="h-8 text-sm"
                       />
                     </div>
@@ -806,12 +808,12 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Notas
+              הערות
             </Label>
             <Textarea
               value={tent.notes || ''}
               onChange={(e) => updateTentNotes(tent.id, e.target.value)}
-              placeholder="Notas sobre esta carpa..."
+              placeholder="הערות על אוהל זה..."
               rows={3}
             />
           </div>
@@ -820,7 +822,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
         {/* Close Button */}
         <div className="flex justify-end pt-4 border-t">
           <Button onClick={handleSaveAndClose}>
-            Guardar y Cerrar
+            שמור וצא
           </Button>
         </div>
       </DialogContent>
