@@ -692,7 +692,7 @@ const {
                               className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
                             >
                               <CheckCircle className="w-5 h-5" />
-                              נוקה
+                              נקי
                             </button>
                           </div>
                         );
