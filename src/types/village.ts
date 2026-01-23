@@ -186,7 +186,7 @@ export interface VillageState {
 // CALENDAR EVENT TYPES (for Master Calendar)
 // ============================================================
 
-export type CalendarEventType = 'NEIGHBORHOOD' | 'FACILITY' | 'TENT_CHECKIN' | 'TENT_CHECKOUT' | 'ACTIVITY';
+export type CalendarEventType = 'NEIGHBORHOOD' | 'FACILITY' | 'TENT_CHECKIN' | 'TENT_CHECKOUT' | 'ACTIVITY' | 'KITCHEN';
 
 export interface CalendarEvent {
   id: string;

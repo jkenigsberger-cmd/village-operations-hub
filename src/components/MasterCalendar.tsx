@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { CalendarEvent, CalendarEventType } from '@/types/village';
+import { useKitchenData } from '@/hooks/useKitchenData';
+import { kitchenSlotsToCalendarEvents, KITCHEN_EVENT_COLOR } from '@/lib/kitchenCalendarEvents';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
 import { CalendarMonthView } from './CalendarMonthView';
+import { KitchenEventDetailModal } from './KitchenEventDetailModal';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -17,7 +20,8 @@ import {
   Tent,
   Flame,
   LogIn,
-  LogOut
+  LogOut,
+  ChefHat
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,6 +36,7 @@ const EVENT_COLORS: Record<CalendarEventType, string> = {
   ACTIVITY: 'hsl(30, 90%, 50%)',      // Orange (same as facility)
   TENT_CHECKIN: 'hsl(142, 70%, 45%)', // Green
   TENT_CHECKOUT: 'hsl(210, 80%, 50%)', // Blue
+  KITCHEN: KITCHEN_EVENT_COLOR,        // Warm amber
 };
 
 interface FilterState {
@@ -39,18 +44,22 @@ interface FilterState {
   showFacilities: boolean;
   showCheckIns: boolean;
   showCheckOuts: boolean;
+  showKitchen: boolean;
 }
 
 export const MasterCalendar: React.FC = () => {
   const { state, getFacilityReservations } = useVillage();
+  const { state: kitchenState } = useKitchenData();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedKitchenEvent, setSelectedKitchenEvent] = useState<CalendarEvent | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     showNeighborhoods: true,
     showFacilities: true,
     showCheckIns: true,
     showCheckOuts: true,
+    showKitchen: true,
   });
 
   // Generate all calendar events from different sources
@@ -156,8 +165,12 @@ export const MasterCalendar: React.FC = () => {
       }
     });
 
+    // 5. Kitchen time slots
+    const kitchenEvents = kitchenSlotsToCalendarEvents(kitchenState.timeSlots);
+    events.push(...kitchenEvents);
+
     return events;
-  }, [state]);
+  }, [state, kitchenState.timeSlots]);
 
   // Filter events based on active filters
   const filteredEvents = useMemo(() => {
@@ -166,9 +179,17 @@ export const MasterCalendar: React.FC = () => {
       if ((event.type === 'FACILITY' || event.type === 'ACTIVITY') && !filters.showFacilities) return false;
       if (event.type === 'TENT_CHECKIN' && !filters.showCheckIns) return false;
       if (event.type === 'TENT_CHECKOUT' && !filters.showCheckOuts) return false;
+      if (event.type === 'KITCHEN' && !filters.showKitchen) return false;
       return true;
     });
   }, [allEvents, filters]);
+
+  // Handle event click for kitchen events
+  const handleEventClick = (event: CalendarEvent) => {
+    if (event.type === 'KITCHEN') {
+      setSelectedKitchenEvent(event);
+    }
+  };
 
   // Navigation handlers
   const handlePrevious = () => {
@@ -302,7 +323,7 @@ export const MasterCalendar: React.FC = () => {
             style={{ backgroundColor: filters.showNeighborhoods ? EVENT_COLORS.NEIGHBORHOOD : undefined }}
           >
             <Tent className="w-4 h-4" />
-            Vecindarios
+            לינה
           </Button>
           <Button
             variant={filters.showFacilities ? "default" : "outline"}
@@ -312,7 +333,7 @@ export const MasterCalendar: React.FC = () => {
             style={{ backgroundColor: filters.showFacilities ? EVENT_COLORS.FACILITY : undefined }}
           >
             <Flame className="w-4 h-4" />
-            Espacios
+            מרחבים
           </Button>
           <Button
             variant={filters.showCheckIns ? "default" : "outline"}
@@ -322,7 +343,7 @@ export const MasterCalendar: React.FC = () => {
             style={{ backgroundColor: filters.showCheckIns ? EVENT_COLORS.TENT_CHECKIN : undefined }}
           >
             <LogIn className="w-4 h-4" />
-            Check-ins
+            Check-in
           </Button>
           <Button
             variant={filters.showCheckOuts ? "default" : "outline"}
@@ -332,7 +353,17 @@ export const MasterCalendar: React.FC = () => {
             style={{ backgroundColor: filters.showCheckOuts ? EVENT_COLORS.TENT_CHECKOUT : undefined }}
           >
             <LogOut className="w-4 h-4" />
-            Check-outs
+            Check-out
+          </Button>
+          <Button
+            variant={filters.showKitchen ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleFilter('showKitchen')}
+            className="gap-1"
+            style={{ backgroundColor: filters.showKitchen ? EVENT_COLORS.KITCHEN : undefined }}
+          >
+            <ChefHat className="w-4 h-4" />
+            מטבח
           </Button>
         </div>
       </div>
@@ -341,19 +372,23 @@ export const MasterCalendar: React.FC = () => {
       <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.NEIGHBORHOOD }} />
-          <span>Reservas de Vecindario</span>
+          <span>🏕️ לינה</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.FACILITY }} />
-          <span>Espacios Comunes</span>
+          <span>🧱 מרחבים משותפים</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.TENT_CHECKIN }} />
-          <span>Check-ins</span>
+          <span>⏳ Check-in</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.TENT_CHECKOUT }} />
-          <span>Check-outs</span>
+          <span>⏳ Check-out</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.KITCHEN }} />
+          <span>🍽️ מטבח</span>
         </div>
       </div>
 
@@ -362,7 +397,8 @@ export const MasterCalendar: React.FC = () => {
         {viewMode === 'day' && (
           <CalendarDayView 
             selectedDate={selectedDate} 
-            events={filteredEvents} 
+            events={filteredEvents}
+            onEventClick={handleEventClick}
           />
         )}
         {viewMode === 'week' && (
@@ -386,6 +422,13 @@ export const MasterCalendar: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Kitchen Event Detail Modal */}
+      <KitchenEventDetailModal
+        event={selectedKitchenEvent}
+        isOpen={!!selectedKitchenEvent}
+        onClose={() => setSelectedKitchenEvent(null)}
+      />
     </div>
   );
 };

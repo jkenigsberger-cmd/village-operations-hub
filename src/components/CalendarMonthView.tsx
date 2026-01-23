@@ -29,12 +29,13 @@ interface CalendarMonthViewProps {
 }
 
 // Event type dot colors
-const DOT_COLORS = {
+const DOT_COLORS: Record<string, string> = {
   NEIGHBORHOOD: 'bg-purple-500',
   FACILITY: 'bg-orange-500',
   ACTIVITY: 'bg-orange-500',
   TENT_CHECKIN: 'bg-green-500',
   TENT_CHECKOUT: 'bg-blue-500',
+  KITCHEN: 'bg-amber-500',
 };
 
 export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({ 
@@ -119,6 +120,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
           const checkInCount = dayEvents.filter(e => e.type === 'TENT_CHECKIN').length;
           const checkOutCount = dayEvents.filter(e => e.type === 'TENT_CHECKOUT').length;
           const facilityCount = dayEvents.filter(e => e.type === 'FACILITY' || e.type === 'ACTIVITY').length;
+          const kitchenCount = dayEvents.filter(e => e.type === 'KITCHEN').length;
 
           return (
             <div
@@ -175,7 +177,17 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   <div className="flex items-center gap-1 text-xs">
                     <div className={cn("w-2 h-2 rounded-full", DOT_COLORS.FACILITY)} />
                     <span className="hidden sm:inline truncate text-muted-foreground">
-                      {facilityCount} reserva{facilityCount > 1 ? 's' : ''}
+                      {facilityCount} מרחב{facilityCount > 1 ? 'ים' : ''}
+                    </span>
+                  </div>
+                )}
+
+                {/* Kitchen meal indicator */}
+                {kitchenCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs">
+                    <div className={cn("w-2 h-2 rounded-full", DOT_COLORS.KITCHEN)} />
+                    <span className="hidden sm:inline truncate text-muted-foreground">
+                      🍽️ {kitchenCount} ארוח{kitchenCount > 1 ? 'ות' : 'ה'}
                     </span>
                   </div>
                 )}
