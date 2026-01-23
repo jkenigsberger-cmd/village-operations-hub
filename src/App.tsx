@@ -11,6 +11,7 @@ import TentDetail from "./pages/TentDetail";
 import Facilities from "./pages/Facilities";
 import Activities from "./pages/Activities";
 import Settings from "./pages/Settings";
+import Kitchen from "./pages/Kitchen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/facilities" element={<Facilities />} />
             <Route path="/facilities/:areaId" element={<Facilities />} />
             <Route path="/activities" element={<Activities />} />
+            <Route path="/kitchen" element={<Kitchen />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
