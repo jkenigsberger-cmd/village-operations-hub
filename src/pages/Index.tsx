@@ -30,7 +30,8 @@ import {
   ArrowLeft,
   CalendarCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChefHat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -338,6 +339,22 @@ const {
                         {totalMaintenanceCount + totalHousekeepingItems}
                       </span>
                     )}
+                  </div>
+                </div>
+
+                {/* Kitchen Tile */}
+                <div 
+                  onClick={() => navigate('/kitchen')}
+                  className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 border-amber-500"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-amber-500/20 text-amber-600">
+                      <ChefHat className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">🍽️ מטבח</h3>
+                      <p className="text-sm text-muted-foreground">תכנון ארוחות</p>
+                    </div>
                   </div>
                 </div>
               </div>
