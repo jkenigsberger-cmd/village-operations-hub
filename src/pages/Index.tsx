@@ -673,11 +673,28 @@ const {
                         const summary = getTentSummary(tent.id);
                         if (!summary) return null;
                         return (
-                          <TentCard
-                            key={tent.id}
-                            summary={summary}
-                            to={`/tent/${tent.id}`}
-                          />
+                          <div key={tent.id} className="tile border-yellow-500 bg-yellow-50/50">
+                            <div className="flex items-center gap-3 mb-4">
+                              <Tent className="w-6 h-6 text-yellow-600" />
+                              <div className="flex-1">
+                                <h4 className="font-bold text-lg">{tent.neighborhoodId} – {tent.code}</h4>
+                                <span className="text-sm text-yellow-600">
+                                  {HE.status.needsCleaning}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <button
+                              onClick={() => {
+                                updateTentCleaningStatus(tent.id, 'CLEAN');
+                                toast.success(HE.messages.taskCompleted);
+                              }}
+                              className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                              נוקה
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
