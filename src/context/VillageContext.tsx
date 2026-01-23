@@ -62,7 +62,7 @@ interface VillageContextType {
   // Activity operations
   addActivityReservation: (reservation: Omit<ActivityReservation, 'id' | 'createdAt'>) => boolean;
   removeActivityReservation: (reservationId: string) => void;
-  updateActivitySpaceStatus: (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus) => void;
+  updateActivitySpaceStatus: (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus, cleaningNotes?: string) => void;
   updateActivitySpaceNotes: (spaceId: string, notes: string) => void;
   reportActivitySpaceIssue: (spaceId: string, status: WorkingStatus, notes: string, image?: string) => void;
   resolveActivitySpaceIssue: (spaceId: string) => void;
@@ -631,7 +631,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     saveState({ ...state, activityReservations: updatedReservations });
   };
 
-  const updateActivitySpaceStatus = (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus) => {
+  const updateActivitySpaceStatus = (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus, cleaningNotes?: string) => {
     if (!state) return;
 
     const space = state.activitySpaces[spaceId];
@@ -645,6 +645,8 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
           ...space,
           ...(cleaningStatus !== undefined && { cleaningStatus }),
           ...(workingStatus !== undefined && { workingStatus }),
+          // Clear cleaning notes when marking as clean, otherwise set if provided
+          cleaningNotes: cleaningStatus === 'CLEAN' ? undefined : (cleaningNotes !== undefined ? cleaningNotes : space.cleaningNotes),
         },
       },
     });
