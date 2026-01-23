@@ -60,6 +60,7 @@ const {
     reportFacilityIssue,
     resolveFacilityIssue,
     resolveActivitySpaceIssue,
+    updateActivitySpaceStatus,
     getDailyTasks,
     removeDailyTask,
     resolveTentFacilityIssue
@@ -133,14 +134,18 @@ const {
   // Combined maintenance count
   const totalMaintenanceCount = maintenanceItems.length + activitySpaceMaintenanceItems.length + vipMaintenanceTasks.length;
 
-  // Housekeeping items - tents and facilities that need cleaning
+  // Housekeeping items - tents, facilities, and activity spaces that need cleaning
   const tentsNeedingCleaning = Object.values(state.tents).filter(
     t => t.cleaningStatus === 'NEEDS_CLEANING'
   );
   const facilitiesNeedingCleaning = allFacilities.filter(
     f => f.cleaningStatus === 'NEEDS_CLEANING'
   );
-  const totalHousekeepingItems = tentsNeedingCleaning.length + facilitiesNeedingCleaning.length;
+  // Activity spaces (common facilities) needing cleaning
+  const activitySpacesNeedingCleaning = Object.values(state.activitySpaces).filter(
+    s => s.cleaningStatus === 'NEEDS_CLEANING' || s.cleaningStatus === 'CLEANING_IN_PROGRESS'
+  );
+  const totalHousekeepingItems = tentsNeedingCleaning.length + facilitiesNeedingCleaning.length + activitySpacesNeedingCleaning.length;
 
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: HE.nav.overview, icon: Home },
@@ -692,6 +697,59 @@ const {
                           facility={facility}
                           onClick={() => setSelectedFacility(facility)}
                         />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Activity Spaces (Common Facilities) */}
+                {activitySpacesNeedingCleaning.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">
+                      {HE.nav.facilities} ({activitySpacesNeedingCleaning.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {activitySpacesNeedingCleaning.map((space) => (
+                        <div key={space.id} className="tile border-yellow-500 bg-yellow-50/50">
+                          <div className="flex items-center gap-3 mb-4">
+                            <Sparkles className="w-6 h-6 text-yellow-600" />
+                            <div className="flex-1">
+                              <h4 className="font-bold text-lg">{space.name}</h4>
+                              <span className={`text-sm ${space.cleaningStatus === 'NEEDS_CLEANING' ? 'text-yellow-600' : 'text-blue-600'}`}>
+                                {space.cleaningStatus === 'NEEDS_CLEANING' ? HE.status.needsCleaning : HE.status.inProgress}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {space.cleaningNotes && (
+                            <p className="text-muted-foreground mb-4 text-sm">📝 {space.cleaningNotes}</p>
+                          )}
+                          
+                          <div className="flex gap-2">
+                            {space.cleaningStatus === 'NEEDS_CLEANING' && (
+                              <button
+                                onClick={() => {
+                                  updateActivitySpaceStatus(space.id, 'CLEANING_IN_PROGRESS', undefined);
+                                  toast.success('התחלת ניקיון');
+                                }}
+                                className="flex-1 px-4 py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                              >
+                                <Sparkles className="w-5 h-5" />
+                                התחל ניקיון
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                updateActivitySpaceStatus(space.id, 'CLEAN', undefined);
+                                toast.success(HE.messages.taskCompleted);
+                              }}
+                              className="flex-1 px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                              {HE.messages.taskCompleted}
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>

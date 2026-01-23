@@ -69,6 +69,7 @@ const Activities = () => {
   const [selectedReservation, setSelectedReservation] = useState<ActivityReservation | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
+  const [cleaningNote, setCleaningNote] = useState('');
 
   // Get active groups: groups with reservations that include the selected date
   const activeGroups = useMemo(() => {
@@ -210,7 +211,12 @@ const Activities = () => {
 
   const handleStatusChange = (spaceId: string, type: 'cleaning' | 'working', value: string) => {
     if (type === 'cleaning') {
-      updateActivitySpaceStatus(spaceId, value as CleaningStatus, undefined);
+      // Pass cleaning note only when marking as needs cleaning
+      const noteToSave = value === 'NEEDS_CLEANING' ? cleaningNote : undefined;
+      updateActivitySpaceStatus(spaceId, value as CleaningStatus, undefined, noteToSave);
+      if (value === 'CLEAN') {
+        setCleaningNote(''); // Reset the input
+      }
     } else {
       // For BROKEN or MAINTENANCE, open the report modal
       if (value === 'BROKEN' || value === 'MAINTENANCE') {
@@ -449,6 +455,22 @@ const Activities = () => {
                           {status.label}
                         </button>
                       ))}
+                    </div>
+                    
+                    {/* Cleaning Notes Input */}
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={cleaningNote}
+                        onChange={(e) => setCleaningNote(e.target.value)}
+                        placeholder="הערת ניקיון (אופציונלי)..."
+                        className="w-full px-4 py-2 rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary text-sm"
+                      />
+                      {currentSpace.cleaningNotes && currentSpace.cleaningStatus !== 'CLEAN' && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          📝 הערה קיימת: {currentSpace.cleaningNotes}
+                        </p>
+                      )}
                     </div>
                   </div>
 

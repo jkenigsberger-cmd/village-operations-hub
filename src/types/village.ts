@@ -131,6 +131,7 @@ export interface ActivitySpace {
   name: string;
   description?: string;
   cleaningStatus?: CleaningStatus;
+  cleaningNotes?: string; // Notes specifically for cleaning tasks
   workingStatus?: WorkingStatus;
   notes?: string;
   maintenanceImage?: string;
