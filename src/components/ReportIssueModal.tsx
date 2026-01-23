@@ -90,7 +90,7 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <AlertTriangle className="w-6 h-6 text-destructive" />
-            Report Issue - {facility.label}
+            דווח על בעיה - {facility.label}
           </DialogTitle>
         </DialogHeader>
 
@@ -98,7 +98,7 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
           {/* Status Selection */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">
-              Issue Type
+              סוג הבעיה
             </label>
             <div className="flex gap-2">
               <button
@@ -111,7 +111,7 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
                 )}
               >
                 <AlertTriangle className="w-4 h-4" />
-                Broken
+                תקול
               </button>
               <button
                 onClick={() => setStatus('MAINTENANCE')}
@@ -123,7 +123,7 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
                 )}
               >
                 <Wrench className="w-4 h-4" />
-                Maintenance
+                תחזוקה
               </button>
             </div>
           </div>
@@ -131,7 +131,7 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
           {/* Photo Section */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">
-              Photo (Optional)
+              תמונה (אופציונלי)
             </label>
             {previewImage ? (
               <div className="relative">
@@ -144,10 +144,10 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
                   variant="destructive"
                   size="sm"
                   onClick={handleRemoveImage}
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 left-2"
                 >
-                  <X className="w-4 h-4 mr-1" />
-                  Remove
+                  <X className="w-4 h-4 ml-1" />
+                  הסר
                 </Button>
               </div>
             ) : (
@@ -157,7 +157,7 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
               >
                 <Camera className="w-8 h-8 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Tap to add photo
+                  לחץ להוספת תמונה
                 </span>
               </button>
             )}
@@ -174,12 +174,12 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
           {/* Notes Section */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">
-              Description
+              תיאור
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Describe the issue..."
+              placeholder="תאר את הבעיה..."
               className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background resize-none focus:outline-none focus:border-primary min-h-[100px]"
               rows={3}
             />
@@ -188,10 +188,10 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
 
         <DialogFooter className="flex gap-2 sm:gap-2">
           <Button variant="outline" onClick={handleCancel} className="flex-1">
-            Cancel
+            ביטול
           </Button>
           <Button onClick={handleSubmit} className="flex-1">
-            Submit Report
+            שלח דיווח
           </Button>
         </DialogFooter>
       </DialogContent>

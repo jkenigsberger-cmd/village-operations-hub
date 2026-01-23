@@ -550,8 +550,8 @@ const Index = () => {
                           
                           <button
                             onClick={() => {
-                              if (task.entityId) {
-                                resolveTentFacilityIssue(task.entityId, task.title.includes('אמבט') || task.title.includes('Bathroom') ? 'bathroom' : 'shower');
+                              if (task.entityId && task.facilityType) {
+                                resolveTentFacilityIssue(task.entityId, task.facilityType);
                               }
                               removeDailyTask(task.id);
                               toast.success(HE.messages.taskCompleted);
