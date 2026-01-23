@@ -10,13 +10,15 @@ import {
   LogOut,
   Users,
   Clock,
-  MapPin
+  MapPin,
+  ChefHat
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CalendarDayViewProps {
   selectedDate: Date;
   events: CalendarEvent[];
+  onEventClick?: (event: CalendarEvent) => void;
 }
 
 // Hours to display (6:00 - 22:00)
@@ -29,6 +31,7 @@ const getEventIcon = (type: CalendarEvent['type']) => {
     case 'ACTIVITY': return Flame;
     case 'TENT_CHECKIN': return LogIn;
     case 'TENT_CHECKOUT': return LogOut;
+    case 'KITCHEN': return ChefHat;
     default: return Clock;
   }
 };
@@ -43,7 +46,7 @@ const getContrastColor = (hslColor: string): string => {
   return 'white';
 };
 
-export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, events }) => {
+export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, events, onEventClick }) => {
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
   // Separate all-day events (check-ins, check-outs, neighborhoods) from timed events
@@ -238,10 +241,15 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                   <div className="flex-1 py-1 px-2 flex flex-wrap gap-2">
                     {hourEvents.map(event => {
                       const Icon = getEventIcon(event.type);
+                      const isClickable = event.type === 'KITCHEN';
                       return (
                         <div
                           key={event.id}
-                          className="px-3 py-2 rounded-lg text-sm flex items-center gap-2 max-w-full"
+                          onClick={isClickable && onEventClick ? () => onEventClick(event) : undefined}
+                          className={cn(
+                            "px-3 py-2 rounded-lg text-sm flex items-center gap-2 max-w-full",
+                            isClickable && "cursor-pointer hover:opacity-90 transition-opacity"
+                          )}
                           style={{ 
                             backgroundColor: event.color,
                             color: getContrastColor(event.color)
