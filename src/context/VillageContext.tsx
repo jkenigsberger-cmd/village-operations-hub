@@ -688,23 +688,23 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const resolveActivitySpaceIssue = (spaceId: string) => {
-    if (!state) return;
+const resolveActivitySpaceIssue = (spaceId: string) => {
+    saveState((prev) => {
+      const space = prev.activitySpaces[spaceId];
+      if (!space) return prev;
 
-    const space = state.activitySpaces[spaceId];
-    if (!space) return;
-
-    saveState({
-      ...state,
-      activitySpaces: {
-        ...state.activitySpaces,
-        [spaceId]: {
-          ...space,
-          workingStatus: 'WORKING',
-          maintenanceNotes: undefined,
-          maintenanceImage: undefined,
+      return {
+        ...prev,
+        activitySpaces: {
+          ...prev.activitySpaces,
+          [spaceId]: {
+            ...space,
+            workingStatus: 'WORKING',
+            maintenanceNotes: undefined,
+            maintenanceImage: undefined,
+          },
         },
-      },
+      };
     });
   };
 

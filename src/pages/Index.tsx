@@ -46,7 +46,7 @@ type MenuSection = 'overview' | 'calendar' | 'neighborhoods' | 'facilities' | 'b
 
 const Index = () => {
   const navigate = useNavigate();
-  const { 
+const { 
     state, 
     isLoading, 
     getNeighborhoodSummary, 
@@ -59,6 +59,7 @@ const Index = () => {
     updateTentCleaningStatus,
     reportFacilityIssue,
     resolveFacilityIssue,
+    resolveActivitySpaceIssue,
     getDailyTasks,
     removeDailyTask,
     resolveTentFacilityIssue
@@ -113,9 +114,14 @@ const Index = () => {
     f => f.cleaningStatus === 'NEEDS_CLEANING' || f.workingStatus === 'BROKEN'
   );
 
-  // Maintenance items - facilities that are broken or need maintenance
+// Maintenance items - facilities that are broken or need maintenance
   const maintenanceItems = allFacilities.filter(
     f => f.workingStatus === 'BROKEN' || f.workingStatus === 'MAINTENANCE'
+  );
+
+  // Activity Spaces maintenance items (Common Facilities like Bunker, Dining Hall, etc.)
+  const activitySpaceMaintenanceItems = Object.values(state.activitySpaces).filter(
+    s => s.workingStatus === 'BROKEN' || s.workingStatus === 'MAINTENANCE'
   );
 
   // VIP Maintenance tasks from dailyTasks (baños y duchas VIP)
@@ -125,7 +131,7 @@ const Index = () => {
   );
 
   // Combined maintenance count
-  const totalMaintenanceCount = maintenanceItems.length + vipMaintenanceTasks.length;
+  const totalMaintenanceCount = maintenanceItems.length + activitySpaceMaintenanceItems.length + vipMaintenanceTasks.length;
 
   // Housekeeping items - tents and facilities that need cleaning
   const tentsNeedingCleaning = Object.values(state.tents).filter(
@@ -484,17 +490,17 @@ const Index = () => {
               {HE.nav.maintenance}
             </h2>
             
-            {maintenanceItems.length === 0 && vipMaintenanceTasks.length === 0 ? (
+{maintenanceItems.length === 0 && activitySpaceMaintenanceItems.length === 0 && vipMaintenanceTasks.length === 0 ? (
               <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
                 <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
                 <p className="text-xl font-medium">{HE.messages.allFacilitiesWorking}</p>
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Common Facilities Maintenance */}
+                {/* Common Facilities Maintenance (Bathrooms/Showers) */}
                 {maintenanceItems.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">{HE.nav.facilities}</h3>
+                    <h3 className="text-xl font-semibold mb-4">{HE.nav.bathrooms}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {maintenanceItems.map((facility) => (
                         <div key={facility.id} className="tile border-destructive bg-destructive/5">
@@ -522,6 +528,51 @@ const Index = () => {
                           
                           <button
                             onClick={() => handleResolveMaintenance(facility.id)}
+                            className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle className="w-5 h-5" />
+                            {HE.messages.taskCompleted}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Activity Spaces Maintenance (Common Facilities like Bunker, Dining Hall) */}
+                {activitySpaceMaintenanceItems.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">{HE.nav.facilities}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {activitySpaceMaintenanceItems.map((space) => (
+                        <div key={space.id} className="tile border-destructive bg-destructive/5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <AlertTriangle className="w-6 h-6 text-destructive" />
+                            <div>
+                              <h4 className="font-bold text-lg">{space.name}</h4>
+                              <span className={`text-sm ${space.workingStatus === 'BROKEN' ? 'text-destructive' : 'text-yellow-600'}`}>
+                                {space.workingStatus === 'BROKEN' ? HE.status.broken : HE.status.maintenance}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {space.maintenanceImage && (
+                            <img 
+                              src={space.maintenanceImage} 
+                              alt="Issue" 
+                              className="w-full h-32 object-cover rounded-lg mb-3"
+                            />
+                          )}
+                          
+                          {space.maintenanceNotes && (
+                            <p className="text-muted-foreground mb-4">{space.maintenanceNotes}</p>
+                          )}
+                          
+                          <button
+                            onClick={() => {
+                              resolveActivitySpaceIssue(space.id);
+                              toast.success(HE.messages.taskCompleted);
+                            }}
                             className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2"
                           >
                             <CheckCircle className="w-5 h-5" />
