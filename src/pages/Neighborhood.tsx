@@ -167,19 +167,19 @@ const Neighborhood = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Neighborhood not found</h1>
-          <Link to="/" className="text-primary mt-4 block">← Back to Home</Link>
+          <h1 className="text-2xl font-bold">שכונה לא נמצאה</h1>
+          <Link to="/" className="text-primary mt-4 block">← חזרה לדף הבית</Link>
         </div>
       </div>
     );
   }
 
   const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'dirty', label: '🧹 Dirty' },
-    { key: 'checkin', label: '📅 Check-in Today' },
-    { key: 'checkout', label: '📤 Check-out Today' },
-    { key: 'full', label: '🔴 Full' },
+    { key: 'all', label: 'הכל' },
+    { key: 'dirty', label: '🧹 מלוכלך' },
+    { key: 'checkin', label: "📅 צ'ק-אין היום" },
+    { key: 'checkout', label: "📤 צ'ק-אאוט היום" },
+    { key: 'full', label: '🔴 מלא' },
   ];
 
   return (
@@ -198,16 +198,16 @@ const Neighborhood = () => {
             {/* Stats */}
             <div className="flex gap-4 text-lg flex-wrap">
               <span className="px-4 py-2 bg-muted rounded-xl">
-                <strong>{tentSummaries.length}</strong> tents
+                <strong>{tentSummaries.length}</strong> אוהלים
               </span>
               <span className="px-4 py-2 bg-primary/10 rounded-xl">
                 <strong>
                   {tentSummaries.reduce((acc, t) => acc + t.summary.occupiedBeds + t.summary.reservedBeds, 0)}
-                </strong> / {tentSummaries.reduce((acc, t) => acc + t.summary.totalBeds, 0)} beds
+                </strong> / {tentSummaries.reduce((acc, t) => acc + t.summary.totalBeds, 0)} מיטות
               </span>
               <Button onClick={() => setShowReservationModal(true)} className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                Nueva Reserva
+                הזמנה חדשה
               </Button>
             </div>
           </div>
@@ -230,7 +230,7 @@ const Neighborhood = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tent code or group name..."
+              placeholder="חפש קוד אוהל או שם קבוצה..."
               className="w-full pl-14 pr-4 py-4 text-xl rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary"
             />
           </div>
@@ -265,7 +265,7 @@ const Neighborhood = () => {
                 )}
               >
                 <Grid3X3 className="w-5 h-5" />
-                Grid
+                רשת
               </button>
               <button
                 onClick={() => setViewMode('map')}
@@ -277,7 +277,7 @@ const Neighborhood = () => {
                 )}
               >
                 <Map className="w-5 h-5" />
-                Map
+                מפה
               </button>
 
               {/* Group toggle for N1-N3 */}
@@ -292,7 +292,7 @@ const Neighborhood = () => {
                 )}
               >
                 {groupByDouble ? <Layers className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
-                  {groupByDouble ? 'Grouped' : 'Individual'}
+                  {groupByDouble ? 'מקובצים' : 'בודדים'}
                 </button>
               )}
             </div>
@@ -303,7 +303,7 @@ const Neighborhood = () => {
         {filteredTents.length === 0 ? (
           <div className="tile p-12 text-center">
             <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-xl text-muted-foreground">No tents match your search</p>
+            <p className="text-xl text-muted-foreground">לא נמצאו אוהלים</p>
           </div>
         ) : viewMode === 'map' ? (
           // Map view - use VIP rectangular map for VIP neighborhood
@@ -324,7 +324,7 @@ const Neighborhood = () => {
             {groupedTents.map((group) => (
               <div key={group.groupId} className="tile p-6">
                 <h3 className="text-2xl font-bold mb-4">
-                  Double Tent {group.groupCode}
+                  אוהל כפול {group.groupCode}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {group.tents.map(({ summary }) => (

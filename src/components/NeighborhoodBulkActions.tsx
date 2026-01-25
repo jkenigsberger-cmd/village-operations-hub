@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { NeighborhoodId, NeighborhoodReservation } from '@/types/village';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { 
   Users, 
   Trash2, 
@@ -113,7 +113,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
     // Validate dates when both are set
     if (newForm.checkInDate && newForm.checkOutDate) {
       if (newForm.checkInDate >= newForm.checkOutDate) {
-        setAvailabilityError('La fecha de check-out debe ser posterior al check-in');
+        setAvailabilityError('תאריך העזיבה חייב להיות אחרי תאריך ההגעה');
         return;
       }
       
@@ -125,7 +125,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
       
       if (!availability.available && availability.conflictingReservation) {
         setAvailabilityError(
-          `⚠️ Conflicto: "${availability.conflictingReservation.groupName}" ya tiene reserva del ${availability.conflictingReservation.checkInDate} al ${availability.conflictingReservation.checkOutDate}`
+          `⚠️ התנגשות: "${availability.conflictingReservation.groupName}" כבר יש הזמנה מ-${availability.conflictingReservation.checkInDate} עד ${availability.conflictingReservation.checkOutDate}`
         );
       } else {
         setAvailabilityError(null);
@@ -137,15 +137,15 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
 
   const handleReserve = () => {
     if (!reservationForm.groupName.trim()) {
-      toast.error('El nombre del grupo es requerido');
+      toast.error('שם הקבוצה נדרש');
       return;
     }
     if (!reservationForm.checkInDate || !reservationForm.checkOutDate) {
-      toast.error('Por favor completa todas las fechas');
+      toast.error('נא להשלים את כל התאריכים');
       return;
     }
     if (reservationForm.checkInDate >= reservationForm.checkOutDate) {
-      toast.error('La fecha de check-out debe ser posterior al check-in');
+      toast.error('תאריך העזיבה חייב להיות אחרי תאריך ההגעה');
       return;
     }
 
@@ -159,7 +159,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
     });
 
     if (result.success) {
-      toast.success(`✓ Vecindario ${neighborhoodName} reservado para ${reservationForm.groupName}`);
+      toast.success(`✓ שכונה ${neighborhoodName} הוזמנה עבור ${reservationForm.groupName}`);
       setShowReserveDialog(false);
       setReservationForm({
         groupName: '',
@@ -169,28 +169,28 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
       });
       setAvailabilityError(null);
     } else {
-      toast.error(result.error || 'Error al crear la reserva');
+      toast.error(result.error || 'שגיאה ביצירת ההזמנה');
     }
   };
 
   const handleRemoveReservation = (reservationId: string, groupName: string) => {
     removeNeighborhoodReservation(reservationId);
-    toast.success(`Reserva de "${groupName}" eliminada`);
+    toast.success(`הזמנה של "${groupName}" הוסרה`);
   };
 
   const handleMarkDirty = () => {
     markNeighborhoodDirty(neighborhoodId);
-    toast.success(`Todas las carpas de ${neighborhoodName} marcadas como sucias`);
+    toast.success(`כל האוהלים ב-${neighborhoodName} סומנו כמלוכלכים`);
   };
 
   const handleMarkClean = () => {
     markNeighborhoodClean(neighborhoodId);
-    toast.success(`Todas las carpas de ${neighborhoodName} marcadas como limpias`);
+    toast.success(`כל האוהלים ב-${neighborhoodName} סומנו כנקיים`);
   };
 
   const handleClearBeds = () => {
     clearNeighborhoodBeds(neighborhoodId);
-    toast.success(`Todas las camas de ${neighborhoodName} liberadas`);
+    toast.success(`כל המיטות ב-${neighborhoodName} שוחררו`);
     setShowConfirmClear(false);
   };
 
@@ -198,7 +198,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
     <div className="tile p-4 mb-6">
       <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
         <Users className="w-5 h-5" />
-        Acciones Grupales - {neighborhoodName}
+        פעולות קבוצתיות - {neighborhoodName}
       </h3>
 
       <div className="flex flex-wrap gap-3">
@@ -207,30 +207,30 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
           <DialogTrigger asChild>
             <Button variant="default" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Reservar Vecindario Completo
+              הזמן שכונה שלמה
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Reservar {neighborhoodName}</DialogTitle>
+              <DialogTitle>הזמנת {neighborhoodName}</DialogTitle>
               <DialogDescription>
-                Esto reservará todas las camas del vecindario para el grupo especificado.
+                פעולה זו תזמין את כל המיטות בשכונה עבור הקבוצה שצוינה.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="groupName">Nombre del Grupo *</Label>
+                <Label htmlFor="groupName">שם הקבוצה *</Label>
                 <Input
                   id="groupName"
                   value={reservationForm.groupName}
                   onChange={(e) => setReservationForm(prev => ({ ...prev, groupName: e.target.value }))}
-                  placeholder="Ej: Grupo Escolar San José"
+                  placeholder="לדוג׳: קבוצת בית ספר"
                   maxLength={100}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="checkIn">Fecha Check-in *</Label>
+                  <Label htmlFor="checkIn">תאריך צ'ק-אין *</Label>
                   <Input
                     id="checkIn"
                     type="date"
@@ -240,7 +240,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="checkOut">Fecha Check-out *</Label>
+                  <Label htmlFor="checkOut">תאריך צ'ק-אאוט *</Label>
                   <Input
                     id="checkOut"
                     type="date"
@@ -260,12 +260,12 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notas</Label>
+                <Label htmlFor="notes">הערות</Label>
                 <Input
                   id="notes"
                   value={reservationForm.notes}
                   onChange={(e) => setReservationForm(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Notas adicionales..."
+                  placeholder="הערות נוספות..."
                   maxLength={500}
                 />
               </div>
@@ -275,14 +275,14 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                 setShowReserveDialog(false);
                 setAvailabilityError(null);
               }}>
-                Cancelar
+                ביטול
               </Button>
               <Button 
                 onClick={handleReserve}
                 disabled={!!availabilityError}
               >
                 <Check className="w-4 h-4 mr-2" />
-                Reservar
+                הזמן
               </Button>
             </div>
           </DialogContent>
@@ -295,7 +295,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
           className="flex items-center gap-2 border-amber-500 text-amber-700 hover:bg-amber-50"
         >
           <AlertTriangle className="w-4 h-4" />
-          Marcar Todo Sucio
+          סמן הכל כמלוכלך
         </Button>
 
         {/* Mark All Clean */}
@@ -305,7 +305,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
           className="flex items-center gap-2 border-green-500 text-green-700 hover:bg-green-50"
         >
           <SparklesIcon className="w-4 h-4" />
-          Marcar Todo Limpio
+          סמן הכל כנקי
         </Button>
 
         {/* Clear All Beds */}
@@ -316,24 +316,24 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
               className="flex items-center gap-2 border-red-500 text-red-700 hover:bg-red-50"
             >
               <Trash2 className="w-4 h-4" />
-              Liberar Todas las Camas
+              שחרר את כל המיטות
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-red-600">⚠️ Confirmar Acción</DialogTitle>
+              <DialogTitle className="text-red-600">⚠️ אישור פעולה</DialogTitle>
               <DialogDescription>
-                Esto liberará TODAS las camas de {neighborhoodName}, eliminando reservas, 
-                nombres de huéspedes y fechas. Esta acción no se puede deshacer.
+                פעולה זו תשחרר את כל המיטות ב-{neighborhoodName}, תמחק הזמנות, 
+                שמות אורחים ותאריכים. לא ניתן לבטל פעולה זו.
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowConfirmClear(false)}>
-                Cancelar
+                ביטול
               </Button>
               <Button variant="destructive" onClick={handleClearBeds}>
                 <Trash2 className="w-4 h-4 mr-2" />
-                Sí, Liberar Todo
+                כן, שחרר הכל
               </Button>
             </div>
           </DialogContent>
@@ -345,7 +345,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
         <div className="mt-4 pt-4 border-t">
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <CalendarCheck className="w-4 h-4" />
-            Reservas Programadas
+            הזמנות מתוכננות
           </h4>
           <div className="space-y-2">
             {upcomingEvents.map(r => {
@@ -369,20 +369,20 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                       {isCheckInToday && (
                         <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
                           <CalendarCheck className="w-3 h-3" />
-                          CHECK-IN HOY
+                          צ'ק-אין היום
                         </span>
                       )}
                       {isCheckOutToday && (
                         <span className="text-xs bg-orange-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
                           <CalendarX className="w-3 h-3" />
-                          CHECK-OUT HOY
+                          צ'ק-אאוט היום
                         </span>
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
                       📅 {r.checkInDate} → {r.checkOutDate}
-                      {r.tentCount && <span className="ml-2">• {r.tentCount} carpas</span>}
-                      {r.totalBeds && <span className="ml-2">• {r.totalBeds} camas</span>}
+                      {r.tentCount && <span className="ml-2">• {r.tentCount} אוהלים</span>}
+                      {r.totalBeds && <span className="ml-2">• {r.totalBeds} מיטות</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -410,7 +410,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
       {upcomingEvents.length === 0 && (
         <div className="mt-4 pt-4 border-t text-center text-muted-foreground py-4">
           <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p>No hay reservas programadas para este vecindario</p>
+          <p>אין הזמנות מתוכננות לשכונה זו</p>
         </div>
       )}
 
@@ -430,7 +430,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     {selectedReservation.groupName}
                   </DialogTitle>
                   <DialogDescription>
-                    Detalles de la reserva para preparación
+                    פרטי ההזמנה להכנה
                   </DialogDescription>
                 </DialogHeader>
 
@@ -440,17 +440,17 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     {isCheckInToday && (
                       <span className="text-sm bg-green-600 text-white px-3 py-1 rounded-full flex items-center gap-1">
                         <CalendarCheck className="w-4 h-4" />
-                        CHECK-IN HOY
+                        צ'ק-אין היום
                       </span>
                     )}
                     {isCheckOutToday && (
                       <span className="text-sm bg-orange-600 text-white px-3 py-1 rounded-full flex items-center gap-1">
                         <CalendarX className="w-4 h-4" />
-                        CHECK-OUT HOY
+                        צ'ק-אאוט היום
                       </span>
                     )}
                     <span className="text-sm bg-muted px-3 py-1 rounded-full">
-                      {selectedReservation.reservationType === 'FULL_NEIGHBORHOOD' ? 'Vecindario Completo' : 'Carpas Específicas'}
+                      {selectedReservation.reservationType === 'FULL_NEIGHBORHOOD' ? 'שכונה מלאה' : 'אוהלים ספציפיים'}
                     </span>
                   </div>
 
@@ -458,7 +458,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                   <div className="p-4 bg-muted/50 rounded-xl space-y-2">
                     <h4 className="font-semibold flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      Fechas
+                      תאריכים
                     </h4>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -476,39 +476,39 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                   <div className="p-4 bg-muted/50 rounded-xl space-y-3">
                     <h4 className="font-semibold flex items-center gap-2">
                       <TentIcon className="w-4 h-4" />
-                      Carpas y Camas
+                      אוהלים ומיטות
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 bg-background rounded-lg">
                         <TentIcon className="w-6 h-6 mx-auto mb-1 text-primary" />
                         <p className="text-2xl font-bold">{details.tents.length}</p>
-                        <p className="text-xs text-muted-foreground">Carpas</p>
+                        <p className="text-xs text-muted-foreground">אוהלים</p>
                       </div>
                       <div className="text-center p-3 bg-background rounded-lg">
                         <Bed className="w-6 h-6 mx-auto mb-1 text-primary" />
                         <p className="text-2xl font-bold">{details.totalBeds}</p>
-                        <p className="text-xs text-muted-foreground">Camas</p>
+                        <p className="text-xs text-muted-foreground">מיטות</p>
                       </div>
                     </div>
 
                     {/* Gender distribution */}
                     {(selectedReservation.genderDistribution || details.genderSummary) && (
                       <div className="pt-3 border-t">
-                        <p className="text-sm font-medium mb-2">Distribución por Género:</p>
+                        <p className="text-sm font-medium mb-2">התפלגות לפי מגדר:</p>
                         <div className="flex gap-2 flex-wrap">
                           {(selectedReservation.genderDistribution?.female || details.genderSummary.female > 0) && (
                             <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full">
-                              ♀ {selectedReservation.genderDistribution?.female || details.genderSummary.female} Femenino
+                              ♀ {selectedReservation.genderDistribution?.female || details.genderSummary.female} נשים
                             </span>
                           )}
                           {(selectedReservation.genderDistribution?.male || details.genderSummary.male > 0) && (
                             <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
-                              ♂ {selectedReservation.genderDistribution?.male || details.genderSummary.male} Masculino
+                              ♂ {selectedReservation.genderDistribution?.male || details.genderSummary.male} גברים
                             </span>
                           )}
                           {(selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed > 0) && (
                             <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
-                              👥 {selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed} Mixto
+                              👥 {selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed} מעורב
                             </span>
                           )}
                         </div>
@@ -519,7 +519,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                   {/* Tent list for specific tents */}
                   {selectedReservation.reservationType === 'SPECIFIC_TENTS' && details.tents.length > 0 && (
                     <div className="p-4 bg-muted/50 rounded-xl">
-                      <h4 className="font-semibold mb-2">Carpas Reservadas:</h4>
+                      <h4 className="font-semibold mb-2">אוהלים שהוזמנו:</h4>
                       <div className="flex flex-wrap gap-2">
                         {details.tents.map(tent => (
                           <span 
@@ -531,7 +531,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                               "bg-purple-50 border-purple-300 text-purple-700"
                             )}
                           >
-                            {tent.code} ({tent.beds.length} camas)
+                            {tent.code} ({tent.beds.length} מיטות)
                           </span>
                         ))}
                       </div>
@@ -543,7 +543,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     <div className="p-4 bg-muted/50 rounded-xl space-y-2">
                       <h4 className="font-semibold flex items-center gap-2">
                         <User className="w-4 h-4" />
-                        Contacto
+                        איש קשר
                       </h4>
                       {selectedReservation.contactName && (
                         <div className="flex items-center gap-2 text-sm">
@@ -567,7 +567,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     <div className="p-4 bg-muted/50 rounded-xl space-y-2">
                       <h4 className="font-semibold flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        Notas
+                        הערות
                       </h4>
                       <p className="text-sm text-muted-foreground">{selectedReservation.notes}</p>
                     </div>
@@ -576,7 +576,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
 
                 <div className="flex justify-end gap-2 pt-4 border-t">
                   <Button variant="outline" onClick={() => setSelectedReservation(null)}>
-                    Cerrar
+                    סגור
                   </Button>
                   <Button 
                     variant="destructive"
@@ -586,7 +586,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                     }}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar Reserva
+                    מחק הזמנה
                   </Button>
                 </div>
               </>
