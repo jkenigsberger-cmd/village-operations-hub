@@ -118,7 +118,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     
     if (newForm.checkInDate && newForm.checkOutDate) {
       if (newForm.checkInDate >= newForm.checkOutDate) {
-        setAvailabilityError('La fecha de check-out debe ser posterior al check-in');
+        setAvailabilityError('תאריך העזיבה חייב להיות אחרי תאריך ההגעה');
         return;
       }
       
@@ -131,7 +131,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         
         if (!availability.available && availability.conflictingReservation) {
           setAvailabilityError(
-            `⚠️ Conflicto: "${availability.conflictingReservation.groupName}" ya tiene reserva del ${availability.conflictingReservation.checkInDate} al ${availability.conflictingReservation.checkOutDate}`
+            `⚠️ התנגשות: "${availability.conflictingReservation.groupName}" כבר יש הזמנה מ-${availability.conflictingReservation.checkInDate} עד ${availability.conflictingReservation.checkOutDate}`
           );
         } else {
           setAvailabilityError(null);
@@ -143,7 +143,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
           if (!availability.available) {
             const tent = state?.tents[tentId];
             setAvailabilityError(
-              `⚠️ Carpa ${tent?.code} tiene conflicto con: ${availability.conflictingGroup || 'reserva existente'}`
+              `⚠️ אוהל ${tent?.code} מתנגש עם: ${availability.conflictingGroup || 'הזמנה קיימת'}`
             );
             return;
           }
@@ -166,7 +166,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         const availability = checkTentAvailability(tentId, form.checkInDate, form.checkOutDate);
         if (!availability.available) {
           const tent = state?.tents[tentId];
-          toast.error(`Carpa ${tent?.code} no está disponible para estas fechas`);
+          toast.error(`אוהל ${tent?.code} לא זמין לתאריכים אלו`);
           return prev;
         }
       }
@@ -193,19 +193,19 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
 
   const handleSubmit = () => {
     if (!form.groupName.trim()) {
-      toast.error('El nombre del grupo es requerido');
+      toast.error('שם הקבוצה נדרש');
       return;
     }
     if (!form.checkInDate || !form.checkOutDate) {
-      toast.error('Por favor completa todas las fechas');
+      toast.error('נא להשלים את כל התאריכים');
       return;
     }
     if (form.checkInDate >= form.checkOutDate) {
-      toast.error('La fecha de check-out debe ser posterior al check-in');
+      toast.error('תאריך העזיבה חייב להיות אחרי תאריך ההגעה');
       return;
     }
     if (mode === 'SPECIFIC' && selectedTentIds.length === 0) {
-      toast.error('Selecciona al menos una carpa');
+      toast.error('בחר לפחות אוהל אחד');
       return;
     }
 
@@ -243,11 +243,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     if (result.success) {
       const bedCount = mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds;
       toast.success(
-        `✓ Reserva creada: ${form.groupName} - ${mode === 'FULL' ? 'Vecindario completo' : `${selectedTentIds.length} carpas`} (${bedCount} camas)`
+        `✓ הזמנה נוצרה: ${form.groupName} - ${mode === 'FULL' ? 'שכונה מלאה' : `${selectedTentIds.length} אוהלים`} (${bedCount} מיטות)`
       );
       handleClose();
     } else {
-      toast.error(result.error || 'Error al crear la reserva');
+      toast.error(result.error || 'שגיאה ביצירת ההזמנה');
     }
   };
 
@@ -290,10 +290,10 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Nueva Reserva - {neighborhoodName}
+            הזמנה חדשה - {neighborhoodName}
           </DialogTitle>
           <DialogDescription>
-            Reserva el vecindario completo o selecciona carpas específicas
+            הזמן את השכונה המלאה או בחר אוהלים ספציפיים
           </DialogDescription>
         </DialogHeader>
 
@@ -311,7 +311,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               className="flex-1"
             >
               <Users className="w-4 h-4 mr-2" />
-              Vecindario Completo
+              שכונה מלאה
             </Button>
             <Button
               type="button"
@@ -320,7 +320,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               className="flex-1"
             >
               <TentIcon className="w-4 h-4 mr-2" />
-              Carpas Específicas
+              אוהלים ספציפיים
             </Button>
           </div>
 
@@ -328,23 +328,23 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
           <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
             <h3 className="font-semibold flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Información Básica
+              מידע בסיסי
             </h3>
             
             <div className="space-y-2">
-              <Label htmlFor="groupName">Nombre del Grupo *</Label>
+              <Label htmlFor="groupName">שם הקבוצה *</Label>
               <Input
                 id="groupName"
                 value={form.groupName}
                 onChange={(e) => setForm(prev => ({ ...prev, groupName: e.target.value }))}
-                placeholder="Ej: Grupo Escolar San José"
+                placeholder="לדוג׳: קבוצת בית ספר"
                 maxLength={100}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="checkIn">Check-in *</Label>
+                <Label htmlFor="checkIn">צ'ק-אין *</Label>
                 <Input
                   id="checkIn"
                   type="date"
@@ -354,7 +354,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="checkOut">Check-out *</Label>
+                <Label htmlFor="checkOut">צ'ק-אאוט *</Label>
                 <Input
                   id="checkOut"
                   type="date"
@@ -368,9 +368,9 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
             {/* People Count */}
             <div className="space-y-2">
               <Label htmlFor="peopleCount" className="flex items-center justify-between">
-                <span>Cantidad de Personas</span>
+                <span>מספר אנשים</span>
                 <span className="text-sm text-muted-foreground font-normal">
-                  Máximo: {mode === 'FULL' ? totalNeighborhoodBeds : (selectedBeds || totalNeighborhoodBeds)} camas
+                  מקסימום: {mode === 'FULL' ? totalNeighborhoodBeds : (selectedBeds || totalNeighborhoodBeds)} מיטות
                 </span>
               </Label>
               <Input
@@ -383,11 +383,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   const val = e.target.value === '' ? undefined : parseInt(e.target.value);
                   setPeopleCount(val);
                 }}
-                placeholder="Número de personas esperadas..."
+                placeholder="מספר אנשים צפוי..."
                 disabled={mode === 'SPECIFIC' && selectedTentIds.length === 0}
               />
               {mode === 'SPECIFIC' && selectedTentIds.length === 0 && (
-                <p className="text-sm text-muted-foreground">Selecciona carpas primero</p>
+                <p className="text-sm text-muted-foreground">בחר אוהלים קודם</p>
               )}
             </div>
 
@@ -406,7 +406,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold flex items-center gap-2">
                   <TentIcon className="w-4 h-4" />
-                  Seleccionar Carpas y Género
+                  בחר אוהלים ומגדר
                 </h3>
                 <Button
                   type="button"
@@ -414,7 +414,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   size="sm"
                   onClick={handleSelectAll}
                 >
-                  {selectedTentIds.length === neighborhoodTents.length ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
+                  {selectedTentIds.length === neighborhoodTents.length ? 'בטל בחירה' : 'בחר הכל'}
                 </Button>
               </div>
 
@@ -455,11 +455,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                           </div>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {tent.beds.length} camas
+                          {tent.beds.length} מיטות
                         </div>
                         {isDisabled && tent.groupName && (
                           <div className="text-xs text-destructive mt-1">
-                            Ocupada: {tent.groupName}
+                            תפוס: {tent.groupName}
                           </div>
                         )}
                       </button>
@@ -477,7 +477,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                                 : 'bg-pink-100 text-pink-700 hover:bg-pink-200'
                             )}
                           >
-                            ♀ Fem
+                            ♀ נשים
                           </button>
                           <button
                             type="button"
@@ -489,7 +489,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                             )}
                           >
-                            ♂ Masc
+                            ♂ גברים
                           </button>
                           <button
                             type="button"
@@ -501,7 +501,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                                 : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                             )}
                           >
-                            ⚥ Mixto
+                            ⚥ מעורב
                           </button>
                         </div>
                       )}
@@ -513,7 +513,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               {selectedTentIds.length > 0 && (
                 <div className="text-sm text-center p-3 bg-primary/10 rounded-lg space-y-1">
                   <div>
-                    Seleccionadas: <strong>{selectedTentIds.length}</strong> carpas, <strong>{selectedBeds}</strong> camas
+                    נבחרו: <strong>{selectedTentIds.length}</strong> אוהלים, <strong>{selectedBeds}</strong> מיטות
                   </div>
                   {/* Show gender breakdown */}
                   <div className="flex justify-center gap-3 flex-wrap text-xs">
@@ -537,7 +537,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
             <div className="space-y-4 p-4 bg-muted/50 rounded-xl">
               <h3 className="font-semibold flex items-center gap-2">
                 <TentIcon className="w-4 h-4" />
-                Distribución de Carpas por Género
+                התפלגות אוהלים לפי מגדר
               </h3>
               
               {/* Gender distribution inputs */}
@@ -546,7 +546,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-pink-600">
                     <span className="w-3 h-3 rounded-full bg-pink-500" />
-                    Femenino
+                    נשים
                   </Label>
                   <div className="flex items-center gap-2">
                     <Button
@@ -577,7 +577,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-blue-600">
                     <span className="w-3 h-3 rounded-full bg-blue-500" />
-                    Masculino
+                    גברים
                   </Label>
                   <div className="flex items-center gap-2">
                     <Button
@@ -608,7 +608,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-purple-600">
                     <span className="w-3 h-3 rounded-full bg-purple-500" />
-                    Mixto
+                    מעורב
                   </Label>
                   <div className="flex items-center gap-2">
                     <Button
@@ -640,23 +640,23 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="text-sm text-center p-3 bg-primary/10 rounded-lg space-y-1">
                   <div className="flex justify-center gap-4 flex-wrap">
                     {genderCounts.female > 0 && (
-                      <span className="text-pink-600">♀ {genderCounts.female} carpas</span>
+                      <span className="text-pink-600">♀ {genderCounts.female} אוהלים</span>
                     )}
                     {genderCounts.male > 0 && (
-                      <span className="text-blue-600">♂ {genderCounts.male} carpas</span>
+                      <span className="text-blue-600">♂ {genderCounts.male} אוהלים</span>
                     )}
                     {genderCounts.mixed > 0 && (
-                      <span className="text-purple-600">⚥ {genderCounts.mixed} carpas</span>
+                      <span className="text-purple-600">⚥ {genderCounts.mixed} אוהלים</span>
                     )}
                   </div>
                   <div>
-                    <strong>{totalGenderTents}</strong> carpas = aprox. <strong>{estimatedBedsByGender}</strong> camas
+                    <strong>{totalGenderTents}</strong> אוהלים = בערך <strong>{estimatedBedsByGender}</strong> מיטות
                   </div>
                 </div>
               )}
               
               <div className="text-xs text-muted-foreground text-center">
-                Capacidad máxima: {neighborhoodTents.length} carpas, {totalNeighborhoodBeds} camas
+                קיבולת מקסימלית: {neighborhoodTents.length} אוהלים, {totalNeighborhoodBeds} מיטות
               </div>
             </div>
           )}
@@ -667,7 +667,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
             onClick={() => setShowOptionalFields(!showOptionalFields)}
             className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
           >
-            <span className="font-medium">Información Adicional (Opcional)</span>
+            <span className="font-medium">מידע נוסף (אופציונלי)</span>
             {showOptionalFields ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
@@ -678,27 +678,27 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="space-y-2">
                   <Label htmlFor="contactName" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    Contacto Responsable
+                    איש קשר אחראי
                   </Label>
                   <Input
                     id="contactName"
                     value={form.contactName}
                     onChange={(e) => setForm(prev => ({ ...prev, contactName: e.target.value }))}
-                    placeholder="Nombre del contacto"
+                    placeholder="שם איש הקשר"
                     maxLength={100}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contactPhone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
-                    Teléfono
+                    טלפון
                   </Label>
                   <Input
                     id="contactPhone"
                     type="tel"
                     value={form.contactPhone}
                     onChange={(e) => setForm(prev => ({ ...prev, contactPhone: e.target.value }))}
-                    placeholder="+1 234 567 8900"
+                    placeholder="050-1234567"
                     maxLength={20}
                   />
                 </div>
@@ -707,13 +707,13 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <div className="space-y-2">
                 <Label htmlFor="notes" className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  Notas
+                  הערות
                 </Label>
                 <Textarea
                   id="notes"
                   value={form.notes}
                   onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Notas adicionales sobre la reserva..."
+                  placeholder="הערות נוספות על ההזמנה..."
                   maxLength={500}
                   rows={3}
                 />
@@ -725,7 +725,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Cancelar
+            ביטול
           </Button>
           <Button 
             type="button"
@@ -736,7 +736,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
             disabled={!!availabilityError || (mode === 'SPECIFIC' && selectedTentIds.length === 0)}
           >
             <Check className="w-4 h-4 mr-2" />
-            Crear Reserva
+            צור הזמנה
           </Button>
         </div>
       </DialogContent>
