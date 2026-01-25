@@ -292,7 +292,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
         <Button 
           variant="outline" 
           onClick={handleMarkDirty}
-          className="flex items-center gap-2 border-amber-500 text-amber-700 hover:bg-amber-50"
+          className="flex items-center gap-2 border-amber-500 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
         >
           <AlertTriangle className="w-4 h-4" />
           סמן הכל כמלוכלך
@@ -302,7 +302,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
         <Button 
           variant="outline" 
           onClick={handleMarkClean}
-          className="flex items-center gap-2 border-green-500 text-green-700 hover:bg-green-50"
+          className="flex items-center gap-2 border-green-500 text-green-700 hover:bg-green-100 hover:text-green-800"
         >
           <SparklesIcon className="w-4 h-4" />
           סמן הכל כנקי
@@ -313,7 +313,7 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
           <DialogTrigger asChild>
             <Button 
               variant="outline" 
-              className="flex items-center gap-2 border-red-500 text-red-700 hover:bg-red-50"
+              className="flex items-center gap-2 border-red-500 text-red-700 hover:bg-red-100 hover:text-red-800"
             >
               <Trash2 className="w-4 h-4" />
               שחרר את כל המיטות
