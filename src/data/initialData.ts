@@ -62,8 +62,8 @@ const createN123Neighborhood = (
     const baseTentCode = `${neighborhoodNum}${doubleTentNum}`;
     const doubleTentId = `double_${baseTentCode}`;
 
-    // Create Alef and Bet tents
-    for (const suffix of ['Alef', 'Bet']) {
+    // Create Alef and Bet tents (using Hebrew letters)
+    for (const suffix of ['א', 'ב']) {
       const tentId = generateId();
       const tentCode = `${baseTentCode} ${suffix}`;
       
@@ -80,7 +80,7 @@ const createN123Neighborhood = (
         code: tentCode,
         neighborhoodId: id,
         doubleTentId,
-        isAlef: suffix === 'Alef',
+        isAlef: suffix === 'א',
         beds: tentBeds,
         cleaningStatus: 'CLEAN',
         lastUpdated: now(),
