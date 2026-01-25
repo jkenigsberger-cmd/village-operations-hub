@@ -106,7 +106,18 @@ interface VillageContextType {
   resetToDefault: () => void;
 }
 
-const VillageContext = createContext<VillageContextType | null>(null);
+// Singleton pattern to prevent HMR context issues
+const VILLAGE_CONTEXT_KEY = '__VILLAGE_CONTEXT__';
+
+function getOrCreateContext(): React.Context<VillageContextType | null> {
+  const globalObj = globalThis as unknown as { [key: string]: React.Context<VillageContextType | null> };
+  if (!globalObj[VILLAGE_CONTEXT_KEY]) {
+    globalObj[VILLAGE_CONTEXT_KEY] = createContext<VillageContextType | null>(null);
+  }
+  return globalObj[VILLAGE_CONTEXT_KEY];
+}
+
+const VillageContext = getOrCreateContext();
 
 export const useVillage = () => {
   const context = useContext(VillageContext);
