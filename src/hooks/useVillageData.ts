@@ -32,6 +32,17 @@ export const useVillageData = () => {
           parsed.dailyTasks = {};
           needsMigration = true;
         }
+        // Migrate tent codes from Alef/Bet to א/ב
+        Object.values(parsed.tents).forEach(tent => {
+          if (tent.code.includes(' Alef')) {
+            tent.code = tent.code.replace(' Alef', ' א');
+            needsMigration = true;
+          } else if (tent.code.includes(' Bet')) {
+            tent.code = tent.code.replace(' Bet', ' ב');
+            needsMigration = true;
+          }
+        });
+        
         // Migrate missing facility and activity data from initial state
         if (!parsed.facilityAreas || Object.keys(parsed.facilityAreas).length === 0) {
           parsed.facilityAreas = initial.facilityAreas;
