@@ -107,9 +107,20 @@ const Facilities = () => {
                       </span>
                     )}
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">{area.name}</h2>
-                    <p className="text-muted-foreground mt-1">{area.description}</p>
+                  <div className="text-right">
+                    {(() => {
+                      const match = area.name.match(/^(.+?)\s*\((.+)\)$/);
+                      if (match) {
+                        return (
+                          <>
+                            <h2 className="text-2xl font-bold">{match[1]}</h2>
+                            <p className="text-sm text-muted-foreground mt-0.5">{match[2]}</p>
+                          </>
+                        );
+                      }
+                      return <h2 className="text-2xl font-bold">{area.name}</h2>;
+                    })()}
+                    <p className="text-muted-foreground text-sm mt-1">{area.description}</p>
                   </div>
                 </button>
 
