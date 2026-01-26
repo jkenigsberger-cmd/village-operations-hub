@@ -332,143 +332,33 @@ const createFacilities = (): { areas: FacilityArea[]; facilities: Facility[] } =
   const areas: FacilityArea[] = [];
   const facilities: Facility[] = [];
 
-  // Area A: Between N1 & N2 - 4 unisex toilets
-  const areaAId = 'area_n1_n2';
-  const areaAFacilities: Facility[] = [];
-  for (let i = 1; i <= 4; i++) {
+  // ============================================================
+  // AREA 1: חדר אוכל - גברים (Male Dining Hall) - Numbers 1-16
+  // ============================================================
+  const areaMaleId = 'area_dining_male';
+  const areaMaleFacilities: Facility[] = [];
+
+  // Showers 1-3
+  for (let i = 1; i <= 3; i++) {
     const f: Facility = {
       id: generateId(),
-      areaId: areaAId,
-      label: `TOILET-${i}`,
-      type: 'TOILET',
-      gender: 'UNISEX',
-      cleaningStatus: 'CLEAN',
-      workingStatus: 'WORKING',
-      lastUpdated: now(),
-    };
-    areaAFacilities.push(f);
-    facilities.push(f);
-  }
-  areas.push({
-    id: areaAId,
-    name: 'Between N1 & N2',
-    description: '4 Unisex Toilets',
-    facilityIds: areaAFacilities.map(f => f.id),
-  });
-
-  // Area B: Between N3 & N4 - 2 unisex toilets
-  const areaBId = 'area_n3_n4';
-  const areaBFacilities: Facility[] = [];
-  for (let i = 1; i <= 2; i++) {
-    const f: Facility = {
-      id: generateId(),
-      areaId: areaBId,
-      label: `TOILET-${i}`,
-      type: 'TOILET',
-      gender: 'UNISEX',
-      cleaningStatus: 'CLEAN',
-      workingStatus: 'WORKING',
-      lastUpdated: now(),
-    };
-    areaBFacilities.push(f);
-    facilities.push(f);
-  }
-  areas.push({
-    id: areaBId,
-    name: 'Between N3 & N4',
-    description: '2 Unisex Toilets',
-    facilityIds: areaBFacilities.map(f => f.id),
-  });
-
-  // Area C: Between N4 & N7 - 4 unisex toilets
-  const areaCId = 'area_n4_n7';
-  const areaCFacilities: Facility[] = [];
-  for (let i = 1; i <= 4; i++) {
-    const f: Facility = {
-      id: generateId(),
-      areaId: areaCId,
-      label: `TOILET-${i}`,
-      type: 'TOILET',
-      gender: 'UNISEX',
-      cleaningStatus: 'CLEAN',
-      workingStatus: 'WORKING',
-      lastUpdated: now(),
-    };
-    areaCFacilities.push(f);
-    facilities.push(f);
-  }
-  areas.push({
-    id: areaCId,
-    name: 'Between N4 & N7',
-    description: '4 Unisex Toilets',
-    facilityIds: areaCFacilities.map(f => f.id),
-  });
-
-  // Area D: Near White Tents - 4 unisex toilets
-  const areaDId = 'area_white_tents';
-  const areaDFacilities: Facility[] = [];
-  for (let i = 1; i <= 4; i++) {
-    const f: Facility = {
-      id: generateId(),
-      areaId: areaDId,
-      label: `TOILET-${i}`,
-      type: 'TOILET',
-      gender: 'UNISEX',
-      cleaningStatus: 'CLEAN',
-      workingStatus: 'WORKING',
-      lastUpdated: now(),
-    };
-    areaDFacilities.push(f);
-    facilities.push(f);
-  }
-  areas.push({
-    id: areaDId,
-    name: 'Near White Tents',
-    description: '4 Unisex Toilets',
-    facilityIds: areaDFacilities.map(f => f.id),
-  });
-
-  // Area E: Dining Hall Facilities
-  const areaEId = 'area_dining';
-  const areaEFacilities: Facility[] = [];
-
-  // Male toilets
-  for (let i = 1; i <= 4; i++) {
-    const f: Facility = {
-      id: generateId(),
-      areaId: areaEId,
-      label: `M-TOILET-${i}`,
-      type: 'TOILET',
+      areaId: areaMaleId,
+      label: `מקלחת ${i}`,
+      type: 'SHOWER',
       gender: 'MALE',
       cleaningStatus: 'CLEAN',
       workingStatus: 'WORKING',
       lastUpdated: now(),
     };
-    areaEFacilities.push(f);
+    areaMaleFacilities.push(f);
     facilities.push(f);
   }
 
-  // Female toilets
-  for (let i = 1; i <= 4; i++) {
-    const f: Facility = {
-      id: generateId(),
-      areaId: areaEId,
-      label: `F-TOILET-${i}`,
-      type: 'TOILET',
-      gender: 'FEMALE',
-      cleaningStatus: 'CLEAN',
-      workingStatus: 'WORKING',
-      lastUpdated: now(),
-    };
-    areaEFacilities.push(f);
-    facilities.push(f);
-  }
-
-  // Accessible toilets
-  const accMToilet: Facility = {
+  // Accessible toilet 4
+  const accMaleToilet: Facility = {
     id: generateId(),
-    areaId: areaEId,
-    label: 'ACC-M-TOILET',
+    areaId: areaMaleId,
+    label: 'תא 4 ♿',
     type: 'TOILET',
     gender: 'MALE',
     isAccessible: true,
@@ -476,13 +366,75 @@ const createFacilities = (): { areas: FacilityArea[]; facilities: Facility[] } =
     workingStatus: 'WORKING',
     lastUpdated: now(),
   };
-  areaEFacilities.push(accMToilet);
-  facilities.push(accMToilet);
+  areaMaleFacilities.push(accMaleToilet);
+  facilities.push(accMaleToilet);
 
-  const accFToilet: Facility = {
+  // Showers 5-12
+  for (let i = 5; i <= 12; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaMaleId,
+      label: `מקלחת ${i}`,
+      type: 'SHOWER',
+      gender: 'MALE',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaMaleFacilities.push(f);
+    facilities.push(f);
+  }
+
+  // Toilets 13-16
+  for (let i = 13; i <= 16; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaMaleId,
+      label: `תא ${i}`,
+      type: 'TOILET',
+      gender: 'MALE',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaMaleFacilities.push(f);
+    facilities.push(f);
+  }
+
+  areas.push({
+    id: areaMaleId,
+    name: 'חדר אוכל - גברים',
+    description: 'מקלחות 1-3, 5-12 | תא 4 ♿ | תאים 13-16',
+    facilityIds: areaMaleFacilities.map(f => f.id),
+  });
+
+  // ============================================================
+  // AREA 2: חדר אוכל - נשים (Female Dining Hall) - Numbers 17-32
+  // ============================================================
+  const areaFemaleId = 'area_dining_female';
+  const areaFemaleFacilities: Facility[] = [];
+
+  // Toilets 17-20
+  for (let i = 17; i <= 20; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaFemaleId,
+      label: `תא ${i}`,
+      type: 'TOILET',
+      gender: 'FEMALE',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaFemaleFacilities.push(f);
+    facilities.push(f);
+  }
+
+  // Accessible toilet 21
+  const accFemaleToilet: Facility = {
     id: generateId(),
-    areaId: areaEId,
-    label: 'ACC-F-TOILET',
+    areaId: areaFemaleId,
+    label: 'תא 21 ♿',
     type: 'TOILET',
     gender: 'FEMALE',
     isAccessible: true,
@@ -490,46 +442,134 @@ const createFacilities = (): { areas: FacilityArea[]; facilities: Facility[] } =
     workingStatus: 'WORKING',
     lastUpdated: now(),
   };
-  areaEFacilities.push(accFToilet);
-  facilities.push(accFToilet);
+  areaFemaleFacilities.push(accFemaleToilet);
+  facilities.push(accFemaleToilet);
 
-  // Male showers
-  for (let i = 1; i <= 8; i++) {
+  // Showers 22-32
+  for (let i = 22; i <= 32; i++) {
     const f: Facility = {
       id: generateId(),
-      areaId: areaEId,
-      label: `M-SHOWER-${i}`,
-      type: 'SHOWER',
-      gender: 'MALE',
-      cleaningStatus: 'CLEAN',
-      workingStatus: 'WORKING',
-      lastUpdated: now(),
-    };
-    areaEFacilities.push(f);
-    facilities.push(f);
-  }
-
-  // Female showers
-  for (let i = 1; i <= 8; i++) {
-    const f: Facility = {
-      id: generateId(),
-      areaId: areaEId,
-      label: `F-SHOWER-${i}`,
+      areaId: areaFemaleId,
+      label: `מקלחת ${i}`,
       type: 'SHOWER',
       gender: 'FEMALE',
       cleaningStatus: 'CLEAN',
       workingStatus: 'WORKING',
       lastUpdated: now(),
     };
-    areaEFacilities.push(f);
+    areaFemaleFacilities.push(f);
     facilities.push(f);
   }
 
   areas.push({
-    id: areaEId,
-    name: 'Dining Hall Facilities',
-    description: 'Toilets & Showers',
-    facilityIds: areaEFacilities.map(f => f.id),
+    id: areaFemaleId,
+    name: 'חדר אוכל - נשים',
+    description: 'תאים 17-20 | תא 21 ♿ | מקלחות 22-32',
+    facilityIds: areaFemaleFacilities.map(f => f.id),
+  });
+
+  // ============================================================
+  // AREA 3: מתא 33 עד 36 (בין שכונה 1 ל-2) - Numbers 33-36
+  // ============================================================
+  const areaN1N2Id = 'area_n1_n2';
+  const areaN1N2Facilities: Facility[] = [];
+  for (let i = 33; i <= 36; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaN1N2Id,
+      label: `תא ${i}`,
+      type: 'TOILET',
+      gender: 'UNISEX',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaN1N2Facilities.push(f);
+    facilities.push(f);
+  }
+  areas.push({
+    id: areaN1N2Id,
+    name: 'מתא 33 עד 36 (בין שכונה 1 ל-2)',
+    description: '4 שירותים',
+    facilityIds: areaN1N2Facilities.map(f => f.id),
+  });
+
+  // ============================================================
+  // AREA 4: מתא 37 עד 38 (בין שכונה 3 ל-4) - Numbers 37-38
+  // ============================================================
+  const areaN3N4Id = 'area_n3_n4';
+  const areaN3N4Facilities: Facility[] = [];
+  for (let i = 37; i <= 38; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaN3N4Id,
+      label: `תא ${i}`,
+      type: 'TOILET',
+      gender: 'UNISEX',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaN3N4Facilities.push(f);
+    facilities.push(f);
+  }
+  areas.push({
+    id: areaN3N4Id,
+    name: 'מתא 37 עד 38 (בין שכונה 3 ל-4)',
+    description: '2 שירותים',
+    facilityIds: areaN3N4Facilities.map(f => f.id),
+  });
+
+  // ============================================================
+  // AREA 5: מתא 39 עד 42 (אוהלים לבנים) - Numbers 39-42
+  // ============================================================
+  const areaWhiteId = 'area_white_tents';
+  const areaWhiteFacilities: Facility[] = [];
+  for (let i = 39; i <= 42; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaWhiteId,
+      label: `תא ${i}`,
+      type: 'TOILET',
+      gender: 'UNISEX',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaWhiteFacilities.push(f);
+    facilities.push(f);
+  }
+  areas.push({
+    id: areaWhiteId,
+    name: 'מתא 39 עד 42 (אוהלים לבנים)',
+    description: '4 שירותים',
+    facilityIds: areaWhiteFacilities.map(f => f.id),
+  });
+
+  // ============================================================
+  // AREA 6: מתא 43 עד 46 (בין שכונה 4 ל-7) - Numbers 43-46
+  // ============================================================
+  const areaN4N7Id = 'area_n4_n7';
+  const areaN4N7Facilities: Facility[] = [];
+  for (let i = 43; i <= 46; i++) {
+    const f: Facility = {
+      id: generateId(),
+      areaId: areaN4N7Id,
+      label: `תא ${i}`,
+      type: 'TOILET',
+      gender: 'UNISEX',
+      cleaningStatus: 'CLEAN',
+      workingStatus: 'WORKING',
+      lastUpdated: now(),
+    };
+    areaN4N7Facilities.push(f);
+    facilities.push(f);
+  }
+  areas.push({
+    id: areaN4N7Id,
+    name: 'מתא 43 עד 46 (בין שכונה 4 ל-7)',
+    description: '4 שירותים',
+    facilityIds: areaN4N7Facilities.map(f => f.id),
   });
 
   return { areas, facilities };
