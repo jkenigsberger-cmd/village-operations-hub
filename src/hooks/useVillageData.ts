@@ -61,6 +61,20 @@ export const useVillageData = () => {
           needsMigration = true;
         }
         
+        // Check if facilities need Hebrew label migration (old English labels like "TOILET-1", "SHOWER-1")
+        const needsFacilityLabelMigration = parsed.facilities && 
+          Object.values(parsed.facilities).some(
+            (f) => f.label.startsWith('TOILET-') || f.label.startsWith('SHOWER-')
+          );
+        
+        if (needsFacilityLabelMigration) {
+          // Replace all facility data with fresh Hebrew-labeled data
+          parsed.facilityAreas = initial.facilityAreas;
+          parsed.facilities = initial.facilities;
+          needsMigration = true;
+          console.log('[migration] Migrated facility labels to Hebrew');
+        }
+        
         // Persist migrated state
         if (needsMigration) {
           try {
