@@ -1,66 +1,69 @@
 
-## Plan: Add Automatic Migration for Facility Hebrew Labels
 
-### The Problem
-You're not seeing the new Hebrew facility names because:
-1. Your browser has existing facility data stored in LocalStorage
-2. The current migration only replaces facilities if they're **completely missing**
-3. Old labels like "TOILET-1", "SHOWER-1" are still being shown
+## Plan: Improve Facility Area Title Aesthetics
 
-### Solution
-Add a new migration step in `useVillageData.ts` that:
-1. Detects old English facility labels
-2. Automatically replaces ALL facility and facility area data with the fresh Hebrew-labeled data
-3. Preserves your cleaning/working status for each facility (if possible) or resets them
+### Summary
+Enhance the visual presentation of facility area titles and add "שירותים" prefix to dining hall area names.
 
 ---
 
-### Option A: Full Facility Reset (Recommended for simplicity)
-Replace all facility data with fresh Hebrew labels. This will:
-- Show the new Hebrew numbers immediately
-- Reset all cleaning/working statuses to default
+### Changes Required
 
-### Option B: Smart Migration (More complex)
-Try to match old facilities to new ones and preserve statuses. However, since the structure changed significantly (dining hall split into 2 areas), this is complex and error-prone.
+#### 1. Update Area Names in `src/data/initialData.ts`
+
+| Current Name | New Name |
+|--------------|----------|
+| חדר אוכל - גברים | שירותים חדר אוכל - גברים |
+| חדר אוכל - נשים | שירותים חדר אוכל - נשים |
+
+**Lines to modify:** 406 and 466
 
 ---
 
-### Technical Implementation (Option A)
+#### 2. Improve Title Styling in `src/pages/Facilities.tsx`
 
-**File: `src/hooks/useVillageData.ts`**
-
-Add migration logic around line 45-62 to detect old labels and force refresh:
+Current layout shows all text stacked without clear visual hierarchy. New design:
 
 ```text
-// Check if facilities need Hebrew label migration
-const needsFacilityLabelMigration = Object.values(parsed.facilities).some(
-  (f) => f.label.startsWith('TOILET-') || f.label.startsWith('SHOWER-')
-);
+┌─────────────────────────────────────────────────┐
+│                                                 │
+│                    שירותים חדר אוכל - גברים      │  ← Main title (large, bold)
+│                                                 │
+│         מקלחות 1-3, 5-12 | תא 4 ♿ | תאים 13-16   │  ← Description (small, muted, lighter)
+│                                                 │
+└─────────────────────────────────────────────────┘
 
-if (needsFacilityLabelMigration) {
-  // Replace all facility data with fresh Hebrew-labeled data
-  parsed.facilityAreas = initial.facilityAreas;
-  parsed.facilities = initial.facilities;
-  needsMigration = true;
-  console.log('[migration] Migrated facility labels to Hebrew');
-}
+┌─────────────────────────────────────────────────┐
+│                                                 │
+│                      מתא 33 עד 36               │  ← Main title (large, bold)
+│                      בין שכונה 1 ל-2            │  ← Location (smaller, lighter gray)
+│                                                 │
+│                       4 שירותים                 │  ← Description (small, muted)
+│                                                 │
+└─────────────────────────────────────────────────┘
 ```
 
-This will:
-1. Check if any facility has old English labels like "TOILET-1" or "SHOWER-1"
-2. If found, replace all facilities and areas with the new Hebrew data
-3. Persist the migration to LocalStorage
+**Styling improvements:**
+- Main title: `text-xl font-semibold` (slightly smaller than current)
+- Location subtitle: `text-xs text-muted-foreground/70` (smaller and even lighter)
+- Description: `text-xs text-muted-foreground/60 mt-1` (very subtle)
+- Better spacing between elements
 
 ---
 
-### Summary of Changes
+### Technical Details
 
-| File | Change |
-|------|--------|
-| `src/hooks/useVillageData.ts` | Add migration check for old facility labels and auto-replace with fresh Hebrew data |
+**File 1: `src/data/initialData.ts`**
+- Line 406: Change `'חדר אוכל - גברים'` → `'שירותים חדר אוכל - גברים'`
+- Line 466: Change `'חדר אוכל - נשים'` → `'שירותים חדר אוכל - נשים'`
 
-### After Implementation
-Once deployed, refresh the page and you'll see:
-- חדר אוכל - גברים (with מקלחת 1-12, תא 4 ♿, תא 13-16)
-- חדר אוכל - נשים (with תא 17-21 ♿, מקלחת 22-32)
-- מתא 33 עד 36, מתא 37 עד 38, etc.
+**File 2: `src/pages/Facilities.tsx`**
+- Lines 110-124: Refine the title rendering with better visual hierarchy
+- Use smaller, lighter text for parenthetical location info
+- Reduce overall visual weight for cleaner appearance
+
+---
+
+### Data Migration Note
+The migration in `useVillageData.ts` already handles facility label updates, so users will see the new names after refresh.
+
