@@ -403,7 +403,7 @@ const createFacilities = (): { areas: FacilityArea[]; facilities: Facility[] } =
 
   areas.push({
     id: areaMaleId,
-    name: 'חדר אוכל - גברים',
+    name: 'שירותים חדר אוכל - גברים',
     description: 'מקלחות 1-3, 5-12 | תא 4 ♿ | תאים 13-16',
     facilityIds: areaMaleFacilities.map(f => f.id),
   });
@@ -463,7 +463,7 @@ const createFacilities = (): { areas: FacilityArea[]; facilities: Facility[] } =
 
   areas.push({
     id: areaFemaleId,
-    name: 'חדר אוכל - נשים',
+    name: 'שירותים חדר אוכל - נשים',
     description: 'תאים 17-20 | תא 21 ♿ | מקלחות 22-32',
     facilityIds: areaFemaleFacilities.map(f => f.id),
   });

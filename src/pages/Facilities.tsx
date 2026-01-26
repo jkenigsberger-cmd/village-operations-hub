@@ -112,15 +112,15 @@ const Facilities = () => {
                       const match = area.name.match(/^(.+?)\s*\((.+)\)$/);
                       if (match) {
                         return (
-                          <>
-                            <h2 className="text-2xl font-bold">{match[1]}</h2>
-                            <p className="text-sm text-muted-foreground mt-0.5">{match[2]}</p>
-                          </>
+                          <div className="space-y-0.5">
+                            <h2 className="text-xl font-semibold">{match[1]}</h2>
+                            <p className="text-xs text-muted-foreground/70">{match[2]}</p>
+                          </div>
                         );
                       }
-                      return <h2 className="text-2xl font-bold">{area.name}</h2>;
+                      return <h2 className="text-xl font-semibold">{area.name}</h2>;
                     })()}
-                    <p className="text-muted-foreground text-sm mt-1">{area.description}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">{area.description}</p>
                   </div>
                 </button>
 
