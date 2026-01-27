@@ -45,6 +45,7 @@ const Activities = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const spaceIdFromUrl = searchParams.get('spaceId') ?? '';
+  const focusId = searchParams.get('focus');
   const { 
     state, 
     isLoading,
@@ -58,7 +59,7 @@ const Activities = () => {
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>(spaceIdFromUrl || '');
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string>(focusId || spaceIdFromUrl || '');
   const [formData, setFormData] = useState({
     startTime: '09:00',
     endTime: '10:00',

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FacilityCard, FacilityTile } from '@/components/FacilityCard';
@@ -12,6 +12,8 @@ import { HE } from '@/lib/translations';
 
 const Facilities = () => {
   const { areaId } = useParams<{ areaId?: string }>();
+  const [searchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
   const { 
     state, 
     isLoading,
@@ -25,6 +27,36 @@ const Facilities = () => {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
+  const [highlightedFacilityId, setHighlightedFacilityId] = useState<string | null>(null);
+  const facilityRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Handle focus param - expand area and scroll to facility
+  useEffect(() => {
+    if (!focusId || !state) return;
+    
+    // Find the facility and its area
+    const facility = state.facilities[focusId];
+    if (facility) {
+      // Expand the area containing this facility
+      setExpandedAreaId(facility.areaId);
+      
+      // Highlight the facility
+      setHighlightedFacilityId(focusId);
+      
+      // Scroll to and highlight after a short delay (to allow area expansion)
+      setTimeout(() => {
+        const element = facilityRefs.current[focusId];
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Remove highlight after animation
+        setTimeout(() => {
+          setHighlightedFacilityId(null);
+        }, 2000);
+      }, 300);
+    }
+  }, [focusId, state]);
 
   if (isLoading || !state) {
     return (
@@ -128,11 +160,19 @@ const Facilities = () => {
                   <div className="p-6 bg-muted/20">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {facilities.map((facility) => (
-                        <FacilityTile
+                        <div
                           key={facility.id}
-                          facility={facility}
-                          onClick={() => setSelectedFacility(facility)}
-                        />
+                          ref={(el) => { facilityRefs.current[facility.id] = el; }}
+                          className={cn(
+                            'transition-all duration-300',
+                            highlightedFacilityId === facility.id && 'ring-4 ring-primary ring-offset-2 rounded-xl animate-pulse'
+                          )}
+                        >
+                          <FacilityTile
+                            facility={facility}
+                            onClick={() => setSelectedFacility(facility)}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>
