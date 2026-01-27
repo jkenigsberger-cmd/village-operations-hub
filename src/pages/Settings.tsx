@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson } from 'lucide-react';
+import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users } from 'lucide-react';
 import { HE } from '@/lib/translations';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { state, isLoading, exportState, importState, resetToDefault } = useVillage();
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -95,6 +97,24 @@ const Settings = () => {
       </header>
 
       <main className="container py-6 space-y-8">
+        {/* Admin Groups Section */}
+        <section className="tile border-primary/30 bg-primary/5">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Users className="w-7 h-7" />
+            ניהול קבוצות והזמנות
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            צור וערוך קבוצות, לוחות זמנים ומידע על הזמנות
+          </p>
+          <button 
+            onClick={() => navigate('/admin/groups')}
+            className="px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:bg-primary/90 flex items-center gap-2"
+          >
+            <Users className="w-6 h-6" />
+            ניהול קבוצות / הזמנות
+          </button>
+        </section>
+
         {exportSuccess && (
           <div className="p-4 bg-status-clean/20 border-2 border-status-clean rounded-xl flex items-center gap-3 animate-slide-up">
             <Check className="w-6 h-6 text-status-clean" />
