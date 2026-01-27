@@ -10,6 +10,7 @@ import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { TentCard } from '@/components/TentCard';
 import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { GENDER_LEGEND } from '@/lib/tentColors';
 import { HE } from '@/lib/translations';
 import { 
@@ -187,16 +188,21 @@ const {
       {/* Header */}
       <header className="bg-card border-b-2 border-border sticky top-0 z-10">
         <div className="container py-6">
-          <div className="flex items-center gap-4">
-            <Tent className="w-10 h-10 text-primary" />
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                חוות אהרונסון
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                Glow Glamping & Ha-Dor Ha-Ba
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Tent className="w-10 h-10 text-primary" />
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                  חוות אהרונסון
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Glow Glamping & Ha-Dor Ha-Ba
+                </p>
+              </div>
             </div>
+            
+            {/* Global Search */}
+            <GlobalSearch />
           </div>
         </div>
       </header>
