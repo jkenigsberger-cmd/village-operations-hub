@@ -12,6 +12,8 @@ import Facilities from "./pages/Facilities";
 import Activities from "./pages/Activities";
 import Settings from "./pages/Settings";
 import Kitchen from "./pages/Kitchen";
+import AdminGroups from "./pages/AdminGroups";
+import AdminGroupEdit from "./pages/AdminGroupEdit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,8 @@ const App = () => (
             <Route path="/activities" element={<Activities />} />
             <Route path="/kitchen" element={<Kitchen />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin/groups" element={<AdminGroups />} />
+            <Route path="/admin/groups/:id" element={<AdminGroupEdit />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
