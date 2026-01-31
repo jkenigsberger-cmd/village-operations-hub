@@ -446,10 +446,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 </p>
               ) : (
                 <>
-                  <Select value={selectedGroupId} onValueChange={(value) => {
-                    setSelectedGroupId(value);
-                    if (value) {
-                      const group = groups.find(g => g.id === value);
+                  <Select value={selectedGroupId || "_none"} onValueChange={(value) => {
+                    const newValue = value === "_none" ? "" : value;
+                    setSelectedGroupId(newValue);
+                    if (newValue) {
+                      const group = groups.find(g => g.id === newValue);
                       if (group) {
                         setForm(prev => ({ 
                           ...prev, 
@@ -468,7 +469,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                       <SelectValue placeholder="בחר קבוצה..." />
                     </SelectTrigger>
                     <SelectContent className="bg-background">
-                      <SelectItem value="">ללא - קבוצה חדשה</SelectItem>
+                      <SelectItem value="_none">ללא - קבוצה חדשה</SelectItem>
                       {availableGroups.map(group => {
                         const remaining = group.remainingParticipants || 0;
                         const startFormatted = group.startDate.slice(5).replace('-', '/');
