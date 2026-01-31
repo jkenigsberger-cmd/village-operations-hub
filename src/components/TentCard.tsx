@@ -125,10 +125,12 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={summary.cleaningStatus} size="sm" />
         
-        {summary.checkInDate && (
+        {(summary.checkInDate || summary.checkOutDate) && (
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <Calendar className="w-4 h-4" />
-            {new Date(summary.checkInDate).toLocaleDateString()}
+            {summary.checkInDate && new Date(summary.checkInDate).toLocaleDateString('he-IL')}
+            {summary.checkInDate && summary.checkOutDate && ' - '}
+            {summary.checkOutDate && new Date(summary.checkOutDate).toLocaleDateString('he-IL')}
           </span>
         )}
       </div>

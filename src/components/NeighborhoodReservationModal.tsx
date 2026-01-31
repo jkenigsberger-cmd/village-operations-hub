@@ -49,6 +49,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   neighborhoodId,
   neighborhoodName,
 }) => {
+  // Check if this is the VIP neighborhood - use staff counts instead of participants
+  const isVIPNeighborhood = neighborhoodId === 'VIP';
   const { 
     state,
     reserveNeighborhood, 
@@ -269,11 +271,14 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
       }
     }
 
-    // Validate bedsAssigned against remaining participants
+    // Validate bedsAssigned against remaining (staff for VIP, participants for others)
     if (selectedGroupId && selectedGroup) {
-      const remaining = selectedGroup.remainingParticipants || 0;
+      const remaining = isVIPNeighborhood 
+        ? (selectedGroup.remainingStaff || 0)
+        : (selectedGroup.remainingParticipants || 0);
+      const label = isVIPNeighborhood ? 'צוות' : 'חניכים';
       if (bedsAssigned > remaining) {
-        toast.error(`לא ניתן לשבץ ${bedsAssigned} מיטות - נשאר רק ${remaining} חניכים`);
+        toast.error(`לא ניתן לשבץ ${bedsAssigned} מיטות - נשאר רק ${remaining} ${label}`);
         return;
       }
       if (bedsAssigned <= 0) {
@@ -471,12 +476,16 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     <SelectContent className="bg-background">
                       <SelectItem value="_none">ללא - קבוצה חדשה</SelectItem>
                       {availableGroups.map(group => {
-                        const remaining = group.remainingParticipants || 0;
+                        // For VIP use staff count, for others use participants
+                        const remaining = isVIPNeighborhood 
+                          ? (group.remainingStaff || 0) 
+                          : (group.remainingParticipants || 0);
+                        const label = isVIPNeighborhood ? 'צוות נשאר' : 'חניכים נשאר';
                         const startFormatted = group.startDate.slice(5).replace('-', '/');
                         const endFormatted = group.endDate.slice(5).replace('-', '/');
                         return (
                           <SelectItem key={group.id} value={group.id}>
-                            {group.groupName} ({startFormatted}–{endFormatted}) • חניכים נשאר: {remaining}
+                            {group.groupName} ({startFormatted}–{endFormatted}) • {label}: {remaining}
                           </SelectItem>
                         );
                       })}
@@ -496,11 +505,17 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               {selectedGroup && (
                 <>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="p-3 bg-background rounded-lg text-center border">
+                    <div className={cn(
+                      "p-3 bg-background rounded-lg text-center border",
+                      isVIPNeighborhood && "ring-2 ring-primary"
+                    )}>
                       <div className="font-bold text-lg text-amber-600">{selectedGroup.remainingStaff || 0}</div>
                       <div className="text-xs text-muted-foreground">צוות נשאר</div>
                     </div>
-                    <div className="p-3 bg-background rounded-lg text-center border">
+                    <div className={cn(
+                      "p-3 bg-background rounded-lg text-center border",
+                      !isVIPNeighborhood && "ring-2 ring-primary"
+                    )}>
                       <div className="font-bold text-lg text-primary">{selectedGroup.remainingParticipants || 0}</div>
                       <div className="text-xs text-muted-foreground">חניכים נשאר</div>
                     </div>
@@ -511,24 +526,34 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     <Label htmlFor="bedsAssigned" className="text-sm">
                       כמה מיטות לשבץ מהקבוצה?
                     </Label>
-                    <Input
-                      id="bedsAssigned"
-                      type="number"
-                      min={1}
-                      max={selectedGroup.remainingParticipants || 0}
-                      value={bedsAssigned}
-                      onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
-                      className="bg-background"
-                    />
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      💡 בחר כמה מקומות לשבץ כאן (מקסימום: {selectedGroup.remainingParticipants || 0})
-                    </p>
-                    {bedsAssigned > (selectedGroup.remainingParticipants || 0) && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        חורג מכמות החניכים הנותרת!
-                      </p>
-                    )}
+                    {(() => {
+                      const maxBeds = isVIPNeighborhood 
+                        ? (selectedGroup.remainingStaff || 0) 
+                        : (selectedGroup.remainingParticipants || 0);
+                      const label = isVIPNeighborhood ? 'צוות' : 'חניכים';
+                      return (
+                        <>
+                          <Input
+                            id="bedsAssigned"
+                            type="number"
+                            min={1}
+                            max={maxBeds}
+                            value={bedsAssigned}
+                            onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
+                            className="bg-background"
+                          />
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            💡 בחר כמה מקומות לשבץ כאן (מקסימום: {maxBeds} {label})
+                          </p>
+                          {bedsAssigned > maxBeds && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              חורג מכמות ה{label} הנותרת!
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </>
               )}

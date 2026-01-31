@@ -106,15 +106,19 @@ export const VIPPlanningPanel: React.FC<VIPPlanningPanelProps> = ({
               value={selectedGroupId || selectedGroup?.id || "_none"} 
               onValueChange={(v) => onGroupSelect(v === "_none" ? null : v)}
             >
-              <SelectTrigger className="w-[200px] h-9">
+              <SelectTrigger className="w-[280px] h-9">
                 <SelectValue placeholder="בחר קבוצה" />
               </SelectTrigger>
               <SelectContent>
-                {vipGroups.map(g => (
+                {vipGroups.map(g => {
+                  const startFormatted = g.startDate.slice(5).replace('-', '/');
+                  const endFormatted = g.endDate.slice(5).replace('-', '/');
+                  return (
                   <SelectItem key={g.id} value={g.id}>
-                    {g.groupName} ({g.staffCount} צוות)
+                    {g.groupName} ({startFormatted}–{endFormatted}) • צוות: {g.staffCount}
                   </SelectItem>
-                ))}
+                  );
+                })}
               </SelectContent>
             </Select>
           )}
@@ -124,11 +128,14 @@ export const VIPPlanningPanel: React.FC<VIPPlanningPanelProps> = ({
       <CardContent>
         {selectedGroup && vipStats ? (
           <div className="space-y-4">
-            {/* Group Name */}
-            <div className="flex items-center gap-2 text-lg font-semibold">
+            {/* Group Name with Dates */}
+            <div className="flex items-center gap-2 text-lg font-semibold flex-wrap">
               <UserCheck className="w-5 h-5 text-primary" />
               <span>קבוצת צוות (VIP):</span>
               <span className="text-primary">{selectedGroup.groupName}</span>
+              <span className="text-muted-foreground text-sm font-normal">
+                ({selectedGroup.startDate.slice(5).replace('-', '/')} - {selectedGroup.endDate.slice(5).replace('-', '/')})
+              </span>
             </div>
 
             {/* Stats Grid */}
