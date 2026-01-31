@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GroupRecord, ADMIN_GROUPS_STORAGE_KEY } from '@/types/adminGroups';
+import { GroupRecord, GroupType, ADMIN_GROUPS_STORAGE_KEY } from '@/types/adminGroups';
+import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 
 export const useAdminGroups = () => {
   const [groups, setGroups] = useState<GroupRecord[]>([]);
@@ -11,7 +12,12 @@ export const useAdminGroups = () => {
       const stored = localStorage.getItem(ADMIN_GROUPS_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as GroupRecord[];
-        setGroups(parsed);
+        // Migrate old groups without groupType
+        const migrated = parsed.map(g => ({
+          ...g,
+          groupType: g.groupType || 'לינה' as GroupType,
+        }));
+        setGroups(migrated);
       }
     } catch (error) {
       console.error('Error loading admin groups:', error);
@@ -34,6 +40,7 @@ export const useAdminGroups = () => {
     const now = new Date().toISOString();
     const newGroup: GroupRecord = {
       ...group,
+      groupType: group.groupType || 'לינה',
       id: Math.random().toString(36).substring(2, 11),
       createdAt: now,
       updatedAt: now,
@@ -62,6 +69,45 @@ export const useAdminGroups = () => {
     return groups.find(group => group.id === id);
   }, [groups]);
 
+  // Get day-use groups for a specific date
+  const getDayUseGroupsForDate = useCallback((date: string) => {
+    return groups.filter(group => {
+      if (group.groupType !== 'יום ללא לינה') return false;
+      const targetDate = parseISO(date);
+      const start = parseISO(group.startDate);
+      const end = parseISO(group.endDate);
+      return isSameDay(targetDate, start) || 
+             isSameDay(targetDate, end) || 
+             isWithinInterval(targetDate, { start, end });
+    });
+  }, [groups]);
+
+  // Add linked space reservation ID
+  const addLinkedSpaceReservation = useCallback((groupId: string, reservationId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    const linkedIds = group.linkedSpaceReservationIds || [];
+    if (!linkedIds.includes(reservationId)) {
+      updateGroup(groupId, {
+        linkedSpaceReservationIds: [...linkedIds, reservationId],
+      });
+    }
+  }, [groups, updateGroup]);
+
+  // Add linked kitchen slot ID
+  const addLinkedKitchenSlot = useCallback((groupId: string, slotId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    const linkedIds = group.linkedKitchenSlotIds || [];
+    if (!linkedIds.includes(slotId)) {
+      updateGroup(groupId, {
+        linkedKitchenSlotIds: [...linkedIds, slotId],
+      });
+    }
+  }, [groups, updateGroup]);
+
   return {
     groups,
     isLoading,
@@ -69,5 +115,8 @@ export const useAdminGroups = () => {
     updateGroup,
     deleteGroup,
     getGroup,
+    getDayUseGroupsForDate,
+    addLinkedSpaceReservation,
+    addLinkedKitchenSlot,
   };
 };

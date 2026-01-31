@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useKitchenData } from '@/hooks/useKitchenData';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { TentCard } from '@/components/TentCard';
 import { FacilityTile } from '@/components/FacilityCard';
@@ -8,9 +10,10 @@ import { DailyTasksCalendar } from '@/components/DailyTasksCalendar';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { TentSummary } from '@/types/village';
 import { format, isToday, addDays, subDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
   Calendar as CalendarIcon, 
@@ -20,11 +23,18 @@ import {
   Loader2,
   ArrowRight,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Sun,
+  Users,
+  Clock,
+  Building2,
+  ChefHat
 } from 'lucide-react';
 
 const Today = () => {
   const { state, isLoading, getTodaySummary, getTentSummary } = useVillage();
+  const { getDayUseGroupsForDate } = useAdminGroups();
+  const { getTimeSlotsForDate } = useKitchenData();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // Get summary for selected date
@@ -50,6 +60,21 @@ const Today = () => {
 
     return { checkIns, checkOuts };
   }, [state, selectedDate, getTentSummary]);
+
+  // Get day-use groups for selected date
+  const dayUseGroups = useMemo(() => {
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    return getDayUseGroupsForDate(dateStr);
+  }, [selectedDate, getDayUseGroupsForDate]);
+
+  // Get meals for day-use groups today
+  const getMealsForGroup = (groupName: string) => {
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const slots = getTimeSlotsForDate(dateStr);
+    return slots.filter(slot => 
+      slot.groups.some(g => g.name === groupName)
+    );
+  };
 
   if (isLoading || !state) {
     return (
@@ -214,6 +239,82 @@ const Today = () => {
             </div>
           )}
         </section>
+
+        {/* Day-Use Groups Section */}
+        {dayUseGroups.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
+                <Sun className="w-8 h-8 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">
+                  פעילויות יום (ללא לינה)
+                </h2>
+                <p className="text-muted-foreground">{dayUseGroups.length} קבוצות יום</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {dayUseGroups.map((group) => {
+                const groupMeals = getMealsForGroup(group.groupName);
+                const specialCount = groupMeals.reduce((acc, slot) => {
+                  const { vegetarian, vegan, glutenFree, lactoseFree, allergies } = slot.specialDiets;
+                  return acc + vegetarian + vegan + glutenFree + lactoseFree + allergies;
+                }, 0);
+
+                return (
+                  <Card key={group.id} className="border-amber-200 dark:border-amber-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold text-lg">{group.groupName}</h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            {group.pax} משתתפים
+                          </p>
+                        </div>
+                        <Sun className="w-5 h-5 text-amber-500" />
+                      </div>
+
+                      {/* Time window */}
+                      {(group.arrivalTime || group.departureTime) && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                          <Clock className="w-4 h-4" />
+                          <span>{group.arrivalTime || '09:00'} - {group.departureTime || '17:00'}</span>
+                        </div>
+                      )}
+
+                      {/* Space bookings indicator */}
+                      {group.linkedSpaceReservationIds && group.linkedSpaceReservationIds.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm mb-2">
+                          <Building2 className="w-4 h-4 text-primary" />
+                          <span>{group.linkedSpaceReservationIds.length} הזמנות מרחבים</span>
+                        </div>
+                      )}
+
+                      {/* Meals indicator */}
+                      {groupMeals.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <ChefHat className="w-4 h-4 text-amber-600" />
+                          <span>{groupMeals.length} ארוחות</span>
+                          {specialCount > 0 && (
+                            <span className="text-amber-600 font-medium">⚠️ {specialCount} מיוחדים</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {group.notes && (
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{group.notes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Tents Needing Cleaning (only show if viewing today) */}
         {isViewingToday && (
