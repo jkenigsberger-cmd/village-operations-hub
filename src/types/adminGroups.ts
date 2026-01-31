@@ -16,6 +16,12 @@ export interface ScheduleItem {
   description: string;
 }
 
+export interface VIPTentPlan {
+  tentCode: string;        // "80", "81", ..., "89"
+  bedsPlanned: number;     // 1, 2, or 3
+  gender?: 'female' | 'male';
+}
+
 export interface GroupRecord {
   id: string;
   groupName: string;
@@ -36,7 +42,8 @@ export interface GroupRecord {
   // Staff/Participant allocation tracking
   staffCount?: number; // צוות - VIP tents
   participantCount?: number; // חניכים - auto = pax - staffCount
-  vipPeoplePerTent?: number; // default 3
+  vipPeoplePerTent?: number; // default 3 (fallback when vipTentPlans empty)
+  vipTentPlans?: VIPTentPlan[]; // Individual VIP tent assignments
   remainingStaff?: number; // init = staffCount
   remainingParticipants?: number; // init = participantCount
   createdAt: string;
