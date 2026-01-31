@@ -1,264 +1,197 @@
 
 
-## Plan: VIP Tent Planner with Per-Tent Bed Count and Double-Booking Prevention
+## Plan: VIP Tent Planning Without Specific Tent Numbers + Dashboard Sync
 
 ### Summary
-Replace the simple "אנשים לאוהל VIP" numeric field with an interactive VIP Tent Planner that:
-1. Allows specifying different bed counts (1-3) for each VIP tent individually
-2. Supports optional gender assignment per tent (for separated accommodation)
-3. **Prevents double-booking** by checking if VIP tents are already allocated to other groups for overlapping dates
+Modify the VIP Tent Planner to allow planning tent **configurations** (number of tents, beds per tent, gender) without selecting specific VIP tent numbers. The actual tent assignment (80-89) happens later in the VIP dashboard when assigning groups. This syncs with the VIP dashboard to show only "צוות" counts for VIP, keeping staff separate from participants.
 
 ---
 
-### Current State Analysis
+### Current Problem
 
-**Current UI (`src/pages/AdminGroupEdit.tsx` lines 666-679)**:
-- Single numeric input for "אנשים לאוהל VIP"
-- Sets a global default (1-3) for ALL tents
-- Cannot specify different occupancy per tent
-- No visibility into which VIP tents are already booked
-
-**Problem**: Groups needing gender separation require different occupancy per tent (e.g., 3 females in tent 80, 2 males in tent 81). Also, no protection against double-booking VIP tents.
+1. **Current VIPTentPlanner** forces selection of specific tent numbers (80, 81, etc.) when creating a group
+2. The person creating the group often doesn't know which exact tents to use
+3. Need: Just specify "I need 5 VIP tents with X beds each" without choosing 80/81/82...
+4. Missing: Extra bed option (sometimes tents can have 3+1 = 4 beds)
+5. Need: VIP dashboard should show group name but only with staff count, keeping VIP separate from regular neighborhoods
 
 ---
 
 ### Solution Overview
 
-#### A) New Data Structure
+#### A) Simplified VIP Tent Configuration (No Specific Numbers)
 
-**File: `src/types/adminGroups.ts`**
-
-Add new interface for individual VIP tent plans:
+Replace `VIPTentPlan` with a simpler configuration structure:
 
 ```typescript
-export interface VIPTentPlan {
-  tentCode: string;        // "80" through "89"
-  bedsPlanned: number;     // 1, 2, or 3
-  gender?: 'female' | 'male';  // Optional gender designation
+export interface VIPTentConfig {
+  id: string;            // Unique identifier for this config entry
+  bedsPlanned: number;   // 1, 2, 3, or 4 (with extra bed)
+  gender?: 'female' | 'male';
+  hasExtraBed?: boolean; // If true, bedsPlanned = 3 + 1 extra
+  assignedTentCode?: string; // Filled later in VIP dashboard (80-89)
 }
 ```
 
-Add to `GroupRecord` interface:
+Replace `vipTentPlans` field in `GroupRecord`:
 ```typescript
-vipTentPlans?: VIPTentPlan[];  // Array of planned VIP tent assignments
+vipTentConfigs?: VIPTentConfig[]; // Replaces vipTentPlans
 ```
 
 ---
 
-#### B) VIP Tent Availability Checker
+#### B) Modified VIPTentPlanner Component
 
-**File: `src/hooks/useGroupAllocation.ts`**
+**Changes:**
+- Remove tent number selection (80-89 dropdown)
+- Show simple "Add Tent Configuration" button
+- Each config card shows:
+  - Beds selector: 1 / 2 / 3 buttons
+  - Extra bed toggle (adds +1 when enabled)
+  - Gender selector (♀️/♂️/None)
+  - Remove button
+- Display totals: "X אוהלים / Y מיטות מתוכננות"
 
-Add new function to check which VIP tents are available for a date range:
-
-```typescript
-getAvailableVIPTents(
-  startDate: string, 
-  endDate: string, 
-  excludeGroupId?: string
-): { tentCode: string; available: boolean; conflictingGroup?: string }[]
-```
-
-**Logic**:
-1. Iterate through VIP tent codes (80-89)
-2. For each tent, check:
-   - Existing `AllocationRecord` entries with `allocationType === 'VIP_TENT'` and overlapping dates
-   - Existing tent bookings in `VillageContext` with overlapping dates
-3. Return availability status and conflicting group name if blocked
-
----
-
-#### C) Interactive VIP Tent Planner UI
-
-**File: `src/pages/AdminGroupEdit.tsx`**
-
-Replace the single input with a visual tent planner section:
-
+**Visual:**
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  📋 תכנון אוהלי VIP לצוות                                                │
+│  📋 תצורת אוהלי VIP לצוות                                                │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  נדרש: 14 מיטות צוות                                                    │
-│  מתוכנן: 11 מיטות ב-4 אוהלים                                            │
+│  מתוכנן: 14 מיטות ב-5 אוהלים                                            │
 │                                                                         │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                                                                    │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐            │ │
-│  │  │  VIP 80  │  │  VIP 81  │  │  VIP 82  │  │  VIP 83  │            │ │
-│  │  │   ⚪⚪⚪  │  │   ⚪⚪⚪  │  │   ⚪⚪⚪  │  │   ⚪⚪🔵  │            │ │
-│  │  │  [1][2][3]│  │  [1][2][3]│  │  [1][2][3]│  │  [1][2][3]│            │ │
-│  │  │    ♀️    │  │    ♀️    │  │    ♂️    │  │    ♂️    │            │ │
-│  │  │   [🗑️]   │  │   [🗑️]   │  │   [🗑️]   │  │   [🗑️]   │            │ │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘            │ │
-│  │                                                                    │ │
-│  │  ┌───────────────────────────────────────────────────────────────┐ │ │
-│  │  │  הוסף אוהל VIP:  [▾ בחר אוהל פנוי...      ]  ← Only shows     │ │ │
-│  │  │                     VIP 84 ✓ פנוי           available tents   │ │ │
-│  │  │                     VIP 85 ✓ פנוי                              │ │ │
-│  │  │                     VIP 86 ❌ תפוס - נחל 2026                  │ │ │
-│  │  │                     VIP 87 ✓ פנוי                              │ │ │
-│  │  │                     ...                                        │ │ │
-│  │  └───────────────────────────────────────────────────────────────┘ │ │
-│  │                                                                    │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐        │
+│  │  אוהל 1    │  │  אוהל 2    │  │  אוהל 3    │  │  אוהל 4    │        │
+│  │  [1][2][3] │  │  [1][2][3] │  │  [1][2][3] │  │  [1][2][3] │        │
+│  │  [+מיטה]   │  │  [+מיטה]   │  │  [+מיטה]   │  │  [+מיטה]   │        │
+│  │   ♀️/♂️    │  │   ♀️/♂️    │  │   ♀️/♂️    │  │   ♀️/♂️    │        │
+│  │   [🗑️]     │  │   [🗑️]     │  │   [🗑️]     │  │   [🗑️]     │        │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘        │
 │                                                                         │
-│  ⚠️ נשאר 3 מיטות צוות לא מתוכננות                                       │
+│  [+ הוסף אוהל VIP]                                                      │
 │                                                                         │
+│  ✓ כל מיטות הצוות מתוכננות                                              │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Implementation Details
+#### C) VIP Dashboard Integration
+
+When assigning a group to a VIP tent in the dashboard:
+
+1. **Group Selector Enhancement**: 
+   - Show groups with unassigned VIP configs
+   - Display: "קבוצה X - צוות נשאר: Y" (only staff count, not total pax)
+
+2. **Tent Assignment Flow**:
+   - When group is selected, show unassigned VIP configs
+   - User picks which config applies to this specific tent (80/81/etc.)
+   - System updates `assignedTentCode` in the config
+   - Dashboard shows group name + gender color on that tent
+
+3. **Visual Sync**:
+   - VIP tent color reflects assigned gender from config
+   - Label shows group name
+   - Only staff count matters for VIP (not participants)
+
+---
+
+### Technical Implementation
 
 #### File 1: `src/types/adminGroups.ts`
 
-**Add new type** after line 17:
+**Replace VIPTentPlan with VIPTentConfig:**
 
 ```typescript
-export interface VIPTentPlan {
-  tentCode: string;        // "80", "81", ..., "89"
-  bedsPlanned: number;     // 1, 2, or 3
+export interface VIPTentConfig {
+  id: string;                    // Unique ID for this config
+  bedsPlanned: number;           // Base beds: 1, 2, or 3
+  hasExtraBed?: boolean;         // +1 extra bed option
   gender?: 'female' | 'male';
+  assignedTentCode?: string;     // Filled when assigned to specific VIP tent
 }
 ```
 
-**Add to GroupRecord interface** (around line 39):
-
+**Update GroupRecord:**
 ```typescript
-vipTentPlans?: VIPTentPlan[];
+// Replace vipTentPlans with:
+vipTentConfigs?: VIPTentConfig[];
 ```
 
 ---
 
-#### File 2: `src/hooks/useGroupAllocation.ts`
+#### File 2: `src/components/VIPTentPlanner.tsx`
 
-**Add new function** to check VIP tent availability:
+**Complete rewrite:**
 
+- Remove `availableVIPTents` prop (no longer needed for planning)
+- Replace tent code display with generic "אוהל 1", "אוהל 2" labels
+- Add "Extra Bed" toggle per config
+- Calculate total: `sum of (bedsPlanned + (hasExtraBed ? 1 : 0))`
+- Simple add/remove without conflict checking (conflicts checked at assignment time)
+
+**New Props:**
 ```typescript
-// Get available VIP tents for a date range
-const getAvailableVIPTents = useCallback((
-  startDate: string, 
-  endDate: string, 
-  excludeGroupId?: string
-): { tentCode: string; available: boolean; conflictingGroup?: string }[] => {
-  
-  return VIP_TENT_CODES.map(tentCode => {
-    // Check allocations for this tent code
-    const conflictingAlloc = allocations.find(alloc => 
-      alloc.allocationType === 'VIP_TENT' &&
-      alloc.resourceId === tentCode &&
-      alloc.groupId !== excludeGroupId &&
-      dateRangesOverlap(startDate, endDate, alloc.dateRangeStart, alloc.dateRangeEnd)
-    );
-    
-    if (conflictingAlloc) {
-      const conflictGroup = groups.find(g => g.id === conflictingAlloc.groupId);
-      return { 
-        tentCode, 
-        available: false, 
-        conflictingGroup: conflictGroup?.groupName || 'קבוצה אחרת' 
-      };
-    }
-    
-    // Check village state for existing bookings
-    if (state) {
-      const tentId = `VIP_${tentCode}`;
-      const tent = state.tents[tentId];
-      if (tent && tent.checkInDate && tent.checkOutDate && tent.groupName) {
-        if (dateRangesOverlap(startDate, endDate, tent.checkInDate, tent.checkOutDate)) {
-          const tentGroup = groups.find(g => g.groupName === tent.groupName);
-          if (!excludeGroupId || tentGroup?.id !== excludeGroupId) {
-            return { 
-              tentCode, 
-              available: false, 
-              conflictingGroup: tent.groupName 
-            };
-          }
-        }
-      }
-    }
-    
-    return { tentCode, available: true };
-  });
-}, [allocations, groups, state, dateRangesOverlap]);
-```
-
-**Add to return object**:
-```typescript
-return {
-  // ...existing exports
-  getAvailableVIPTents,
-};
+interface VIPTentPlannerProps {
+  staffCount: number;
+  vipTentConfigs: VIPTentConfig[];
+  onConfigsChange: (configs: VIPTentConfig[]) => void;
+  disabled?: boolean;
+}
 ```
 
 ---
 
 #### File 3: `src/pages/AdminGroupEdit.tsx`
 
-**A) Add state for VIP tent plans** (after existing state declarations):
+**Changes:**
 
-```typescript
-const [vipTentPlans, setVipTentPlans] = useState<VIPTentPlan[]>([]);
-```
+- Replace `vipTentPlans` state with `vipTentConfigs`
+- Remove `availableVIPTents` computed value (not needed for planning)
+- Update form submission to save `vipTentConfigs` instead of `vipTentPlans`
+- Update capacity check to use total beds from configs
 
-**B) Add effect to load plans from formData**:
+---
 
-```typescript
-useEffect(() => {
-  if (formData.vipTentPlans) {
-    setVipTentPlans(formData.vipTentPlans);
-  }
-}, [formData.vipTentPlans]);
-```
+#### File 4: `src/components/TentDetailModal.tsx`
 
-**C) Add computed values**:
+**VIP-specific group handling:**
 
-```typescript
-// Calculate totals
-const plannedVIPBeds = vipTentPlans.reduce((sum, t) => sum + t.bedsPlanned, 0);
-const staffCount = formData.staffCount || 0;
-const remainingToPlan = staffCount - plannedVIPBeds;
+When `tent.isVIP === true`:
+1. Group selector shows only "צוות" remaining count
+2. When group selected, show unassigned VIPTentConfigs as options
+3. User picks which config to apply to this tent
+4. System marks config as assigned with `assignedTentCode = tent.code`
+5. Apply gender and bed count from the config
 
-// Get available tents based on group dates
-const availableVIPTents = useMemo(() => {
-  if (!formData.startDate || !formData.endDate) return [];
-  return getAvailableVIPTents(formData.startDate, formData.endDate, isNew ? undefined : id);
-}, [formData.startDate, formData.endDate, getAvailableVIPTents, isNew, id]);
-```
-
-**D) Replace single input (lines 666-679) with VIP Tent Planner UI**:
-
-New component renders:
-- Summary header: "נדרש: X מיטות צוות / מתוכנן: Y מיטות ב-Z אוהלים"
-- Grid of planned tent cards, each showing:
-  - Tent code (VIP 80, VIP 81, etc.)
-  - Bed count selector (1/2/3 toggle buttons)
-  - Optional gender selector (♀️/♂️/-)
-  - Remove button
-- Dropdown to add new tent (only shows available tents, with conflict indicators)
-- Warning if planned beds are less than staffCount
-
-**E) Update handleSave** to include vipTentPlans in saved data:
-
-```typescript
-const dataToSave: GroupRecord = {
-  ...formData,
-  vipTentPlans,
-  // ... rest of fields
-};
+**New UI section for VIP tents:**
+```text
+┌────────────────────────────────────────────┐
+│  🔗 שיבוץ מקבוצה קיימת                      │
+│                                            │
+│  קבוצה: [▾ נחל 2026 - צוות נשאר: 6]        │
+│                                            │
+│  תצורה לאוהל זה:                            │
+│  [▾ 3 מיטות + מיטה נוספת (♀️)]             │
+│  [▾ 3 מיטות (♂️)]                          │
+│  [▾ 2 מיטות (♂️)]                          │
+│                                            │
+│  [שבץ לאוהל VIP 82]                         │
+└────────────────────────────────────────────┘
 ```
 
 ---
 
-### Double-Booking Prevention Logic
+#### File 5: `src/hooks/useGroupAllocation.ts`
 
-When adding a VIP tent to the plan:
-1. Call `getAvailableVIPTents()` with the group's date range
-2. Only allow selecting tents where `available === true`
-3. Show conflict message for blocked tents: "VIP 86 ❌ תפוס - נחל 2026"
-4. If dates change after tents are already planned, re-validate and show warnings
+**Updates:**
+
+- Remove `getAvailableVIPTents` function (no longer used for planning)
+- Add new function: `getUnassignedVIPConfigs(groupId: string)` - returns configs without `assignedTentCode`
+- Update `checkCapacity` to use `vipTentConfigs` for bed calculation
+- Add function: `assignVIPConfig(groupId: string, configId: string, tentCode: string)` - marks config as assigned
 
 ---
 
@@ -266,9 +199,43 @@ When adding a VIP tent to the plan:
 
 | File | Changes |
 |------|---------|
-| `src/types/adminGroups.ts` | Add `VIPTentPlan` interface and `vipTentPlans` field to `GroupRecord` |
-| `src/hooks/useGroupAllocation.ts` | Add `getAvailableVIPTents()` function for conflict detection |
-| `src/pages/AdminGroupEdit.tsx` | Replace single input with interactive VIP Tent Planner UI |
+| `src/types/adminGroups.ts` | Replace `VIPTentPlan` with `VIPTentConfig`, add `hasExtraBed` field |
+| `src/components/VIPTentPlanner.tsx` | Remove tent number selection, add extra bed toggle, use generic labels |
+| `src/pages/AdminGroupEdit.tsx` | Use `vipTentConfigs` instead of `vipTentPlans` |
+| `src/components/TentDetailModal.tsx` | Add VIP config assignment UI for VIP tents |
+| `src/hooks/useGroupAllocation.ts` | Add config assignment functions, update capacity calculations |
+
+---
+
+### Data Flow
+
+```text
+GROUP CREATION (AdminGroupEdit):
+┌─────────────────────────────────────────────┐
+│  User enters: צוות = 14                      │
+│  Adds 5 VIP tent configs:                   │
+│    - Config 1: 3 beds (♀️)                  │
+│    - Config 2: 3 beds (♀️)                  │
+│    - Config 3: 3 beds (♂️)                  │
+│    - Config 4: 3 beds (♂️)                  │
+│    - Config 5: 2 beds (♂️)                  │
+│  Total: 14 beds in 5 tents ✓               │
+└─────────────────────────────────────────────┘
+                    ↓
+              Saves group with vipTentConfigs
+              (no assignedTentCode yet)
+                    ↓
+VIP DASHBOARD (TentDetailModal):
+┌─────────────────────────────────────────────┐
+│  Staff opens VIP tent 82                    │
+│  Selects group "נחל 2026"                   │
+│  Sees unassigned configs dropdown           │
+│  Picks: "3 מיטות (♂️)"                      │
+│  Clicks "שבץ לאוהל VIP 82"                  │
+│  Config now has assignedTentCode = "82"     │
+│  Tent shows group name + male color         │
+└─────────────────────────────────────────────┘
+```
 
 ---
 
@@ -276,20 +243,20 @@ When adding a VIP tent to the plan:
 
 | Test | Expected Behavior |
 |------|-------------------|
-| 1. Create group with staffCount = 14 | VIP Tent Planner section appears |
-| 2. Click "הוסף אוהל VIP" dropdown | Shows VIP 80-89 with availability status |
-| 3. Select VIP 80, set beds to 3 | Card appears with 3 beds, total shows "3 מיטות ב-1 אוהלים" |
-| 4. Add more tents until 14 beds planned | Warning disappears, all tents shown |
-| 5. Try to add tent already used by another group | Dropdown shows "❌ תפוס - [groupName]", blocked |
-| 6. Save and re-open group | Tent plans persist correctly |
-| 7. Create second group with overlapping dates | Cannot select tents already planned by first group |
-| 8. Change dates on existing group | Re-validates tent availability |
+| 1. Create group with staffCount = 14 | VIP config section appears |
+| 2. Click "הוסף אוהל VIP" 5 times | 5 generic tent configs appear (no numbers) |
+| 3. Set beds and toggle extra bed | Total updates correctly (3+1 = 4 for extra) |
+| 4. Save group | vipTentConfigs saved without assignedTentCode |
+| 5. Open VIP tent 82 in dashboard | Can select group and pick unassigned config |
+| 6. Assign config to tent | Config marked with assignedTentCode="82" |
+| 7. View VIP map | Tent 82 shows group name and gender color |
+| 8. Same config cannot be assigned twice | Already-assigned configs hidden from dropdown |
 
 ---
 
 ### Backwards Compatibility
 
-- Keep `vipPeoplePerTent` as fallback default when `vipTentPlans` is empty
-- Existing groups without `vipTentPlans` continue to work normally
-- Capacity check uses `vipTentPlans` if present, otherwise falls back to `staffCount / vipPeoplePerTent`
+- Migrate existing `vipTentPlans` to `vipTentConfigs` format
+- If `vipTentPlans` has `tentCode`, convert to `assignedTentCode`
+- Keep `vipPeoplePerTent` as fallback when no configs exist
 
