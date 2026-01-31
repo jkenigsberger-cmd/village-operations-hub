@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { GroupRecord, GroupStatus } from '@/types/adminGroups';
-import { BreadcrumbNav } from '@/components/BreadcrumbNav';
+import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Users, 
   Plus, 
@@ -12,11 +12,10 @@ import {
   Phone, 
   Loader2,
   ArrowRight,
-  CheckCircle,
   Clock,
   Tent
 } from 'lucide-react';
-import { format, parseISO, isWithinInterval, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, isWithinInterval, isAfter } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 const statusLabels: Record<GroupStatus, string> = {
@@ -48,9 +47,11 @@ const AdminGroups = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 
@@ -64,33 +65,18 @@ const AdminGroups = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <header className="bg-card border-b-2 border-border">
-        <div className="container py-6">
-          <BreadcrumbNav items={[{ label: 'ניהול', path: '/settings' }, { label: 'קבוצות / הזמנות' }]} />
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-                <Users className="w-10 h-10" />
-                קבוצות / הזמנות
-              </h1>
-              <p className="text-muted-foreground text-lg mt-2">
-                ניהול קבוצות ולוחות זמנים
-              </p>
-            </div>
-            <Button 
-              size="lg" 
-              onClick={() => navigate('/admin/groups/new')}
-              className="text-lg px-6"
-            >
-              <Plus className="w-5 h-5 ml-2" />
-              קבוצה חדשה
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container py-6">
+    <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold">רשימת קבוצות</h2>
+        <Button 
+          size="lg" 
+          onClick={() => navigate('/admin/groups/new')}
+          className="text-lg px-6"
+        >
+          <Plus className="w-5 h-5 ml-2" />
+          קבוצה חדשה
+        </Button>
+      </div>
         {groups.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="flex flex-col items-center gap-4">
@@ -165,8 +151,7 @@ const AdminGroups = () => {
             })}
           </div>
         )}
-      </main>
-    </div>
+    </AdminLayout>
   );
 };
 
