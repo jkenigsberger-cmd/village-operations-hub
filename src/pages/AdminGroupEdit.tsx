@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useVillage } from '@/context/VillageContext';
+import { useKitchenData } from '@/hooks/useKitchenData';
 import { 
   GroupRecord, 
+  GroupType,
   ScheduleItem, 
   ScheduleCategory,
   SCHEDULE_LOCATIONS, 
-  SCHEDULE_CATEGORY_LABELS 
+  SCHEDULE_CATEGORY_LABELS,
+  SPACE_ID_MAP 
 } from '@/types/adminGroups';
+import { MealType, MEAL_LABELS } from '@/types/kitchen';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   Users, 
   Save, 
@@ -24,8 +30,11 @@ import {
   Plus,
   Trash2,
   Loader2,
-  ArrowRight,
-  Clock
+  Clock,
+  Building2,
+  ChefHat,
+  AlertCircle,
+  Sun
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -42,11 +51,187 @@ const emptyScheduleItem = (): ScheduleItem => ({
   description: '',
 });
 
+// Space booking modal component
+interface SpaceBookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { spaceId: string; date: string; startTime: string; endTime: string; notes?: string }) => void;
+  groupDates: { start: string; end: string };
+}
+
+const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({ isOpen, onClose, onSubmit, groupDates }) => {
+  const [spaceId, setSpaceId] = useState('');
+  const [date, setDate] = useState(groupDates.start);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('12:00');
+  const [notes, setNotes] = useState('');
+
+  const handleSubmit = () => {
+    if (!spaceId || !date || !startTime || !endTime) {
+      toast.error('נא למלא את כל השדות');
+      return;
+    }
+    if (startTime >= endTime) {
+      toast.error('שעת סיום חייבת להיות אחרי שעת התחלה');
+      return;
+    }
+    onSubmit({ spaceId, date, startTime, endTime, notes });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            הזמנת מרחב
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">מרחב</label>
+            <Select value={spaceId} onValueChange={setSpaceId}>
+              <SelectTrigger>
+                <SelectValue placeholder="בחר מרחב" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SPACE_ID_MAP).map(([name, id]) => (
+                  <SelectItem key={id} value={id}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">תאריך</label>
+            <Input 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)}
+              min={groupDates.start}
+              max={groupDates.end}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">שעת התחלה</label>
+              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">שעת סיום</label>
+              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">הערות (אופציונלי)</label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>ביטול</Button>
+          <Button onClick={handleSubmit}>הזמן מרחב</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Meal booking modal component
+interface MealBookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { mealType: MealType; date: string; time: string; location: 'DINING_HALL' | 'OUTSIDE'; pax: number }) => void;
+  groupDates: { start: string; end: string };
+  defaultPax: number;
+}
+
+const MealBookingModal: React.FC<MealBookingModalProps> = ({ isOpen, onClose, onSubmit, groupDates, defaultPax }) => {
+  const [mealType, setMealType] = useState<MealType>('LUNCH');
+  const [date, setDate] = useState(groupDates.start);
+  const [time, setTime] = useState('13:00');
+  const [location, setLocation] = useState<'DINING_HALL' | 'OUTSIDE'>('DINING_HALL');
+  const [pax, setPax] = useState(defaultPax);
+
+  const handleSubmit = () => {
+    if (!date || !time) {
+      toast.error('נא למלא את כל השדות');
+      return;
+    }
+    onSubmit({ mealType, date, time, location, pax });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ChefHat className="w-5 h-5" />
+            הוספת ארוחה
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">סוג ארוחה</label>
+            <Select value={mealType} onValueChange={(v) => setMealType(v as MealType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BREAKFAST">{MEAL_LABELS.BREAKFAST}</SelectItem>
+                <SelectItem value="LUNCH">{MEAL_LABELS.LUNCH}</SelectItem>
+                <SelectItem value="DINNER">{MEAL_LABELS.DINNER}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">תאריך</label>
+            <Input 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)}
+              min={groupDates.start}
+              max={groupDates.end}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">שעה</label>
+            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">מיקום</label>
+            <Select value={location} onValueChange={(v) => setLocation(v as 'DINING_HALL' | 'OUTSIDE')}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DINING_HALL">חדר אוכל</SelectItem>
+                <SelectItem value="OUTSIDE">מחוץ לחדר אוכל</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">מספר סועדים</label>
+            <Input type="number" min={1} value={pax} onChange={(e) => setPax(parseInt(e.target.value) || 0)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>ביטול</Button>
+          <Button onClick={handleSubmit}>הוסף ארוחה</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const AdminGroupEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'new';
-  const { groups, isLoading, addGroup, updateGroup, getGroup } = useAdminGroups();
+  const { groups, isLoading, addGroup, updateGroup, getGroup, addLinkedSpaceReservation, addLinkedKitchenSlot } = useAdminGroups();
+  const { addActivityReservation } = useVillage();
+  const { addTimeSlot } = useKitchenData();
+
+  const [spaceModalOpen, setSpaceModalOpen] = useState(false);
+  const [mealModalOpen, setMealModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -58,6 +243,9 @@ const AdminGroupEdit = () => {
     notes: '',
     scheduleItems: [],
     status: 'PLANNED',
+    groupType: 'לינה',
+    arrivalTime: '09:00',
+    departureTime: '17:00',
   });
 
   useEffect(() => {
@@ -74,6 +262,11 @@ const AdminGroupEdit = () => {
           notes: existing.notes || '',
           scheduleItems: existing.scheduleItems,
           status: existing.status,
+          groupType: existing.groupType || 'לינה',
+          arrivalTime: existing.arrivalTime || '09:00',
+          departureTime: existing.departureTime || '17:00',
+          linkedSpaceReservationIds: existing.linkedSpaceReservationIds,
+          linkedKitchenSlotIds: existing.linkedKitchenSlotIds,
         });
       }
     }
@@ -126,6 +319,53 @@ const AdminGroupEdit = () => {
     }));
   };
 
+  // Handle space booking
+  const handleSpaceBooking = (data: { spaceId: string; date: string; startTime: string; endTime: string; notes?: string }) => {
+    const success = addActivityReservation({
+      spaceId: data.spaceId,
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      groupName: formData.groupName,
+      notes: data.notes,
+    });
+
+    if (success) {
+      toast.success('המרחב הוזמן בהצלחה');
+      setSpaceModalOpen(false);
+      // If editing existing group, link the reservation
+      if (!isNew && id) {
+        // Note: The reservation ID is generated inside addActivityReservation
+        // In a real implementation, we'd get the ID back. For now, just save the group.
+      }
+    } else {
+      toast.error('המרחב תפוס בשעות אלה! נא לבחור שעות אחרות');
+    }
+  };
+
+  // Handle meal booking
+  const handleMealBooking = (data: { mealType: MealType; date: string; time: string; location: 'DINING_HALL' | 'OUTSIDE'; pax: number }) => {
+    const slotId = addTimeSlot(
+      data.date,
+      data.mealType,
+      data.time,
+      data.location,
+      data.pax,
+      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, allergies: 0, notes: `קבוצה: ${formData.groupName}` },
+      [{ name: formData.groupName, pax: data.pax }]
+    );
+
+    if (slotId) {
+      toast.success('הארוחה נוספה בהצלחה');
+      setMealModalOpen(false);
+      if (!isNew && id) {
+        addLinkedKitchenSlot(id, slotId);
+      }
+    } else {
+      toast.error('שגיאה בהוספת הארוחה');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -133,6 +373,8 @@ const AdminGroupEdit = () => {
       </div>
     );
   }
+
+  const isDayUse = formData.groupType === 'יום ללא לינה';
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -168,6 +410,37 @@ const AdminGroupEdit = () => {
             <CardTitle>פרטי הקבוצה</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Group Type Selector */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <label className="text-sm font-medium">סוג קבוצה</label>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={!isDayUse ? 'default' : 'outline'}
+                  onClick={() => setFormData(prev => ({ ...prev, groupType: 'לינה' }))}
+                  className="flex-1"
+                >
+                  <Users className="w-4 h-4 ml-2" />
+                  לינה
+                </Button>
+                <Button
+                  type="button"
+                  variant={isDayUse ? 'default' : 'outline'}
+                  onClick={() => setFormData(prev => ({ ...prev, groupType: 'יום ללא לינה' }))}
+                  className="flex-1"
+                >
+                  <Sun className="w-4 h-4 ml-2" />
+                  פעילות יום ללא לינה
+                </Button>
+              </div>
+              {isDayUse && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                  <AlertCircle className="w-4 h-4" />
+                  קבוצת יום - ללא הקצאת אוהלים
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">שם הקבוצה *</label>
@@ -199,7 +472,7 @@ const AdminGroupEdit = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">כמות אנשים *</label>
+                <label className="text-sm font-medium">{isDayUse ? 'כמות משתתפים *' : 'כמות אנשים *'}</label>
                 <Input
                   type="number"
                   min={1}
@@ -211,7 +484,7 @@ const AdminGroupEdit = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">תאריך התחלה</label>
+                <label className="text-sm font-medium">{isDayUse ? 'תאריך התחלה' : 'תאריך התחלה'}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-right">
@@ -235,7 +508,7 @@ const AdminGroupEdit = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">תאריך סיום</label>
+                <label className="text-sm font-medium">{isDayUse ? 'תאריך סיום' : 'תאריך סיום'}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-right">
@@ -259,6 +532,34 @@ const AdminGroupEdit = () => {
               </div>
             </div>
 
+            {/* Day-use specific time fields */}
+            {isDayUse && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    שעת הגעה
+                  </label>
+                  <Input
+                    type="time"
+                    value={formData.arrivalTime || '09:00'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    שעת סיום
+                  </label>
+                  <Input
+                    type="time"
+                    value={formData.departureTime || '17:00'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-sm font-medium">מידע / הערות</label>
               <Textarea
@@ -270,6 +571,33 @@ const AdminGroupEdit = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Actions for Day-Use Groups */}
+        {isDayUse && !isNew && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sun className="w-5 h-5" />
+                פעולות מהירות
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => setSpaceModalOpen(true)} variant="outline" className="gap-2">
+                  <Building2 className="w-4 h-4" />
+                  הזמן מרחב
+                </Button>
+                <Button onClick={() => setMealModalOpen(true)} variant="outline" className="gap-2">
+                  <ChefHat className="w-4 h-4" />
+                  הוסף ארוחה
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-3">
+                הזמנות מרחבים וארוחות יופיעו בלוח השנה ויהיו נגישות לכל הצוות
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Schedule Card */}
         <Card>
@@ -420,6 +748,23 @@ const AdminGroupEdit = () => {
           </Button>
         </div>
       </main>
+
+      {/* Space Booking Modal */}
+      <SpaceBookingModal
+        isOpen={spaceModalOpen}
+        onClose={() => setSpaceModalOpen(false)}
+        onSubmit={handleSpaceBooking}
+        groupDates={{ start: formData.startDate, end: formData.endDate }}
+      />
+
+      {/* Meal Booking Modal */}
+      <MealBookingModal
+        isOpen={mealModalOpen}
+        onClose={() => setMealModalOpen(false)}
+        onSubmit={handleMealBooking}
+        groupDates={{ start: formData.startDate, end: formData.endDate }}
+        defaultPax={formData.pax}
+      />
     </div>
   );
 };

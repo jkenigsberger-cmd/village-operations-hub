@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { CalendarEvent, CalendarEventType } from '@/types/village';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { kitchenSlotsToCalendarEvents, KITCHEN_EVENT_COLOR } from '@/lib/kitchenCalendarEvents';
@@ -21,15 +22,18 @@ import {
   Flame,
   LogIn,
   LogOut,
-  ChefHat
+  ChefHat,
+  Sun
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isWithinInterval, parseISO, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'day' | 'week' | 'month';
 
 // Color palette for event types
+const DAY_USE_COLOR = 'hsl(40, 90%, 50%)'; // Warm amber for day-use
+
 const EVENT_COLORS: Record<CalendarEventType, string> = {
   NEIGHBORHOOD: 'hsl(270, 70%, 50%)', // Purple
   FACILITY: 'hsl(30, 90%, 50%)',      // Orange
@@ -37,6 +41,7 @@ const EVENT_COLORS: Record<CalendarEventType, string> = {
   TENT_CHECKIN: 'hsl(142, 70%, 45%)', // Green
   TENT_CHECKOUT: 'hsl(210, 80%, 50%)', // Blue
   KITCHEN: KITCHEN_EVENT_COLOR,        // Warm amber
+  DAY_USE: DAY_USE_COLOR,              // Warm amber for day-use
 };
 
 interface FilterState {
@@ -45,10 +50,12 @@ interface FilterState {
   showCheckIns: boolean;
   showCheckOuts: boolean;
   showKitchen: boolean;
+  showDayUse: boolean;
 }
 
 export const MasterCalendar: React.FC = () => {
   const { state, getFacilityReservations } = useVillage();
+  const { groups } = useAdminGroups();
   const { state: kitchenState } = useKitchenData();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -60,6 +67,7 @@ export const MasterCalendar: React.FC = () => {
     showCheckIns: true,
     showCheckOuts: true,
     showKitchen: true,
+    showDayUse: true,
   });
 
   // Generate all calendar events from different sources
@@ -169,8 +177,39 @@ export const MasterCalendar: React.FC = () => {
     const kitchenEvents = kitchenSlotsToCalendarEvents(kitchenState.timeSlots);
     events.push(...kitchenEvents);
 
+    // 6. Day-use groups from admin groups
+    const dayUseGroups = groups.filter(g => g.groupType === 'יום ללא לינה');
+    dayUseGroups.forEach(group => {
+      const start = parseISO(group.startDate);
+      const end = parseISO(group.endDate);
+      const daysInRange = eachDayOfInterval({ start, end });
+      
+      daysInRange.forEach(day => {
+        const dateStr = format(day, 'yyyy-MM-dd');
+        events.push({
+          id: `dayuse_${group.id}_${dateStr}`,
+          type: 'DAY_USE',
+          title: `פעילות יום – ${group.groupName}`,
+          groupName: group.groupName,
+          startDate: dateStr,
+          startTime: group.arrivalTime || '09:00',
+          endTime: group.departureTime || '17:00',
+          location: 'פעילות יום',
+          color: EVENT_COLORS.DAY_USE,
+          metadata: {
+            groupId: group.id,
+            pax: group.pax,
+            arrivalTime: group.arrivalTime,
+            departureTime: group.departureTime,
+            linkedSpaces: group.linkedSpaceReservationIds,
+            linkedMeals: group.linkedKitchenSlotIds,
+          },
+        });
+      });
+    });
+
     return events;
-  }, [state, kitchenState.timeSlots]);
+  }, [state, kitchenState.timeSlots, groups]);
 
   // Filter events based on active filters
   const filteredEvents = useMemo(() => {
@@ -180,6 +219,7 @@ export const MasterCalendar: React.FC = () => {
       if (event.type === 'TENT_CHECKIN' && !filters.showCheckIns) return false;
       if (event.type === 'TENT_CHECKOUT' && !filters.showCheckOuts) return false;
       if (event.type === 'KITCHEN' && !filters.showKitchen) return false;
+      if (event.type === 'DAY_USE' && !filters.showDayUse) return false;
       return true;
     });
   }, [allEvents, filters]);
@@ -365,6 +405,16 @@ export const MasterCalendar: React.FC = () => {
             <ChefHat className="w-4 h-4" />
             מטבח
           </Button>
+          <Button
+            variant={filters.showDayUse ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleFilter('showDayUse')}
+            className="gap-1"
+            style={{ backgroundColor: filters.showDayUse ? EVENT_COLORS.DAY_USE : undefined }}
+          >
+            <Sun className="w-4 h-4" />
+            פעילות יום
+          </Button>
         </div>
       </div>
 
@@ -389,6 +439,10 @@ export const MasterCalendar: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.KITCHEN }} />
           <span>🍽️ מטבח</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.DAY_USE }} />
+          <span>☀️ פעילות יום</span>
         </div>
       </div>
 
