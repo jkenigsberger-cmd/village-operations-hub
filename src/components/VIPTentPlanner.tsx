@@ -171,14 +171,19 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
         {vipTentPlans.length < 10 && (
           <div className="flex items-center gap-2">
             <Select 
-              value="" 
-              onValueChange={addTent}
+              value="_placeholder" 
+              onValueChange={(value) => {
+                if (value !== "_placeholder") {
+                  addTent(value);
+                }
+              }}
               disabled={disabled || tentsForDropdown.filter(t => t.available).length === 0}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="הוסף אוהל VIP..." />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="_placeholder" disabled className="hidden">הוסף אוהל VIP...</SelectItem>
                 {tentsForDropdown.map(tent => (
                   <SelectItem 
                     key={tent.tentCode} 
