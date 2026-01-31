@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useVillage } from '@/context/VillageContext';
 import { useKitchenData } from '@/hooks/useKitchenData';
+import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { 
   GroupRecord, 
   GroupType,
@@ -13,6 +14,7 @@ import {
   SPACE_ID_MAP 
 } from '@/types/adminGroups';
 import { MealType, MEAL_LABELS } from '@/types/kitchen';
+import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +36,12 @@ import {
   Building2,
   ChefHat,
   AlertCircle,
-  Sun
+  Sun,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  UserCheck,
+  Tent
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -222,6 +229,93 @@ const MealBookingModal: React.FC<MealBookingModalProps> = ({ isOpen, onClose, on
   );
 };
 
+// Capacity Check Result Display
+interface CapacityResultDisplayProps {
+  result: CapacityCheckResult | null;
+}
+
+const CapacityResultDisplay: React.FC<CapacityResultDisplayProps> = ({ result }) => {
+  if (!result) return null;
+
+  return (
+    <div className={cn(
+      "p-4 rounded-lg border-2 space-y-3",
+      result.isAvailable 
+        ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" 
+        : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+    )}>
+      <div className="flex items-center gap-2 font-semibold text-lg">
+        {result.isAvailable ? (
+          <>
+            <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <span className="text-green-700 dark:text-green-400">✅ יש מספיק מקום</span>
+          </>
+        ) : (
+          <>
+            <XCircle className="w-6 h-6 text-red-600" />
+            <span className="text-red-700 dark:text-red-400">❌ אין מספיק מקום</span>
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        {/* VIP / Staff */}
+        <div className={cn(
+          "p-3 rounded-lg",
+          result.vipBeds.shortage > 0 ? "bg-red-100 dark:bg-red-900/30" : "bg-green-100 dark:bg-green-900/30"
+        )}>
+          <div className="font-medium flex items-center gap-2">
+            <UserCheck className="w-4 h-4" />
+            צוות (VIP)
+          </div>
+          <div className="mt-1">
+            נדרש: {result.vipBeds.required} | זמין: {result.vipBeds.available}
+            {result.vipBeds.shortage > 0 && (
+              <span className="text-red-600 font-bold mr-2">
+                (חסר: {result.vipBeds.shortage})
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Participants */}
+        <div className={cn(
+          "p-3 rounded-lg",
+          result.participantBeds.shortage > 0 ? "bg-red-100 dark:bg-red-900/30" : "bg-green-100 dark:bg-green-900/30"
+        )}>
+          <div className="font-medium flex items-center gap-2">
+            <Tent className="w-4 h-4" />
+            חניכים (שכונות)
+          </div>
+          <div className="mt-1">
+            נדרש: {result.participantBeds.required} | זמין: {result.participantBeds.available}
+            {result.participantBeds.shortage > 0 && (
+              <span className="text-red-600 font-bold mr-2">
+                (חסר: {result.participantBeds.shortage})
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Locked Neighborhoods */}
+      {result.lockedNeighborhoods.length > 0 && (
+        <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+          <div className="font-medium flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="w-4 h-4" />
+            שכונות תפוסות
+          </div>
+          <ul className="mt-1 text-sm">
+            {result.lockedNeighborhoods.map(n => (
+              <li key={n.id}>• {n.name} - {n.groupName}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminGroupEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -229,9 +323,12 @@ const AdminGroupEdit = () => {
   const { groups, isLoading, addGroup, updateGroup, getGroup, addLinkedSpaceReservation, addLinkedKitchenSlot } = useAdminGroups();
   const { addActivityReservation } = useVillage();
   const { addTimeSlot } = useKitchenData();
+  const { checkCapacity } = useGroupAllocation();
 
   const [spaceModalOpen, setSpaceModalOpen] = useState(false);
   const [mealModalOpen, setMealModalOpen] = useState(false);
+  const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
+  const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -246,6 +343,11 @@ const AdminGroupEdit = () => {
     groupType: 'לינה',
     arrivalTime: '09:00',
     departureTime: '17:00',
+    staffCount: 0,
+    participantCount: 10,
+    vipPeoplePerTent: 3,
+    remainingStaff: 0,
+    remainingParticipants: 10,
   });
 
   useEffect(() => {
@@ -267,10 +369,55 @@ const AdminGroupEdit = () => {
           departureTime: existing.departureTime || '17:00',
           linkedSpaceReservationIds: existing.linkedSpaceReservationIds,
           linkedKitchenSlotIds: existing.linkedKitchenSlotIds,
+          staffCount: existing.staffCount || 0,
+          participantCount: existing.participantCount || (existing.pax - (existing.staffCount || 0)),
+          vipPeoplePerTent: existing.vipPeoplePerTent || 3,
+          remainingStaff: existing.remainingStaff ?? existing.staffCount ?? 0,
+          remainingParticipants: existing.remainingParticipants ?? (existing.pax - (existing.staffCount || 0)),
         });
       }
     }
   }, [isNew, id, getGroup]);
+
+  // Auto-calculate participant count when pax or staffCount changes
+  useEffect(() => {
+    const staffCount = formData.staffCount || 0;
+    const participantCount = Math.max(0, formData.pax - staffCount);
+    
+    if (participantCount !== formData.participantCount) {
+      setFormData(prev => ({
+        ...prev,
+        participantCount,
+        remainingParticipants: participantCount,
+      }));
+    }
+  }, [formData.pax, formData.staffCount]);
+
+  // Update remaining staff when staffCount changes (for new groups)
+  useEffect(() => {
+    if (isNew) {
+      setFormData(prev => ({
+        ...prev,
+        remainingStaff: prev.staffCount || 0,
+      }));
+    }
+  }, [formData.staffCount, isNew]);
+
+  const handleCapacityCheck = () => {
+    setIsCheckingCapacity(true);
+    
+    // Create a temporary group record for checking
+    const tempGroup: GroupRecord = {
+      ...formData,
+      id: id || 'temp',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const result = checkCapacity(tempGroup);
+    setCapacityResult(result);
+    setIsCheckingCapacity(false);
+  };
 
   const handleSave = () => {
     if (!formData.groupName.trim()) {
@@ -283,6 +430,10 @@ const AdminGroupEdit = () => {
     }
     if (formData.pax < 1) {
       toast.error('נא להזין מספר אנשים');
+      return;
+    }
+    if ((formData.staffCount || 0) > formData.pax) {
+      toast.error('מספר הצוות לא יכול להיות גדול ממספר האנשים הכולל');
       return;
     }
 
@@ -333,11 +484,6 @@ const AdminGroupEdit = () => {
     if (success) {
       toast.success('המרחב הוזמן בהצלחה');
       setSpaceModalOpen(false);
-      // If editing existing group, link the reservation
-      if (!isNew && id) {
-        // Note: The reservation ID is generated inside addActivityReservation
-        // In a real implementation, we'd get the ID back. For now, just save the group.
-      }
     } else {
       toast.error('המרחב תפוס בשעות אלה! נא לבחור שעות אחרות');
     }
@@ -472,7 +618,7 @@ const AdminGroupEdit = () => {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">{isDayUse ? 'כמות משתתפים *' : 'כמות אנשים *'}</label>
+                <label className="text-sm font-medium">{isDayUse ? 'כמות משתתפים *' : 'כמות אנשים כוללת *'}</label>
                 <Input
                   type="number"
                   min={1}
@@ -481,6 +627,94 @@ const AdminGroupEdit = () => {
                 />
               </div>
             </div>
+
+            {/* Staff/Participant breakdown for lodging groups */}
+            {!isDayUse && (
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-4">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  חלוקת צוות וחניכים
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">צוות (VIP)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={formData.pax}
+                      value={formData.staffCount || 0}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        staffCount: Math.min(parseInt(e.target.value) || 0, prev.pax),
+                        remainingStaff: Math.min(parseInt(e.target.value) || 0, prev.pax),
+                      }))}
+                    />
+                    <p className="text-xs text-muted-foreground">יוקצו לאוהלי VIP</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">חניכים</label>
+                    <Input
+                      type="number"
+                      value={formData.participantCount || 0}
+                      disabled
+                      className="bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground">אוטומטי (סה״כ - צוות)</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">אנשים לאוהל VIP</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={3}
+                      value={formData.vipPeoplePerTent || 3}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        vipPeoplePerTent: Math.min(3, Math.max(1, parseInt(e.target.value) || 3))
+                      }))}
+                    />
+                    <p className="text-xs text-muted-foreground">ברירת מחדל: 3</p>
+                  </div>
+                </div>
+
+                {/* Remaining counters for existing groups */}
+                {!isNew && (
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                    <div className="p-3 bg-background rounded-lg text-center">
+                      <div className="text-2xl font-bold text-primary">{formData.remainingStaff || 0}</div>
+                      <div className="text-sm text-muted-foreground">צוות נשאר לשבץ</div>
+                    </div>
+                    <div className="p-3 bg-background rounded-lg text-center">
+                      <div className="text-2xl font-bold text-primary">{formData.remainingParticipants || 0}</div>
+                      <div className="text-sm text-muted-foreground">חניכים נשאר לשבץ</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Capacity Check Button */}
+                <div className="pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleCapacityCheck}
+                    disabled={isCheckingCapacity}
+                    className="w-full md:w-auto"
+                  >
+                    {isCheckingCapacity ? (
+                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 ml-2" />
+                    )}
+                    בדיקת קיבולת
+                  </Button>
+                </div>
+
+                {/* Capacity Result */}
+                <CapacityResultDisplay result={capacityResult} />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

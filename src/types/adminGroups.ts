@@ -33,6 +33,12 @@ export interface GroupRecord {
   // Linked IDs for day-use integrations
   linkedSpaceReservationIds?: string[]; // IDs of activity reservations
   linkedKitchenSlotIds?: string[]; // IDs of kitchen time slots
+  // Staff/Participant allocation tracking
+  staffCount?: number; // צוות - VIP tents
+  participantCount?: number; // חניכים - auto = pax - staffCount
+  vipPeoplePerTent?: number; // default 3
+  remainingStaff?: number; // init = staffCount
+  remainingParticipants?: number; // init = participantCount
   createdAt: string;
   updatedAt: string;
 }

@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { NeighborhoodId, Tent, TentGender, GenderCount } from '@/types/village';
+import { GroupRecord } from '@/types/adminGroups';
 import { 
   Calendar, 
   Users, 
@@ -12,7 +15,8 @@ import {
   User,
   MessageSquare,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Link as LinkIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -27,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface NeighborhoodReservationModalProps {
@@ -51,12 +56,19 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     checkNeighborhoodAvailability,
     checkTentAvailability
   } = useVillage();
+  
+  const { groups } = useAdminGroups();
+  const { getOverlappingGroups, isNeighborhoodAvailableForGroup, addAllocation } = useGroupAllocation();
 
   const [mode, setMode] = useState<ReservationMode>('FULL');
   const [selectedTentIds, setSelectedTentIds] = useState<string[]>([]);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [tentCount, setTentCount] = useState<number>(0); // Number of tents for FULL mode
+  
+  // Group linking state
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [availableGroups, setAvailableGroups] = useState<GroupRecord[]>([]);
   
   // Gender distribution for reservation
   const [genderCounts, setGenderCounts] = useState<GenderCount>({ female: 0, male: 0, mixed: 0 });
@@ -100,6 +112,21 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
   const totalNeighborhoodBeds = useMemo(() => {
     return neighborhoodTents.reduce((acc, tent) => acc + tent.beds.length, 0);
   }, [neighborhoodTents]);
+
+  // Update available groups when dates change
+  useEffect(() => {
+    if (form.checkInDate && form.checkOutDate && form.checkInDate < form.checkOutDate) {
+      const overlapping = getOverlappingGroups(form.checkInDate, form.checkOutDate);
+      setAvailableGroups(overlapping);
+    } else {
+      setAvailableGroups([]);
+    }
+  }, [form.checkInDate, form.checkOutDate, getOverlappingGroups]);
+
+  // Get selected group details
+  const selectedGroup = useMemo(() => {
+    return groups.find(g => g.id === selectedGroupId);
+  }, [groups, selectedGroupId]);
 
   // Total gender count sum
   const totalGenderTents = genderCounts.female + genderCounts.male + genderCounts.mixed;
@@ -209,7 +236,22 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
       return;
     }
 
+    // Check exclusive neighborhood rule if linked to a group
+    if (selectedGroupId && mode === 'FULL') {
+      const availability = isNeighborhoodAvailableForGroup(
+        neighborhoodId,
+        selectedGroupId,
+        form.checkInDate,
+        form.checkOutDate
+      );
+      if (!availability.available) {
+        toast.error(`השכונה כבר משויכת לקבוצה אחרת: ${availability.conflictingGroup}`);
+        return;
+      }
+    }
+
     let result;
+    const bedCount = mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds;
     
     if (mode === 'FULL') {
       result = reserveNeighborhood({
@@ -241,7 +283,23 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     }
 
     if (result.success) {
-      const bedCount = mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds;
+      // If linked to a group, create allocation record
+      if (selectedGroupId) {
+        const allocationType = mode === 'FULL' ? 'NEIGHBORHOOD' : 'TENT';
+        const resourceId = mode === 'FULL' ? neighborhoodId : selectedTentIds.join(',');
+        const resourceLabel = mode === 'FULL' ? neighborhoodName : `${selectedTentIds.length} אוהלים`;
+        
+        addAllocation(
+          selectedGroupId,
+          allocationType,
+          resourceId,
+          resourceLabel,
+          bedCount,
+          form.checkInDate,
+          form.checkOutDate
+        );
+      }
+
       toast.success(
         `✓ הזמנה נוצרה: ${form.groupName} - ${mode === 'FULL' ? 'שכונה מלאה' : `${selectedTentIds.length} אוהלים`} (${bedCount} מיטות)`
       );
@@ -261,6 +319,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
       notes: '',
     });
     setSelectedTentIds([]);
+    setSelectedGroupId('');
+    setAvailableGroups([]);
     setMode('FULL');
     setAvailabilityError(null);
     setShowOptionalFields(false);
@@ -330,6 +390,55 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <Users className="w-4 h-4" />
               מידע בסיסי
             </h3>
+
+            {/* Group Selector - Link to existing group */}
+            {availableGroups.length > 0 && (
+              <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Label htmlFor="groupSelect" className="flex items-center gap-2">
+                  <LinkIcon className="w-4 h-4" />
+                  קשר לקבוצה קיימת (אופציונלי)
+                </Label>
+                <Select value={selectedGroupId} onValueChange={(value) => {
+                  setSelectedGroupId(value);
+                  if (value) {
+                    const group = groups.find(g => g.id === value);
+                    if (group) {
+                      setForm(prev => ({ 
+                        ...prev, 
+                        groupName: group.groupName,
+                        contactPhone: group.contactPhone || prev.contactPhone,
+                      }));
+                    }
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="בחר קבוצה..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">ללא - קבוצה חדשה</SelectItem>
+                    {availableGroups.map(group => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.groupName} ({group.pax} אנשים)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Show remaining counters if group selected */}
+                {selectedGroup && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                    <div className="p-2 bg-background rounded text-center">
+                      <div className="font-bold text-primary">{selectedGroup.remainingStaff || 0}</div>
+                      <div className="text-xs text-muted-foreground">צוות נשאר</div>
+                    </div>
+                    <div className="p-2 bg-background rounded text-center">
+                      <div className="font-bold text-primary">{selectedGroup.remainingParticipants || 0}</div>
+                      <div className="text-xs text-muted-foreground">חניכים נשאר</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="groupName">שם הקבוצה *</Label>
@@ -339,6 +448,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 onChange={(e) => setForm(prev => ({ ...prev, groupName: e.target.value }))}
                 placeholder="לדוג׳: קבוצת בית ספר"
                 maxLength={100}
+                disabled={!!selectedGroupId}
               />
             </div>
 
