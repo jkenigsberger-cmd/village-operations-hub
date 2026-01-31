@@ -422,17 +422,37 @@ export const useGroupAllocation = () => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !group.vipTentConfigs) return false;
     
+    // Find the config being assigned
+    const configToAssign = group.vipTentConfigs.find(c => c.id === configId);
+    if (!configToAssign) return false;
+    
     // Check if tent is available
     const availability = getAvailableVIPTents(group.startDate, group.endDate, groupId);
     const tentAvailable = availability.find(t => t.tentCode === tentCode)?.available;
     if (!tentAvailable) return false;
+
+    // Calculate beds being assigned (for decrementing remainingStaff)
+    const bedsBeingAssigned = configToAssign.bedsPlanned + (configToAssign.hasExtraBed ? 1 : 0);
+    
+    // Check if we have enough remaining staff
+    const currentRemainingStaff = group.remainingStaff ?? group.staffCount ?? 0;
+    if (bedsBeingAssigned > currentRemainingStaff) {
+      console.warn('Not enough remaining staff for VIP assignment');
+      return false;
+    }
 
     // Update the config with the assigned tent code
     const updatedConfigs = group.vipTentConfigs.map(config =>
       config.id === configId ? { ...config, assignedTentCode: tentCode } : config
     );
 
-    updateGroup(groupId, { vipTentConfigs: updatedConfigs });
+    // Decrement remainingStaff (VIP uses staff count, not participants)
+    const newRemainingStaff = currentRemainingStaff - bedsBeingAssigned;
+
+    updateGroup(groupId, { 
+      vipTentConfigs: updatedConfigs,
+      remainingStaff: newRemainingStaff,
+    });
     return true;
   }, [groups, updateGroup, getAvailableVIPTents]);
 
@@ -441,11 +461,25 @@ export const useGroupAllocation = () => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !group.vipTentConfigs) return false;
 
+    // Find the config being unassigned
+    const configToUnassign = group.vipTentConfigs.find(c => c.id === configId);
+    if (!configToUnassign || !configToUnassign.assignedTentCode) return false;
+
+    // Calculate beds being freed (to restore remainingStaff)
+    const bedsBeingFreed = configToUnassign.bedsPlanned + (configToUnassign.hasExtraBed ? 1 : 0);
+
     const updatedConfigs = group.vipTentConfigs.map(config =>
       config.id === configId ? { ...config, assignedTentCode: undefined } : config
     );
 
-    updateGroup(groupId, { vipTentConfigs: updatedConfigs });
+    // Restore remainingStaff
+    const currentRemainingStaff = group.remainingStaff ?? 0;
+    const newRemainingStaff = currentRemainingStaff + bedsBeingFreed;
+
+    updateGroup(groupId, { 
+      vipTentConfigs: updatedConfigs,
+      remainingStaff: newRemainingStaff,
+    });
     return true;
   }, [groups, updateGroup]);
 
