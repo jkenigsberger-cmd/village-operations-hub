@@ -139,6 +139,22 @@ const AdminGroups = () => {
                             {group.scheduleItems.length} פריטים בלו״ז
                           </div>
                         )}
+                        
+                        {/* Remaining allocation counters */}
+                        {group.groupType !== 'יום ללא לינה' && (group.staffCount || group.participantCount) && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {(group.staffCount !== undefined && group.staffCount > 0) && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                צוות נשאר: {group.remainingStaff ?? group.staffCount}/{group.staffCount}
+                              </span>
+                            )}
+                            {(group.participantCount !== undefined && group.participantCount > 0) && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                חניכים נשאר: {group.remainingParticipants ?? group.participantCount}/{group.participantCount}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       <Button variant="ghost" size="icon">
