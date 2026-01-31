@@ -3,7 +3,7 @@ import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { Tent, TentGender, Bed as BedType, CleaningStatus, WorkingStatus } from '@/types/village';
-import { GroupRecord } from '@/types/adminGroups';
+import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
 import { 
   X,
   Users,
@@ -76,7 +76,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   } = useVillage();
 
   const { groups } = useAdminGroups();
-  const { getOverlappingGroups, addAllocation, canAllocate } = useGroupAllocation();
+  const { getOverlappingGroups, addAllocation, canAllocate, getUnassignedVIPConfigs, assignVIPConfig } = useGroupAllocation();
 
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
   const [cleaningWorker, setCleaningWorker] = useState('');
@@ -85,6 +85,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [bedsAssigned, setBedsAssigned] = useState<number>(0);
   const [availableGroups, setAvailableGroups] = useState<GroupRecord[]>([]);
+  const [selectedVIPConfigId, setSelectedVIPConfigId] = useState<string>('');
   
   // VIP facility maintenance states
   const [showBathroomIssue, setShowBathroomIssue] = useState(false);
@@ -120,6 +121,7 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
       // Reset group linking state
       setSelectedGroupId('');
       setBedsAssigned(tent.beds.length);
+      setSelectedVIPConfigId('');
     }
   }, [tentId, bedsJson, tent?.cleaningAssignedTo, tent?.bathroomMaintenanceNotes, tent?.bathroomMaintenanceImage, tent?.showerMaintenanceNotes, tent?.showerMaintenanceImage]);
 
@@ -137,6 +139,17 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   const selectedGroup = useMemo(() => {
     return groups.find(g => g.id === selectedGroupId);
   }, [groups, selectedGroupId]);
+
+  // Get unassigned VIP configs for the selected group (only for VIP tents)
+  const unassignedVIPConfigs = useMemo(() => {
+    if (!tent?.isVIP || !selectedGroupId) return [];
+    return getUnassignedVIPConfigs(selectedGroupId);
+  }, [tent?.isVIP, selectedGroupId, getUnassignedVIPConfigs]);
+
+  // Get the selected VIP config
+  const selectedVIPConfig = useMemo(() => {
+    return unassignedVIPConfigs.find(c => c.id === selectedVIPConfigId);
+  }, [unassignedVIPConfigs, selectedVIPConfigId]);
 
   // Organize beds by bunk - MUST be before early return to maintain hook order
   const { bunkBeds, singleBeds } = useMemo(() => {
@@ -454,64 +467,147 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                       </div>
                     </div>
                     
-                    {/* Beds Assigned Input */}
-                    <div className="space-y-2 pt-2 border-t">
-                      <Label htmlFor="tentBedsAssigned" className="text-sm">
-                        כמה מיטות לשבץ מהקבוצה?
-                      </Label>
-                      <Input
-                        id="tentBedsAssigned"
-                        type="number"
-                        min={1}
-                        max={tent.isVIP ? (selectedGroup.remainingStaff || 0) : (selectedGroup.remainingParticipants || 0)}
-                        value={bedsAssigned}
-                        onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
-                        className="bg-background"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        💡 מקסימום: {tent.isVIP ? (selectedGroup.remainingStaff || 0) : (selectedGroup.remainingParticipants || 0)} ({tent.isVIP ? 'צוות' : 'חניכים'})
-                      </p>
-                    </div>
-                    
-                    {/* Allocate Button */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => {
-                        if (!tent.checkInDate || !tent.checkOutDate) {
-                          toast.error('יש להזין תאריכי צ\'ק-אין וצ\'ק-אאוט לפני שיבוץ');
-                          return;
-                        }
+                    {/* VIP Tent: Show VIP Config selector */}
+                    {tent.isVIP && unassignedVIPConfigs.length > 0 ? (
+                      <div className="space-y-3 pt-2 border-t">
+                        <Label className="text-sm font-medium">בחר תצורת אוהל לשיבוץ:</Label>
+                        <Select 
+                          value={selectedVIPConfigId || "_none"} 
+                          onValueChange={(v) => setSelectedVIPConfigId(v === "_none" ? "" : v)}
+                        >
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="בחר תצורה..." />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background">
+                            <SelectItem value="_none">בחר תצורה...</SelectItem>
+                            {unassignedVIPConfigs.map((config, index) => {
+                              const totalBeds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
+                              const genderLabel = config.gender === 'female' ? '♀️' : config.gender === 'male' ? '♂️' : '';
+                              return (
+                                <SelectItem key={config.id} value={config.id}>
+                                  {totalBeds} מיטות {config.hasExtraBed ? '(+מיטה נוספת)' : ''} {genderLabel}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                         
-                        const isVIP = tent.isVIP;
-                        const validation = canAllocate(selectedGroupId, bedsAssigned, isVIP);
+                        {selectedVIPConfig && (
+                          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <div className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                              תצורה נבחרת:
+                            </div>
+                            <div className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                              • {selectedVIPConfig.bedsPlanned + (selectedVIPConfig.hasExtraBed ? 1 : 0)} מיטות
+                              {selectedVIPConfig.hasExtraBed && ' (כולל מיטה נוספת)'}
+                              {selectedVIPConfig.gender && ` • ${selectedVIPConfig.gender === 'female' ? 'נקבה' : 'זכר'}`}
+                            </div>
+                          </div>
+                        )}
                         
-                        if (!validation.canAllocate) {
-                          toast.error(validation.reason || 'לא ניתן לשבץ');
-                          return;
-                        }
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full"
+                          disabled={!selectedVIPConfigId}
+                          onClick={() => {
+                            if (!tent.checkInDate || !tent.checkOutDate) {
+                              toast.error('יש להזין תאריכי צ\'ק-אין וצ\'ק-אאוט לפני שיבוץ');
+                              return;
+                            }
+                            
+                            // Get tent code from tent.code (e.g., "VIP 80" -> "80")
+                            const tentCode = tent.code.replace('VIP ', '');
+                            
+                            const success = assignVIPConfig(selectedGroupId, selectedVIPConfigId, tentCode);
+                            
+                            if (success) {
+                              // Also update tent with group name and gender
+                              updateTentGroupName(tent.id, selectedGroup.groupName);
+                              if (selectedVIPConfig?.gender) {
+                                updateTentGender(tent.id, selectedVIPConfig.gender === 'female' ? 'FEMALE' : 'MALE');
+                              }
+                              const totalBeds = selectedVIPConfig ? selectedVIPConfig.bedsPlanned + (selectedVIPConfig.hasExtraBed ? 1 : 0) : 0;
+                              updateTentPeopleCount(tent.id, totalBeds);
+                              updateTentDates(tent.id, tent.checkInDate || selectedGroup.startDate, tent.checkOutDate || selectedGroup.endDate);
+                              
+                              toast.success(`אוהל VIP ${tentCode} שובץ לקבוצה ${selectedGroup.groupName}`);
+                              setSelectedGroupId('');
+                              setSelectedVIPConfigId('');
+                            } else {
+                              toast.error('שגיאה בשיבוץ - ייתכן שהאוהל כבר תפוס');
+                            }
+                          }}
+                        >
+                          שבץ לאוהל VIP {tent.code.replace('VIP ', '')}
+                        </Button>
+                      </div>
+                    ) : tent.isVIP && unassignedVIPConfigs.length === 0 && selectedGroup.vipTentConfigs && selectedGroup.vipTentConfigs.length > 0 ? (
+                      <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 text-sm text-amber-700 dark:text-amber-300">
+                        כל תצורות ה-VIP של קבוצה זו כבר שובצו לאוהלים
+                      </div>
+                    ) : (
+                      <>
+                        {/* Regular tent or VIP without configs: Show beds input */}
+                        <div className="space-y-2 pt-2 border-t">
+                          <Label htmlFor="tentBedsAssigned" className="text-sm">
+                            כמה מיטות לשבץ מהקבוצה?
+                          </Label>
+                          <Input
+                            id="tentBedsAssigned"
+                            type="number"
+                            min={1}
+                            max={tent.isVIP ? (selectedGroup.remainingStaff || 0) : (selectedGroup.remainingParticipants || 0)}
+                            value={bedsAssigned}
+                            onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
+                            className="bg-background"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            💡 מקסימום: {tent.isVIP ? (selectedGroup.remainingStaff || 0) : (selectedGroup.remainingParticipants || 0)} ({tent.isVIP ? 'צוות' : 'חניכים'})
+                          </p>
+                        </div>
                         
-                        const success = addAllocation(
-                          selectedGroupId,
-                          isVIP ? 'VIP_TENT' : 'TENT',
-                          tent.id,
-                          tent.code,
-                          bedsAssigned,
-                          tent.checkInDate,
-                          tent.checkOutDate
-                        );
-                        
-                        if (success) {
-                          toast.success(`שובץ ${bedsAssigned} מיטות לקבוצה ${selectedGroup.groupName}`);
-                          setSelectedGroupId('');
-                        } else {
-                          toast.error('שגיאה בשיבוץ');
-                        }
-                      }}
-                    >
-                      שבץ {bedsAssigned} מיטות
-                    </Button>
+                        {/* Allocate Button */}
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            if (!tent.checkInDate || !tent.checkOutDate) {
+                              toast.error('יש להזין תאריכי צ\'ק-אין וצ\'ק-אאוט לפני שיבוץ');
+                              return;
+                            }
+                            
+                            const isVIP = tent.isVIP;
+                            const validation = canAllocate(selectedGroupId, bedsAssigned, isVIP);
+                            
+                            if (!validation.canAllocate) {
+                              toast.error(validation.reason || 'לא ניתן לשבץ');
+                              return;
+                            }
+                            
+                            const success = addAllocation(
+                              selectedGroupId,
+                              isVIP ? 'VIP_TENT' : 'TENT',
+                              tent.id,
+                              tent.code,
+                              bedsAssigned,
+                              tent.checkInDate,
+                              tent.checkOutDate
+                            );
+                            
+                            if (success) {
+                              toast.success(`שובץ ${bedsAssigned} מיטות לקבוצה ${selectedGroup.groupName}`);
+                              setSelectedGroupId('');
+                            } else {
+                              toast.error('שגיאה בשיבוץ');
+                            }
+                          }}
+                        >
+                          שבץ {bedsAssigned} מיטות
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

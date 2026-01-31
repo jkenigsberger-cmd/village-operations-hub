@@ -9,7 +9,7 @@ import {
   GroupType,
   ScheduleItem, 
   ScheduleCategory,
-  VIPTentPlan,
+  VIPTentConfig,
   SCHEDULE_LOCATIONS, 
   SCHEDULE_CATEGORY_LABELS,
   SPACE_ID_MAP 
@@ -325,13 +325,13 @@ const AdminGroupEdit = () => {
   const { groups, isLoading, addGroup, updateGroup, getGroup, addLinkedSpaceReservation, addLinkedKitchenSlot } = useAdminGroups();
   const { addActivityReservation } = useVillage();
   const { addTimeSlot } = useKitchenData();
-  const { checkCapacity, getAvailableVIPTents } = useGroupAllocation();
+  const { checkCapacity } = useGroupAllocation();
 
   const [spaceModalOpen, setSpaceModalOpen] = useState(false);
   const [mealModalOpen, setMealModalOpen] = useState(false);
   const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
-  const [vipTentPlans, setVipTentPlans] = useState<VIPTentPlan[]>([]);
+  const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -349,7 +349,7 @@ const AdminGroupEdit = () => {
     staffCount: 0,
     participantCount: 10,
     vipPeoplePerTent: 3,
-    vipTentPlans: [],
+    vipTentConfigs: [],
     remainingStaff: 0,
     remainingParticipants: 10,
   });
@@ -376,12 +376,12 @@ const AdminGroupEdit = () => {
           staffCount: existing.staffCount || 0,
           participantCount: existing.participantCount || (existing.pax - (existing.staffCount || 0)),
           vipPeoplePerTent: existing.vipPeoplePerTent || 3,
-          vipTentPlans: existing.vipTentPlans || [],
+          vipTentConfigs: existing.vipTentConfigs || [],
           remainingStaff: existing.remainingStaff ?? existing.staffCount ?? 0,
           remainingParticipants: existing.remainingParticipants ?? (existing.pax - (existing.staffCount || 0)),
         });
-        // Load VIP tent plans into local state
-        setVipTentPlans(existing.vipTentPlans || []);
+        // Load VIP tent configs into local state
+        setVipTentConfigs(existing.vipTentConfigs || []);
       }
     }
   }, [isNew, id, getGroup]);
@@ -410,11 +410,6 @@ const AdminGroupEdit = () => {
     }
   }, [formData.staffCount, isNew]);
 
-  // Compute available VIP tents based on group dates
-  const availableVIPTents = useMemo(() => {
-    if (!formData.startDate || !formData.endDate) return [];
-    return getAvailableVIPTents(formData.startDate, formData.endDate, isNew ? undefined : id);
-  }, [formData.startDate, formData.endDate, getAvailableVIPTents, isNew, id]);
 
   const handleCapacityCheck = () => {
     setIsCheckingCapacity(true);
@@ -450,10 +445,10 @@ const AdminGroupEdit = () => {
       return;
     }
 
-    // Include vipTentPlans in the data to save
+    // Include vipTentConfigs in the data to save
     const dataToSave = {
       ...formData,
-      vipTentPlans,
+      vipTentConfigs,
     };
 
     if (isNew) {
@@ -687,9 +682,8 @@ const AdminGroupEdit = () => {
                 {/* VIP Tent Planner */}
                 <VIPTentPlanner
                   staffCount={formData.staffCount || 0}
-                  vipTentPlans={vipTentPlans}
-                  onPlansChange={setVipTentPlans}
-                  availableVIPTents={availableVIPTents}
+                  vipTentConfigs={vipTentConfigs}
+                  onConfigsChange={setVipTentConfigs}
                 />
 
                 {/* Remaining counters for existing groups */}

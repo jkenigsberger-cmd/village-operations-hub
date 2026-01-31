@@ -4,63 +4,66 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Trash2, Plus, AlertTriangle, CheckCircle2, Tent } from 'lucide-react';
-import { VIPTentPlan } from '@/types/adminGroups';
+import { VIPTentConfig } from '@/types/adminGroups';
 import { cn } from '@/lib/utils';
-
-const VIP_TENT_CODES = ['80', '81', '82', '83', '84', '85', '86', '87', '88', '89'];
 
 interface VIPTentPlannerProps {
   staffCount: number;
-  vipTentPlans: VIPTentPlan[];
-  onPlansChange: (plans: VIPTentPlan[]) => void;
-  availableVIPTents: { tentCode: string; available: boolean; conflictingGroup?: string }[];
+  vipTentConfigs: VIPTentConfig[];
+  onConfigsChange: (configs: VIPTentConfig[]) => void;
   disabled?: boolean;
 }
 
 export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
   staffCount,
-  vipTentPlans,
-  onPlansChange,
-  availableVIPTents,
+  vipTentConfigs,
+  onConfigsChange,
   disabled = false,
 }) => {
   // Calculate totals
   const plannedBeds = useMemo(() => 
-    vipTentPlans.reduce((sum, t) => sum + t.bedsPlanned, 0), 
-    [vipTentPlans]
+    vipTentConfigs.reduce((sum, t) => sum + t.bedsPlanned + (t.hasExtraBed ? 1 : 0), 0), 
+    [vipTentConfigs]
   );
   
   const remainingToPlan = staffCount - plannedBeds;
-  const usedTentCodes = vipTentPlans.map(t => t.tentCode);
-  
-  // Get tents available for adding (not already in plan)
-  const tentsForDropdown = useMemo(() => {
-    return availableVIPTents.filter(t => !usedTentCodes.includes(t.tentCode));
-  }, [availableVIPTents, usedTentCodes]);
 
-  const addTent = (tentCode: string) => {
-    if (usedTentCodes.includes(tentCode)) return;
-    const newPlan: VIPTentPlan = { tentCode, bedsPlanned: 3 };
-    onPlansChange([...vipTentPlans, newPlan].sort((a, b) => a.tentCode.localeCompare(b.tentCode)));
+  const addConfig = () => {
+    const newConfig: VIPTentConfig = { 
+      id: Math.random().toString(36).substring(2, 11),
+      bedsPlanned: 3,
+      hasExtraBed: false,
+    };
+    onConfigsChange([...vipTentConfigs, newConfig]);
   };
 
-  const removeTent = (tentCode: string) => {
-    onPlansChange(vipTentPlans.filter(p => p.tentCode !== tentCode));
+  const removeConfig = (id: string) => {
+    onConfigsChange(vipTentConfigs.filter(c => c.id !== id));
   };
 
-  const updateTentBeds = (tentCode: string, beds: number) => {
-    onPlansChange(
-      vipTentPlans.map(p => 
-        p.tentCode === tentCode ? { ...p, bedsPlanned: beds } : p
+  const updateConfigBeds = (id: string, beds: number) => {
+    onConfigsChange(
+      vipTentConfigs.map(c => 
+        c.id === id ? { ...c, bedsPlanned: beds } : c
       )
     );
   };
 
-  const updateTentGender = (tentCode: string, gender: 'female' | 'male' | undefined) => {
-    onPlansChange(
-      vipTentPlans.map(p => 
-        p.tentCode === tentCode ? { ...p, gender } : p
+  const updateConfigExtraBed = (id: string, hasExtraBed: boolean) => {
+    onConfigsChange(
+      vipTentConfigs.map(c => 
+        c.id === id ? { ...c, hasExtraBed } : c
+      )
+    );
+  };
+
+  const updateConfigGender = (id: string, gender: 'female' | 'male' | undefined) => {
+    onConfigsChange(
+      vipTentConfigs.map(c => 
+        c.id === id ? { ...c, gender } : c
       )
     );
   };
@@ -79,7 +82,7 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Tent className="w-5 h-5" />
-          תכנון אוהלי VIP לצוות
+          תצורת אוהלי VIP לצוות
         </CardTitle>
         
         {/* Summary */}
@@ -91,34 +94,34 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">מתוכנן:</span>
             <Badge variant={plannedBeds >= staffCount ? "default" : "secondary"}>
-              {plannedBeds} מיטות ב-{vipTentPlans.length} אוהלים
+              {plannedBeds} מיטות ב-{vipTentConfigs.length} אוהלים
             </Badge>
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Planned Tents Grid */}
-        {vipTentPlans.length > 0 && (
+        {/* Planned Configs Grid */}
+        {vipTentConfigs.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {vipTentPlans.map(plan => (
+            {vipTentConfigs.map((config, index) => (
               <div 
-                key={plan.tentCode}
+                key={config.id}
                 className={cn(
                   "p-3 rounded-lg border-2 bg-background relative",
-                  plan.gender === 'female' && "border-pink-300 bg-pink-50/50 dark:bg-pink-950/20",
-                  plan.gender === 'male' && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20",
-                  !plan.gender && "border-border"
+                  config.gender === 'female' && "border-pink-300 bg-pink-50/50 dark:bg-pink-950/20",
+                  config.gender === 'male' && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20",
+                  !config.gender && "border-border"
                 )}
               >
-                {/* Header with tent code and remove button */}
+                {/* Header with tent number and remove button */}
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm">VIP {plan.tentCode}</span>
+                  <span className="font-semibold text-sm">אוהל {index + 1}</span>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeTent(plan.tentCode)}
+                    onClick={() => removeConfig(config.id)}
                     disabled={disabled}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -129,8 +132,8 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                 <div className="mb-2">
                   <ToggleGroup 
                     type="single" 
-                    value={plan.bedsPlanned.toString()}
-                    onValueChange={(v) => v && updateTentBeds(plan.tentCode, parseInt(v))}
+                    value={config.bedsPlanned.toString()}
+                    onValueChange={(v) => v && updateConfigBeds(config.id, parseInt(v))}
                     disabled={disabled}
                     className="justify-start"
                   >
@@ -146,11 +149,28 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                     ))}
                   </ToggleGroup>
                 </div>
+
+                {/* Extra bed toggle */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Switch
+                    id={`extra-${config.id}`}
+                    checked={config.hasExtraBed || false}
+                    onCheckedChange={(checked) => updateConfigExtraBed(config.id, checked)}
+                    disabled={disabled}
+                    className="scale-75"
+                  />
+                  <Label 
+                    htmlFor={`extra-${config.id}`} 
+                    className="text-xs text-muted-foreground cursor-pointer"
+                  >
+                    +מיטה
+                  </Label>
+                </div>
                 
                 {/* Gender selector */}
                 <Select 
-                  value={plan.gender || "_none"} 
-                  onValueChange={(v) => updateTentGender(plan.tentCode, v === "_none" ? undefined : v as 'female' | 'male')}
+                  value={config.gender || "_none"} 
+                  onValueChange={(v) => updateConfigGender(config.id, v === "_none" ? undefined : v as 'female' | 'male')}
                   disabled={disabled}
                 >
                   <SelectTrigger className="h-7 text-xs">
@@ -162,63 +182,28 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                     <SelectItem value="male">♂️ זכר</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Total beds display */}
+                <div className="mt-2 text-center text-xs text-muted-foreground">
+                  סה״כ: {config.bedsPlanned + (config.hasExtraBed ? 1 : 0)} מיטות
+                </div>
               </div>
             ))}
           </div>
         )}
         
-        {/* Add Tent Dropdown */}
-        {vipTentPlans.length < 10 && (
-          <div className="flex items-center gap-2">
-            <Select 
-              value="_placeholder" 
-              onValueChange={(value) => {
-                if (value !== "_placeholder") {
-                  addTent(value);
-                }
-              }}
-              disabled={disabled || tentsForDropdown.filter(t => t.available).length === 0}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="הוסף אוהל VIP..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_placeholder" disabled className="hidden">הוסף אוהל VIP...</SelectItem>
-                {tentsForDropdown.map(tent => (
-                  <SelectItem 
-                    key={tent.tentCode} 
-                    value={tent.tentCode}
-                    disabled={!tent.available}
-                    className={cn(!tent.available && "opacity-50")}
-                  >
-                    <span className="flex items-center gap-2">
-                      VIP {tent.tentCode}
-                      {tent.available ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                      ) : (
-                        <span className="text-xs text-destructive">
-                          ❌ {tent.conflictingGroup}
-                        </span>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const nextAvailable = tentsForDropdown.find(t => t.available);
-                if (nextAvailable) addTent(nextAvailable.tentCode);
-              }}
-              disabled={disabled || tentsForDropdown.filter(t => t.available).length === 0}
-            >
-              <Plus className="w-4 h-4 ml-1" />
-              הוסף
-            </Button>
-          </div>
+        {/* Add Config Button */}
+        {vipTentConfigs.length < 10 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addConfig}
+            disabled={disabled}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 ml-1" />
+            הוסף אוהל VIP
+          </Button>
         )}
         
         {/* Warning if not enough beds planned */}
@@ -232,7 +217,7 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
         )}
         
         {/* Success message when fully planned */}
-        {remainingToPlan <= 0 && staffCount > 0 && vipTentPlans.length > 0 && (
+        {remainingToPlan <= 0 && staffCount > 0 && vipTentConfigs.length > 0 && (
           <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span className="text-sm">
