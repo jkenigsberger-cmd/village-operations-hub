@@ -406,21 +406,24 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
                   <LinkIcon className="w-4 h-4" />
                   🔗 קשר לקבוצה קיימת
                 </Label>
-                <Select value={selectedGroupId} onValueChange={(value) => {
-                  setSelectedGroupId(value);
-                  if (value) {
-                    const group = groups.find(g => g.id === value);
-                    if (group) {
-                      updateTentGroupName(tent.id, group.groupName);
-                      setBedsAssigned(tent.beds.length);
+                <Select 
+                  value={selectedGroupId || "_none"} 
+                  onValueChange={(value) => {
+                    const newValue = value === "_none" ? "" : value;
+                    setSelectedGroupId(newValue);
+                    if (newValue) {
+                      const group = groups.find(g => g.id === newValue);
+                      if (group) {
+                        updateTentGroupName(tent.id, group.groupName);
+                        setBedsAssigned(tent.beds.length);
+                      }
                     }
-                  }
-                }}>
+                  }}>
                   <SelectTrigger className="bg-background">
                     <SelectValue placeholder="בחר קבוצה..." />
                   </SelectTrigger>
                   <SelectContent className="bg-background">
-                    <SelectItem value="">ללא - קבוצה חדשה</SelectItem>
+                    <SelectItem value="_none">ללא - קבוצה חדשה</SelectItem>
                     {availableGroups.map(group => {
                       const isVIP = tent.isVIP;
                       const remaining = isVIP 
