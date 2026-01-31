@@ -8,6 +8,7 @@ import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
 import { CalendarMonthView } from './CalendarMonthView';
 import { KitchenEventDetailModal } from './KitchenEventDetailModal';
+import { GroupItineraryModal } from './GroupItineraryModal';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -61,6 +62,7 @@ export const MasterCalendar: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedKitchenEvent, setSelectedKitchenEvent] = useState<CalendarEvent | null>(null);
+  const [selectedGroupEvent, setSelectedGroupEvent] = useState<CalendarEvent | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     showNeighborhoods: true,
     showFacilities: true,
@@ -228,6 +230,13 @@ export const MasterCalendar: React.FC = () => {
   const handleEventClick = (event: CalendarEvent) => {
     if (event.type === 'KITCHEN') {
       setSelectedKitchenEvent(event);
+    }
+  };
+
+  // Handle group event click to show itinerary
+  const handleGroupEventClick = (event: CalendarEvent) => {
+    if (event.groupName) {
+      setSelectedGroupEvent(event);
     }
   };
 
@@ -453,6 +462,7 @@ export const MasterCalendar: React.FC = () => {
             selectedDate={selectedDate} 
             events={filteredEvents}
             onEventClick={handleEventClick}
+            onGroupEventClick={handleGroupEventClick}
           />
         )}
         {viewMode === 'week' && (
@@ -482,6 +492,14 @@ export const MasterCalendar: React.FC = () => {
         event={selectedKitchenEvent}
         isOpen={!!selectedKitchenEvent}
         onClose={() => setSelectedKitchenEvent(null)}
+      />
+
+      {/* Group Itinerary Modal */}
+      <GroupItineraryModal
+        event={selectedGroupEvent}
+        selectedDate={selectedDate}
+        isOpen={!!selectedGroupEvent}
+        onClose={() => setSelectedGroupEvent(null)}
       />
     </div>
   );
