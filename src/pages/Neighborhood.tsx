@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { TentCard } from '@/components/TentCard';
 import NeighborhoodMap, { TentNode } from '@/components/NeighborhoodMap';
@@ -8,6 +9,7 @@ import VIPNeighborhoodMap from '@/components/VIPNeighborhoodMap';
 import { NeighborhoodBulkActions } from '@/components/NeighborhoodBulkActions';
 import { NeighborhoodReservationModal } from '@/components/NeighborhoodReservationModal';
 import { TentDetailModal } from '@/components/TentDetailModal';
+import { VIPPlanningPanel } from '@/components/VIPPlanningPanel';
 import { NeighborhoodId, Tent } from '@/types/village';
 import { 
   Search, 
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { parseISO, isWithinInterval, isBefore, isAfter } from 'date-fns';
 
 type ViewMode = 'grid' | 'map';
 
@@ -30,6 +33,7 @@ const Neighborhood = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { state, isLoading, getTentSummary } = useVillage();
+  const { groups } = useAdminGroups();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -37,13 +41,33 @@ const Neighborhood = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [selectedTent, setSelectedTent] = useState<Tent | null>(null);
+  const [selectedVIPGroupId, setSelectedVIPGroupId] = useState<string | null>(null);
 
   const neighborhoodId = id as NeighborhoodId;
+  const isVIPNeighborhood = neighborhoodId === 'VIP';
 
   const neighborhood = state?.neighborhoods[neighborhoodId];
   const hasDoubleTents = neighborhood?.hasDoubleTents;
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Get overlapping groups for VIP (groups with staff that overlap with today or current selection)
+  const overlappingVIPGroups = useMemo(() => {
+    if (!isVIPNeighborhood) return [];
+    
+    const todayDate = parseISO(today);
+    return groups.filter(g => {
+      if (g.groupType !== 'לינה') return false;
+      if ((g.staffCount || 0) === 0) return false;
+      
+      const start = parseISO(g.startDate);
+      const end = parseISO(g.endDate);
+      
+      // Check if today falls within the group's date range
+      return (isBefore(start, todayDate) || start.getTime() === todayDate.getTime()) &&
+             (isAfter(end, todayDate) || end.getTime() === todayDate.getTime());
+    });
+  }, [groups, today, isVIPNeighborhood]);
 
   const tentSummaries = useMemo(() => {
     if (!state || !neighborhood) return [];
@@ -215,6 +239,15 @@ const Neighborhood = () => {
       </header>
 
       <main className="container py-6">
+        {/* VIP Planning Panel - only for VIP neighborhood */}
+        {isVIPNeighborhood && (
+          <VIPPlanningPanel
+            groups={overlappingVIPGroups}
+            selectedGroupId={selectedVIPGroupId}
+            onGroupSelect={setSelectedVIPGroupId}
+          />
+        )}
+
         {/* Bulk Actions for large groups */}
         <NeighborhoodBulkActions 
           neighborhoodId={neighborhoodId} 
