@@ -14,6 +14,10 @@ import Settings from "./pages/Settings";
 import Kitchen from "./pages/Kitchen";
 import AdminGroups from "./pages/AdminGroups";
 import AdminGroupEdit from "./pages/AdminGroupEdit";
+import AdminIncome from "./pages/AdminIncome";
+import AdminExpenses from "./pages/AdminExpenses";
+import AdminOutsourced from "./pages/AdminOutsourced";
+import AdminReports from "./pages/AdminReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +41,10 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin/groups" element={<AdminGroups />} />
             <Route path="/admin/groups/:id" element={<AdminGroupEdit />} />
+            <Route path="/admin/income" element={<AdminIncome />} />
+            <Route path="/admin/expenses" element={<AdminExpenses />} />
+            <Route path="/admin/outsourced" element={<AdminOutsourced />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
