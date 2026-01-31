@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useVillage } from '@/context/VillageContext';
@@ -9,6 +9,7 @@ import {
   GroupType,
   ScheduleItem, 
   ScheduleCategory,
+  VIPTentPlan,
   SCHEDULE_LOCATIONS, 
   SCHEDULE_CATEGORY_LABELS,
   SPACE_ID_MAP 
@@ -16,6 +17,7 @@ import {
 import { MealType, MEAL_LABELS } from '@/types/kitchen';
 import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
+import { VIPTentPlanner } from '@/components/VIPTentPlanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -323,12 +325,13 @@ const AdminGroupEdit = () => {
   const { groups, isLoading, addGroup, updateGroup, getGroup, addLinkedSpaceReservation, addLinkedKitchenSlot } = useAdminGroups();
   const { addActivityReservation } = useVillage();
   const { addTimeSlot } = useKitchenData();
-  const { checkCapacity } = useGroupAllocation();
+  const { checkCapacity, getAvailableVIPTents } = useGroupAllocation();
 
   const [spaceModalOpen, setSpaceModalOpen] = useState(false);
   const [mealModalOpen, setMealModalOpen] = useState(false);
   const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
+  const [vipTentPlans, setVipTentPlans] = useState<VIPTentPlan[]>([]);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -346,6 +349,7 @@ const AdminGroupEdit = () => {
     staffCount: 0,
     participantCount: 10,
     vipPeoplePerTent: 3,
+    vipTentPlans: [],
     remainingStaff: 0,
     remainingParticipants: 10,
   });
@@ -372,9 +376,12 @@ const AdminGroupEdit = () => {
           staffCount: existing.staffCount || 0,
           participantCount: existing.participantCount || (existing.pax - (existing.staffCount || 0)),
           vipPeoplePerTent: existing.vipPeoplePerTent || 3,
+          vipTentPlans: existing.vipTentPlans || [],
           remainingStaff: existing.remainingStaff ?? existing.staffCount ?? 0,
           remainingParticipants: existing.remainingParticipants ?? (existing.pax - (existing.staffCount || 0)),
         });
+        // Load VIP tent plans into local state
+        setVipTentPlans(existing.vipTentPlans || []);
       }
     }
   }, [isNew, id, getGroup]);
@@ -402,6 +409,12 @@ const AdminGroupEdit = () => {
       }));
     }
   }, [formData.staffCount, isNew]);
+
+  // Compute available VIP tents based on group dates
+  const availableVIPTents = useMemo(() => {
+    if (!formData.startDate || !formData.endDate) return [];
+    return getAvailableVIPTents(formData.startDate, formData.endDate, isNew ? undefined : id);
+  }, [formData.startDate, formData.endDate, getAvailableVIPTents, isNew, id]);
 
   const handleCapacityCheck = () => {
     setIsCheckingCapacity(true);
@@ -437,11 +450,17 @@ const AdminGroupEdit = () => {
       return;
     }
 
+    // Include vipTentPlans in the data to save
+    const dataToSave = {
+      ...formData,
+      vipTentPlans,
+    };
+
     if (isNew) {
-      addGroup(formData);
+      addGroup(dataToSave);
       toast.success('הקבוצה נוצרה בהצלחה');
     } else if (id) {
-      updateGroup(id, formData);
+      updateGroup(id, dataToSave);
       toast.success('הקבוצה עודכנה בהצלחה');
     }
     navigate('/admin/groups');
@@ -663,21 +682,15 @@ const AdminGroupEdit = () => {
                     <p className="text-xs text-muted-foreground">אוטומטי (סה״כ - צוות)</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">אנשים לאוהל VIP</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={3}
-                      value={formData.vipPeoplePerTent || 3}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        vipPeoplePerTent: Math.min(3, Math.max(1, parseInt(e.target.value) || 3))
-                      }))}
-                    />
-                    <p className="text-xs text-muted-foreground">ברירת מחדל: 3</p>
-                  </div>
                 </div>
+
+                {/* VIP Tent Planner */}
+                <VIPTentPlanner
+                  staffCount={formData.staffCount || 0}
+                  vipTentPlans={vipTentPlans}
+                  onPlansChange={setVipTentPlans}
+                  availableVIPTents={availableVIPTents}
+                />
 
                 {/* Remaining counters for existing groups */}
                 {!isNew && (

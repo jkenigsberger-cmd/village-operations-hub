@@ -335,6 +335,69 @@ export const useGroupAllocation = () => {
     return { canAllocate: true, remaining };
   }, [groups]);
 
+  // Get available VIP tents for a date range with conflict detection
+  const getAvailableVIPTents = useCallback((
+    startDate: string, 
+    endDate: string, 
+    excludeGroupId?: string
+  ): { tentCode: string; available: boolean; conflictingGroup?: string }[] => {
+    
+    return VIP_TENT_CODES.map(tentCode => {
+      // Check allocations for this tent code
+      const conflictingAlloc = allocations.find(alloc => 
+        alloc.allocationType === 'VIP_TENT' &&
+        alloc.resourceId === tentCode &&
+        alloc.groupId !== excludeGroupId &&
+        dateRangesOverlap(startDate, endDate, alloc.dateRangeStart, alloc.dateRangeEnd)
+      );
+      
+      if (conflictingAlloc) {
+        const conflictGroup = groups.find(g => g.id === conflictingAlloc.groupId);
+        return { 
+          tentCode, 
+          available: false, 
+          conflictingGroup: conflictGroup?.groupName || 'קבוצה אחרת' 
+        };
+      }
+      
+      // Check village state for existing bookings
+      if (state) {
+        const tentId = `VIP_${tentCode}`;
+        const tent = state.tents[tentId];
+        if (tent && tent.checkInDate && tent.checkOutDate && tent.groupName) {
+          if (dateRangesOverlap(startDate, endDate, tent.checkInDate, tent.checkOutDate)) {
+            const tentGroup = groups.find(g => g.groupName === tent.groupName);
+            if (!excludeGroupId || tentGroup?.id !== excludeGroupId) {
+              return { 
+                tentCode, 
+                available: false, 
+                conflictingGroup: tent.groupName 
+              };
+            }
+          }
+        }
+      }
+      
+      // Check if tent is already in another group's vipTentPlans
+      const conflictingGroup = groups.find(g => {
+        if (excludeGroupId && g.id === excludeGroupId) return false;
+        if (!g.vipTentPlans || g.vipTentPlans.length === 0) return false;
+        if (!dateRangesOverlap(startDate, endDate, g.startDate, g.endDate)) return false;
+        return g.vipTentPlans.some(plan => plan.tentCode === tentCode);
+      });
+
+      if (conflictingGroup) {
+        return {
+          tentCode,
+          available: false,
+          conflictingGroup: conflictingGroup.groupName
+        };
+      }
+      
+      return { tentCode, available: true };
+    });
+  }, [allocations, groups, state, dateRangesOverlap]);
+
   return {
     allocations,
     isLoading,
@@ -347,5 +410,6 @@ export const useGroupAllocation = () => {
     getVIPCapacity,
     getNeighborhoodCapacity,
     canAllocate,
+    getAvailableVIPTents,
   };
 };
