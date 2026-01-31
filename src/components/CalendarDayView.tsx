@@ -19,6 +19,7 @@ interface CalendarDayViewProps {
   selectedDate: Date;
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  onGroupEventClick?: (event: CalendarEvent) => void;
 }
 
 // Hours to display (6:00 - 22:00)
@@ -46,7 +47,7 @@ const getContrastColor = (hslColor: string): string => {
   return 'white';
 };
 
-export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, events, onEventClick }) => {
+export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, events, onEventClick, onGroupEventClick }) => {
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
   // Separate all-day events (check-ins, check-outs, neighborhoods) from timed events
@@ -130,7 +131,11 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                   {activeNeighborhoods.map(event => (
                     <div
                       key={event.id}
-                      className="p-3 rounded-lg text-sm"
+                      onClick={() => onGroupEventClick?.(event)}
+                      className={cn(
+                        "p-3 rounded-lg text-sm",
+                        onGroupEventClick && "cursor-pointer hover:opacity-80 transition-opacity"
+                      )}
                       style={{ 
                         backgroundColor: `${event.color}20`,
                         borderLeft: `4px solid ${event.color}`
@@ -160,7 +165,11 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                   {checkIns.map(event => (
                     <div
                       key={event.id}
-                      className="p-3 rounded-lg text-sm"
+                      onClick={() => onGroupEventClick?.(event)}
+                      className={cn(
+                        "p-3 rounded-lg text-sm",
+                        onGroupEventClick && "cursor-pointer hover:opacity-80 transition-opacity"
+                      )}
                       style={{ 
                         backgroundColor: `${event.color}20`,
                         borderLeft: `4px solid ${event.color}`
@@ -189,7 +198,11 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                   {checkOuts.map(event => (
                     <div
                       key={event.id}
-                      className="p-3 rounded-lg text-sm"
+                      onClick={() => onGroupEventClick?.(event)}
+                      className={cn(
+                        "p-3 rounded-lg text-sm",
+                        onGroupEventClick && "cursor-pointer hover:opacity-80 transition-opacity"
+                      )}
                       style={{ 
                         backgroundColor: `${event.color}20`,
                         borderLeft: `4px solid ${event.color}`
@@ -237,15 +250,31 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                     {hour.toString().padStart(2, '0')}:00
                   </div>
 
-                  {/* Events for this hour */}
                   <div className="flex-1 py-1 px-2 flex flex-wrap gap-2">
                     {hourEvents.map(event => {
                       const Icon = getEventIcon(event.type);
-                      const isClickable = event.type === 'KITCHEN';
+                      const isKitchenClickable = event.type === 'KITCHEN';
+                      const isGroupClickable = event.groupName && 
+                        (event.type === 'NEIGHBORHOOD' || 
+                         event.type === 'FACILITY' || 
+                         event.type === 'ACTIVITY' ||
+                         event.type === 'DAY_USE' ||
+                         event.type === 'TENT_CHECKIN' ||
+                         event.type === 'TENT_CHECKOUT');
+                      const isClickable = isKitchenClickable || isGroupClickable;
+                      
+                      const handleClick = () => {
+                        if (isKitchenClickable && onEventClick) {
+                          onEventClick(event);
+                        } else if (isGroupClickable && onGroupEventClick) {
+                          onGroupEventClick(event);
+                        }
+                      };
+
                       return (
                         <div
                           key={event.id}
-                          onClick={isClickable && onEventClick ? () => onEventClick(event) : undefined}
+                          onClick={isClickable ? handleClick : undefined}
                           className={cn(
                             "px-3 py-2 rounded-lg text-sm flex items-center gap-2 max-w-full",
                             isClickable && "cursor-pointer hover:opacity-90 transition-opacity"
