@@ -116,15 +116,22 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     return neighborhoodTents.reduce((acc, tent) => acc + tent.beds.length, 0);
   }, [neighborhoodTents]);
 
-  // Update available groups when dates change
+  // Get all lodging groups for the selector
+  const allLodgingGroups = useMemo(() => {
+    return groups.filter(g => g.groupType === 'לינה');
+  }, [groups]);
+
+  // Update available groups - show all initially, filter when dates are entered
   useEffect(() => {
     if (form.checkInDate && form.checkOutDate && form.checkInDate < form.checkOutDate) {
+      // Filter to overlapping groups when dates are valid
       const overlapping = getOverlappingGroups(form.checkInDate, form.checkOutDate);
       setAvailableGroups(overlapping);
     } else {
-      setAvailableGroups([]);
+      // Show all lodging groups when dates are incomplete
+      setAvailableGroups(allLodgingGroups);
     }
-  }, [form.checkInDate, form.checkOutDate, getOverlappingGroups]);
+  }, [form.checkInDate, form.checkOutDate, getOverlappingGroups, allLodgingGroups]);
 
   // Update bedsAssigned when mode or selection changes
   useEffect(() => {
@@ -422,88 +429,109 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               מידע בסיסי
             </h3>
 
-            {/* Group Selector - Link to existing group */}
-            {availableGroups.length > 0 && (
-              <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <Label htmlFor="groupSelect" className="flex items-center gap-2 text-base font-semibold">
-                  <LinkIcon className="w-4 h-4" />
-                  🔗 קשר לקבוצה קיימת
-                </Label>
-                <Select value={selectedGroupId} onValueChange={(value) => {
-                  setSelectedGroupId(value);
-                  if (value) {
-                    const group = groups.find(g => g.id === value);
-                    if (group) {
-                      setForm(prev => ({ 
-                        ...prev, 
-                        groupName: group.groupName,
-                        contactPhone: group.contactPhone || prev.contactPhone,
-                      }));
-                      // Reset bedsAssigned to default when group changes
-                      setBedsAssigned(mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds);
+            {/* Group Selector - Always visible */}
+            <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <Label htmlFor="groupSelect" className="flex items-center gap-2 text-base font-semibold">
+                <LinkIcon className="w-4 h-4" />
+                🔗 קשר לקבוצה קיימת
+              </Label>
+              
+              {allLodgingGroups.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  אין קבוצות לינה במערכת - צור קבוצה באזור הניהול
+                </p>
+              ) : availableGroups.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  אין קבוצות בתאריכים אלו - בחר תאריכים אחרים או צור קבוצה חדשה
+                </p>
+              ) : (
+                <>
+                  <Select value={selectedGroupId} onValueChange={(value) => {
+                    setSelectedGroupId(value);
+                    if (value) {
+                      const group = groups.find(g => g.id === value);
+                      if (group) {
+                        setForm(prev => ({ 
+                          ...prev, 
+                          groupName: group.groupName,
+                          contactPhone: group.contactPhone || prev.contactPhone,
+                          // Auto-fill dates from group if not yet set
+                          checkInDate: prev.checkInDate || group.startDate,
+                          checkOutDate: prev.checkOutDate || group.endDate,
+                        }));
+                        // Reset bedsAssigned to default when group changes
+                        setBedsAssigned(mode === 'FULL' ? totalNeighborhoodBeds : selectedBeds);
+                      }
                     }
-                  }
-                }}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="בחר קבוצה..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background">
-                    <SelectItem value="">ללא - קבוצה חדשה</SelectItem>
-                    {availableGroups.map(group => {
-                      const remaining = group.remainingParticipants || 0;
-                      const startFormatted = group.startDate.slice(5).replace('-', '/');
-                      const endFormatted = group.endDate.slice(5).replace('-', '/');
-                      return (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.groupName} ({startFormatted}–{endFormatted}) • חניכים נשאר: {remaining}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                
-                {/* Show remaining counters if group selected */}
-                {selectedGroup && (
-                  <>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="p-3 bg-background rounded-lg text-center border">
-                        <div className="font-bold text-lg text-amber-600">{selectedGroup.remainingStaff || 0}</div>
-                        <div className="text-xs text-muted-foreground">צוות נשאר</div>
-                      </div>
-                      <div className="p-3 bg-background rounded-lg text-center border">
-                        <div className="font-bold text-lg text-primary">{selectedGroup.remainingParticipants || 0}</div>
-                        <div className="text-xs text-muted-foreground">חניכים נשאר</div>
-                      </div>
+                  }}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="בחר קבוצה..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="">ללא - קבוצה חדשה</SelectItem>
+                      {availableGroups.map(group => {
+                        const remaining = group.remainingParticipants || 0;
+                        const startFormatted = group.startDate.slice(5).replace('-', '/');
+                        const endFormatted = group.endDate.slice(5).replace('-', '/');
+                        return (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.groupName} ({startFormatted}–{endFormatted}) • חניכים נשאר: {remaining}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Helper text about date filtering */}
+                  {(!form.checkOutDate || form.checkInDate >= form.checkOutDate) && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      💡 הזן תאריכי צ'ק-אין וצ'ק-אאוט לסינון קבוצות לפי זמינות
+                    </p>
+                  )}
+                </>
+              )}
+              
+              {/* Show remaining counters if group selected */}
+              {selectedGroup && (
+                <>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="p-3 bg-background rounded-lg text-center border">
+                      <div className="font-bold text-lg text-amber-600">{selectedGroup.remainingStaff || 0}</div>
+                      <div className="text-xs text-muted-foreground">צוות נשאר</div>
                     </div>
-                    
-                    {/* Beds Assigned Input */}
-                    <div className="space-y-2 pt-2 border-t">
-                      <Label htmlFor="bedsAssigned" className="text-sm">
-                        כמה מיטות לשבץ מהקבוצה?
-                      </Label>
-                      <Input
-                        id="bedsAssigned"
-                        type="number"
-                        min={1}
-                        max={selectedGroup.remainingParticipants || 0}
-                        value={bedsAssigned}
-                        onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
-                        className="bg-background"
-                      />
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        💡 בחר כמה מקומות לשבץ כאן (מקסימום: {selectedGroup.remainingParticipants || 0})
+                    <div className="p-3 bg-background rounded-lg text-center border">
+                      <div className="font-bold text-lg text-primary">{selectedGroup.remainingParticipants || 0}</div>
+                      <div className="text-xs text-muted-foreground">חניכים נשאר</div>
+                    </div>
+                  </div>
+                  
+                  {/* Beds Assigned Input */}
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label htmlFor="bedsAssigned" className="text-sm">
+                      כמה מיטות לשבץ מהקבוצה?
+                    </Label>
+                    <Input
+                      id="bedsAssigned"
+                      type="number"
+                      min={1}
+                      max={selectedGroup.remainingParticipants || 0}
+                      value={bedsAssigned}
+                      onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
+                      className="bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      💡 בחר כמה מקומות לשבץ כאן (מקסימום: {selectedGroup.remainingParticipants || 0})
+                    </p>
+                    {bedsAssigned > (selectedGroup.remainingParticipants || 0) && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        חורג מכמות החניכים הנותרת!
                       </p>
-                      {bedsAssigned > (selectedGroup.remainingParticipants || 0) && (
-                        <p className="text-xs text-destructive flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          חורג מכמות החניכים הנותרת!
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
             
             <div className="space-y-2">
               <Label htmlFor="groupName">שם הקבוצה *</Label>
