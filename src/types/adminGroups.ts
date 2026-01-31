@@ -16,10 +16,20 @@ export interface ScheduleItem {
   description: string;
 }
 
+// Legacy type - kept for migration
 export interface VIPTentPlan {
   tentCode: string;        // "80", "81", ..., "89"
   bedsPlanned: number;     // 1, 2, or 3
   gender?: 'female' | 'male';
+}
+
+// New simplified VIP tent configuration (no specific tent numbers)
+export interface VIPTentConfig {
+  id: string;              // Unique ID for this config
+  bedsPlanned: number;     // Base beds: 1, 2, or 3
+  hasExtraBed?: boolean;   // +1 extra bed option
+  gender?: 'female' | 'male';
+  assignedTentCode?: string; // Filled when assigned to specific VIP tent (80-89)
 }
 
 export interface GroupRecord {
@@ -42,8 +52,9 @@ export interface GroupRecord {
   // Staff/Participant allocation tracking
   staffCount?: number; // צוות - VIP tents
   participantCount?: number; // חניכים - auto = pax - staffCount
-  vipPeoplePerTent?: number; // default 3 (fallback when vipTentPlans empty)
-  vipTentPlans?: VIPTentPlan[]; // Individual VIP tent assignments
+  vipPeoplePerTent?: number; // default 3 (fallback when vipTentConfigs empty)
+  vipTentPlans?: VIPTentPlan[]; // Legacy - individual VIP tent assignments
+  vipTentConfigs?: VIPTentConfig[]; // New - generic VIP tent configurations
   remainingStaff?: number; // init = staffCount
   remainingParticipants?: number; // init = participantCount
   createdAt: string;

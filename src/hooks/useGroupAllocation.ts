@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from './useAdminGroups';
 import { AllocationRecord, CapacityCheckResult, ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
-import { GroupRecord } from '@/types/adminGroups';
+import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
 import { NeighborhoodId } from '@/types/village';
 import { parseISO, isWithinInterval, isBefore, isAfter, isSameDay } from 'date-fns';
 
@@ -166,16 +166,24 @@ export const useGroupAllocation = () => {
     const staffCount = group.staffCount || 0;
     const participantCount = group.participantCount || (group.pax - staffCount);
 
+    // Calculate VIP beds from vipTentConfigs if available
+    let requiredVIPBeds = staffCount;
+    if (group.vipTentConfigs && group.vipTentConfigs.length > 0) {
+      requiredVIPBeds = group.vipTentConfigs.reduce((sum, config) => 
+        sum + config.bedsPlanned + (config.hasExtraBed ? 1 : 0), 0
+      );
+    }
+
     const vipCapacity = getVIPCapacity(group.startDate, group.endDate, group.id);
     const neighborhoodCapacity = getNeighborhoodCapacity(group.startDate, group.endDate, group.id);
 
-    const vipShortage = Math.max(0, staffCount - vipCapacity.available);
+    const vipShortage = Math.max(0, requiredVIPBeds - vipCapacity.available);
     const participantShortage = Math.max(0, participantCount - neighborhoodCapacity.available);
 
     return {
       isAvailable: vipShortage === 0 && participantShortage === 0 && neighborhoodCapacity.lockedNeighborhoods.length < 7,
       vipBeds: {
-        required: staffCount,
+        required: requiredVIPBeds,
         available: vipCapacity.available,
         shortage: vipShortage,
       },
@@ -378,12 +386,12 @@ export const useGroupAllocation = () => {
         }
       }
       
-      // Check if tent is already in another group's vipTentPlans
+      // Check if tent is already assigned in another group's vipTentConfigs
       const conflictingGroup = groups.find(g => {
         if (excludeGroupId && g.id === excludeGroupId) return false;
-        if (!g.vipTentPlans || g.vipTentPlans.length === 0) return false;
+        if (!g.vipTentConfigs || g.vipTentConfigs.length === 0) return false;
         if (!dateRangesOverlap(startDate, endDate, g.startDate, g.endDate)) return false;
-        return g.vipTentPlans.some(plan => plan.tentCode === tentCode);
+        return g.vipTentConfigs.some(config => config.assignedTentCode === tentCode);
       });
 
       if (conflictingGroup) {
@@ -398,6 +406,49 @@ export const useGroupAllocation = () => {
     });
   }, [allocations, groups, state, dateRangesOverlap]);
 
+  // Get unassigned VIP configs for a group (configs without assignedTentCode)
+  const getUnassignedVIPConfigs = useCallback((groupId: string): VIPTentConfig[] => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group || !group.vipTentConfigs) return [];
+    return group.vipTentConfigs.filter(config => !config.assignedTentCode);
+  }, [groups]);
+
+  // Assign a VIP config to a specific tent code
+  const assignVIPConfig = useCallback((
+    groupId: string, 
+    configId: string, 
+    tentCode: string
+  ): boolean => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group || !group.vipTentConfigs) return false;
+    
+    // Check if tent is available
+    const availability = getAvailableVIPTents(group.startDate, group.endDate, groupId);
+    const tentAvailable = availability.find(t => t.tentCode === tentCode)?.available;
+    if (!tentAvailable) return false;
+
+    // Update the config with the assigned tent code
+    const updatedConfigs = group.vipTentConfigs.map(config =>
+      config.id === configId ? { ...config, assignedTentCode: tentCode } : config
+    );
+
+    updateGroup(groupId, { vipTentConfigs: updatedConfigs });
+    return true;
+  }, [groups, updateGroup, getAvailableVIPTents]);
+
+  // Unassign a VIP config from its tent code
+  const unassignVIPConfig = useCallback((groupId: string, configId: string): boolean => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group || !group.vipTentConfigs) return false;
+
+    const updatedConfigs = group.vipTentConfigs.map(config =>
+      config.id === configId ? { ...config, assignedTentCode: undefined } : config
+    );
+
+    updateGroup(groupId, { vipTentConfigs: updatedConfigs });
+    return true;
+  }, [groups, updateGroup]);
+
   return {
     allocations,
     isLoading,
@@ -411,5 +462,8 @@ export const useGroupAllocation = () => {
     getNeighborhoodCapacity,
     canAllocate,
     getAvailableVIPTents,
+    getUnassignedVIPConfigs,
+    assignVIPConfig,
+    unassignVIPConfig,
   };
 };

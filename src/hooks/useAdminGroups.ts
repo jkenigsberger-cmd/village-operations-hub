@@ -1,6 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GroupRecord, GroupType, ADMIN_GROUPS_STORAGE_KEY } from '@/types/adminGroups';
+import { GroupRecord, GroupType, VIPTentConfig, ADMIN_GROUPS_STORAGE_KEY } from '@/types/adminGroups';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
+
+// Migrate legacy vipTentPlans to vipTentConfigs
+const migrateVIPTentPlans = (group: GroupRecord): GroupRecord => {
+  // If already has vipTentConfigs, skip migration
+  if (group.vipTentConfigs && group.vipTentConfigs.length > 0) {
+    return group;
+  }
+  
+  // If has legacy vipTentPlans, migrate them
+  if (group.vipTentPlans && group.vipTentPlans.length > 0) {
+    const migratedConfigs: VIPTentConfig[] = group.vipTentPlans.map(plan => ({
+      id: Math.random().toString(36).substring(2, 11),
+      bedsPlanned: plan.bedsPlanned,
+      gender: plan.gender,
+      hasExtraBed: false,
+      assignedTentCode: plan.tentCode, // Preserve the assignment
+    }));
+    
+    return {
+      ...group,
+      vipTentConfigs: migratedConfigs,
+    };
+  }
+  
+  return group;
+};
 
 export const useAdminGroups = () => {
   const [groups, setGroups] = useState<GroupRecord[]>([]);
@@ -12,11 +38,16 @@ export const useAdminGroups = () => {
       const stored = localStorage.getItem(ADMIN_GROUPS_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as GroupRecord[];
-        // Migrate old groups without groupType
-        const migrated = parsed.map(g => ({
-          ...g,
-          groupType: g.groupType || 'לינה' as GroupType,
-        }));
+        // Migrate old groups without groupType and with legacy vipTentPlans
+        const migrated = parsed.map(g => {
+          let updated = {
+            ...g,
+            groupType: g.groupType || 'לינה' as GroupType,
+          };
+          // Migrate vipTentPlans to vipTentConfigs
+          updated = migrateVIPTentPlans(updated);
+          return updated;
+        });
         setGroups(migrated);
       }
     } catch (error) {
