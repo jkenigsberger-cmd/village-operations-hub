@@ -1,6 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { Tent, TentGender, Bed as BedType, CleaningStatus, WorkingStatus } from '@/types/village';
+import { GroupRecord } from '@/types/adminGroups';
 import { 
   X,
   Users,
@@ -15,7 +18,8 @@ import {
   Camera,
   AlertTriangle,
   Wrench,
-  CheckCircle
+  CheckCircle,
+  Link as LinkIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { compressImageFileToDataUrl } from '@/lib/imageCompression';
 interface TentDetailModalProps {
@@ -70,8 +75,16 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
     addDailyTask,
   } = useVillage();
 
+  const { groups } = useAdminGroups();
+  const { getOverlappingGroups, addAllocation, canAllocate } = useGroupAllocation();
+
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
   const [cleaningWorker, setCleaningWorker] = useState('');
+  
+  // Group linking state
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [bedsAssigned, setBedsAssigned] = useState<number>(0);
+  const [availableGroups, setAvailableGroups] = useState<GroupRecord[]>([]);
   
   // VIP facility maintenance states
   const [showBathroomIssue, setShowBathroomIssue] = useState(false);
@@ -104,8 +117,26 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
       setBathroomImage(tent.bathroomMaintenanceImage || null);
       setShowerNotes(tent.showerMaintenanceNotes || '');
       setShowerImage(tent.showerMaintenanceImage || null);
+      // Reset group linking state
+      setSelectedGroupId('');
+      setBedsAssigned(tent.beds.length);
     }
   }, [tentId, bedsJson, tent?.cleaningAssignedTo, tent?.bathroomMaintenanceNotes, tent?.bathroomMaintenanceImage, tent?.showerMaintenanceNotes, tent?.showerMaintenanceImage]);
+
+  // Update available groups when tent dates change
+  useEffect(() => {
+    if (tent?.checkInDate && tent?.checkOutDate && tent.checkInDate < tent.checkOutDate) {
+      const overlapping = getOverlappingGroups(tent.checkInDate, tent.checkOutDate);
+      setAvailableGroups(overlapping);
+    } else {
+      setAvailableGroups([]);
+    }
+  }, [tent?.checkInDate, tent?.checkOutDate, getOverlappingGroups]);
+
+  // Get selected group details
+  const selectedGroup = useMemo(() => {
+    return groups.find(g => g.id === selectedGroupId);
+  }, [groups, selectedGroupId]);
 
   // Organize beds by bunk - MUST be before early return to maintain hook order
   const { bunkBeds, singleBeds } = useMemo(() => {
@@ -368,12 +399,128 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
               פרטי הקבוצה
             </h3>
             
+            {/* Group Selector - Link to existing group */}
+            {availableGroups.length > 0 && (
+              <div className="space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Label className="flex items-center gap-2 text-sm font-semibold">
+                  <LinkIcon className="w-4 h-4" />
+                  🔗 קשר לקבוצה קיימת
+                </Label>
+                <Select value={selectedGroupId} onValueChange={(value) => {
+                  setSelectedGroupId(value);
+                  if (value) {
+                    const group = groups.find(g => g.id === value);
+                    if (group) {
+                      updateTentGroupName(tent.id, group.groupName);
+                      setBedsAssigned(tent.beds.length);
+                    }
+                  }
+                }}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="בחר קבוצה..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background">
+                    <SelectItem value="">ללא - קבוצה חדשה</SelectItem>
+                    {availableGroups.map(group => {
+                      const isVIP = tent.isVIP;
+                      const remaining = isVIP 
+                        ? (group.remainingStaff || 0) 
+                        : (group.remainingParticipants || 0);
+                      const startFormatted = group.startDate.slice(5).replace('-', '/');
+                      const endFormatted = group.endDate.slice(5).replace('-', '/');
+                      return (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.groupName} ({startFormatted}–{endFormatted}) • {isVIP ? 'צוות' : 'חניכים'} נשאר: {remaining}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                
+                {/* Show remaining counters if group selected */}
+                {selectedGroup && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="p-2 bg-background rounded-lg text-center border">
+                        <div className="font-bold text-amber-600">{selectedGroup.remainingStaff || 0}</div>
+                        <div className="text-xs text-muted-foreground">צוות נשאר</div>
+                      </div>
+                      <div className="p-2 bg-background rounded-lg text-center border">
+                        <div className="font-bold text-primary">{selectedGroup.remainingParticipants || 0}</div>
+                        <div className="text-xs text-muted-foreground">חניכים נשאר</div>
+                      </div>
+                    </div>
+                    
+                    {/* Beds Assigned Input */}
+                    <div className="space-y-2 pt-2 border-t">
+                      <Label htmlFor="tentBedsAssigned" className="text-sm">
+                        כמה מיטות לשבץ מהקבוצה?
+                      </Label>
+                      <Input
+                        id="tentBedsAssigned"
+                        type="number"
+                        min={1}
+                        max={tent.isVIP ? (selectedGroup.remainingStaff || 0) : (selectedGroup.remainingParticipants || 0)}
+                        value={bedsAssigned}
+                        onChange={(e) => setBedsAssigned(parseInt(e.target.value) || 0)}
+                        className="bg-background"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        💡 מקסימום: {tent.isVIP ? (selectedGroup.remainingStaff || 0) : (selectedGroup.remainingParticipants || 0)} ({tent.isVIP ? 'צוות' : 'חניכים'})
+                      </p>
+                    </div>
+                    
+                    {/* Allocate Button */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        if (!tent.checkInDate || !tent.checkOutDate) {
+                          toast.error('יש להזין תאריכי צ\'ק-אין וצ\'ק-אאוט לפני שיבוץ');
+                          return;
+                        }
+                        
+                        const isVIP = tent.isVIP;
+                        const validation = canAllocate(selectedGroupId, bedsAssigned, isVIP);
+                        
+                        if (!validation.canAllocate) {
+                          toast.error(validation.reason || 'לא ניתן לשבץ');
+                          return;
+                        }
+                        
+                        const success = addAllocation(
+                          selectedGroupId,
+                          isVIP ? 'VIP_TENT' : 'TENT',
+                          tent.id,
+                          tent.code,
+                          bedsAssigned,
+                          tent.checkInDate,
+                          tent.checkOutDate
+                        );
+                        
+                        if (success) {
+                          toast.success(`שובץ ${bedsAssigned} מיטות לקבוצה ${selectedGroup.groupName}`);
+                          setSelectedGroupId('');
+                        } else {
+                          toast.error('שגיאה בשיבוץ');
+                        }
+                      }}
+                    >
+                      שבץ {bedsAssigned} מיטות
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label>שם הקבוצה</Label>
               <Input
                 value={tent.groupName || ''}
                 onChange={(e) => updateTentGroupName(tent.id, e.target.value)}
                 placeholder="שם הקבוצה..."
+                disabled={!!selectedGroupId}
               />
             </div>
 

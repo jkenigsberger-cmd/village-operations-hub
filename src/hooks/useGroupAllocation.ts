@@ -315,6 +315,26 @@ export const useGroupAllocation = () => {
     return { available: true };
   }, [state, groups, allocations, dateRangesOverlap]);
 
+  // Pre-validate if allocation is possible
+  const canAllocate = useCallback((groupId: string, beds: number, isVIP: boolean = false): { canAllocate: boolean; remaining: number; reason?: string } => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) {
+      return { canAllocate: false, remaining: 0, reason: 'קבוצה לא נמצאה' };
+    }
+
+    const remaining = isVIP ? (group.remainingStaff || 0) : (group.remainingParticipants || 0);
+    
+    if (beds <= 0) {
+      return { canAllocate: false, remaining, reason: 'יש לבחור לפחות מיטה אחת' };
+    }
+    
+    if (beds > remaining) {
+      return { canAllocate: false, remaining, reason: `לא ניתן לשבץ ${beds} מיטות - נשאר רק ${remaining}` };
+    }
+
+    return { canAllocate: true, remaining };
+  }, [groups]);
+
   return {
     allocations,
     isLoading,
@@ -326,5 +346,6 @@ export const useGroupAllocation = () => {
     isNeighborhoodAvailableForGroup,
     getVIPCapacity,
     getNeighborhoodCapacity,
+    canAllocate,
   };
 };
