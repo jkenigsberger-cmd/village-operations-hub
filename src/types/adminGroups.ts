@@ -20,7 +20,8 @@ export interface MealPlanItem {
     vegan: number;
     glutenFree: number;
     lactoseFree: number;
-    allergiesNotes: string;
+    allergies: number;       // Numeric count for allergies
+    allergiesNotes: string;  // Free text notes
   };
 }
 
