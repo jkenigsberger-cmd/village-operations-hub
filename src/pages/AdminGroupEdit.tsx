@@ -1180,9 +1180,8 @@ const AdminGroupEdit = () => {
                       </div>
                     </div>
                     
-                    {/* Special needs - shown only when pax > 0 */}
-                    {meal.pax > 0 && (
-                      <div className="mt-3 pt-3 border-t space-y-3">
+                    {/* Special needs - always shown */}
+                    <div className="mt-3 pt-3 border-t space-y-3">
                         <label className="text-xs font-medium text-muted-foreground">צרכים מיוחדים</label>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                           <div className="space-y-1">
@@ -1301,8 +1300,7 @@ const AdminGroupEdit = () => {
                           />
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
                 ))}
               </div>
             )}
