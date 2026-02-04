@@ -72,7 +72,6 @@ const AdminGroups = () => {
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupRecord | null>(null);
-  const [confirmGroupName, setConfirmGroupName] = useState('');
 
   if (isLoading) {
     return (
@@ -120,22 +119,18 @@ const AdminGroups = () => {
   // Handle permanent delete choice - show confirmation
   const handlePermanentDeleteChoice = () => {
     setChoiceDialogOpen(false);
-    setConfirmGroupName('');
     setConfirmDeleteDialogOpen(true);
   };
 
   // Confirm permanent delete
   const confirmPermanentDelete = () => {
-    if (selectedGroup && confirmGroupName === selectedGroup.groupName) {
-      // Cascade delete all linked records first
+    if (selectedGroup) {
       cascadeDeleteGroupRecords(selectedGroup.id, selectedGroup.groupName);
-      // Then delete the group itself
       deleteGroup(selectedGroup.id);
       toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
     }
     setConfirmDeleteDialogOpen(false);
     setSelectedGroup(null);
-    setConfirmGroupName('');
   };
 
   // Handle restore click
@@ -159,7 +154,6 @@ const AdminGroups = () => {
   const handleDirectPermanentDelete = (e: React.MouseEvent, group: GroupRecord) => {
     e.stopPropagation();
     setSelectedGroup(group);
-    setConfirmGroupName('');
     setConfirmDeleteDialogOpen(true);
   };
 
@@ -380,38 +374,21 @@ const AdminGroups = () => {
               <AlertTriangle className="w-5 h-5" />
               מחיקה לצמיתות
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-right space-y-3">
+            <AlertDialogDescription className="text-right">
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-destructive">
+                האם אתה בטוח שברצונך למחוק את הקבוצה '{selectedGroup?.groupName}'?
+                <br /><br />
                 פעולה זו תמחק את הקבוצה ואת כל המידע המשויך אליה (שיבוצים/הזמנות/ארוחות).
                 <br />
                 <strong>לא ניתן לשחזר.</strong>
               </div>
-              
-              <div className="pt-2">
-                <Label className="text-foreground font-medium">
-                  להמשך, הקלד את שם הקבוצה:
-                </Label>
-                <div className="mt-2 text-muted-foreground text-sm mb-2">
-                  "{selectedGroup?.groupName}"
-                </div>
-                <Input
-                  value={confirmGroupName}
-                  onChange={(e) => setConfirmGroupName(e.target.value)}
-                  placeholder="הקלד שם קבוצה..."
-                  dir="rtl"
-                  className="mt-1"
-                />
-              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel onClick={() => setConfirmGroupName('')}>
-              ביטול
-            </AlertDialogCancel>
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
             <Button
               variant="destructive"
               onClick={confirmPermanentDelete}
-              disabled={confirmGroupName !== selectedGroup?.groupName}
               className="gap-2"
             >
               <Trash2 className="w-4 h-4" />

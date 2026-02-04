@@ -343,7 +343,6 @@ const AdminGroupEdit = () => {
   const [mealModalOpen, setMealModalOpen] = useState(false);
   const [choiceDialogOpen, setChoiceDialogOpen] = useState(false);
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
-  const [confirmGroupName, setConfirmGroupName] = useState('');
   const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
   const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
@@ -1094,7 +1093,6 @@ const AdminGroupEdit = () => {
               variant="destructive"
               onClick={() => {
                 setChoiceDialogOpen(false);
-                setConfirmGroupName('');
                 setConfirmDeleteDialogOpen(true);
               }}
               className="gap-2"
@@ -1114,47 +1112,29 @@ const AdminGroupEdit = () => {
               <AlertTriangle className="w-5 h-5" />
               מחיקה לצמיתות
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-right space-y-3">
+            <AlertDialogDescription className="text-right">
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-destructive">
+                האם אתה בטוח שברצונך למחוק את הקבוצה '{formData.groupName}'?
+                <br /><br />
                 פעולה זו תמחק את הקבוצה ואת כל המידע המשויך אליה (שיבוצים/הזמנות/ארוחות).
                 <br />
                 <strong>לא ניתן לשחזר.</strong>
               </div>
-              
-              <div className="pt-2">
-                <label className="text-foreground font-medium">
-                  להמשך, הקלד את שם הקבוצה:
-                </label>
-                <div className="mt-2 text-muted-foreground text-sm mb-2">
-                  "{formData.groupName}"
-                </div>
-                <Input
-                  value={confirmGroupName}
-                  onChange={(e) => setConfirmGroupName(e.target.value)}
-                  placeholder="הקלד שם קבוצה..."
-                  dir="rtl"
-                  className="mt-1"
-                />
-              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel onClick={() => setConfirmGroupName('')}>
-              ביטול
-            </AlertDialogCancel>
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
             <Button
               variant="destructive"
               onClick={() => {
-                if (id && confirmGroupName === formData.groupName) {
+                if (id) {
                   cascadeDeleteGroupRecords(id, formData.groupName);
                   deleteGroup(id);
                   toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
                   setConfirmDeleteDialogOpen(false);
-                  setConfirmGroupName('');
                   navigate('/admin/groups');
                 }
               }}
-              disabled={confirmGroupName !== formData.groupName}
               className="gap-2"
             >
               <Trash2 className="w-4 h-4" />
