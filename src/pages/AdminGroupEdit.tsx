@@ -4,7 +4,7 @@ import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useVillage } from '@/context/VillageContext';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
-import { hasLinkedRecords, getLinkedRecordsDescription } from '@/lib/groupLinkedRecords';
+import { getLinkedRecordsDescription, cascadeDeleteGroupRecords } from '@/lib/groupLinkedRecords';
 import { 
   GroupRecord, 
   GroupType,
@@ -341,8 +341,9 @@ const AdminGroupEdit = () => {
 
   const [spaceModalOpen, setSpaceModalOpen] = useState(false);
   const [mealModalOpen, setMealModalOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [choiceDialogOpen, setChoiceDialogOpen] = useState(false);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [confirmGroupName, setConfirmGroupName] = useState('');
   const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
   const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
@@ -992,7 +993,7 @@ const AdminGroupEdit = () => {
           </CardContent>
         </Card>
 
-        {/* Delete/Archive Section (only for existing groups) */}
+        {/* Remove Group Section (only for existing groups) */}
         {!isNew && id && (
           <Card className="border-destructive/50">
             <CardHeader>
@@ -1001,51 +1002,20 @@ const AdminGroupEdit = () => {
                 פעולות מתקדמות
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {(() => {
-                const canDelete = !hasLinkedRecords(id, formData.groupName);
-                const linkedDescription = getLinkedRecordsDescription(id, formData.groupName);
-                
-                return (
-                  <div className="flex flex-col gap-4">
-                    {!canDelete && (
-                      <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                          <div>
-                            <p className="font-medium text-amber-800 dark:text-amber-200">
-                              לא ניתן למחוק קבוצה עם שיבוצים/הזמנות
-                            </p>
-                            <p className="text-sm text-amber-700 dark:text-amber-300">
-                              נמצאו: {linkedDescription}. ניתן להעביר לארכיון.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-4">
-                      <Button 
-                        variant="outline"
-                        onClick={() => setArchiveDialogOpen(true)}
-                        className="flex-1"
-                      >
-                        <Archive className="w-4 h-4 ml-2" />
-                        העבר לארכיון
-                      </Button>
-                      <Button 
-                        variant="destructive"
-                        onClick={() => setDeleteDialogOpen(true)}
-                        disabled={!canDelete}
-                        className={`flex-1 ${!canDelete ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <Trash2 className="w-4 h-4 ml-2" />
-                        מחק קבוצה
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })()}
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  הסרת קבוצה מהמערכת. תוכל לבחור בין ארכיון (שמירה) למחיקה לצמיתות.
+                </p>
+                <Button 
+                  variant="outline"
+                  onClick={() => setChoiceDialogOpen(true)}
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <XCircle className="w-4 h-4" />
+                  הסר קבוצה
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1079,65 +1049,117 @@ const AdminGroupEdit = () => {
         defaultPax={formData.pax}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Choice Modal: Archive vs Permanent Delete */}
+      <AlertDialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-destructive" />
-              מחיקת קבוצה
+              <XCircle className="w-5 h-5 text-primary" />
+              הסרת קבוצה
             </AlertDialogTitle>
             <AlertDialogDescription className="text-right">
-              אתה בטוח שברצונך למחוק את הקבוצה '{formData.groupName}'?
-              <br />
-              <strong className="text-destructive">הפעולה לא ניתנת לשחזור.</strong>
+              מה ברצונך לעשות עם הקבוצה '{formData.groupName}'?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse gap-2">
+          
+          {/* Show linked records info if any */}
+          {id && getLinkedRecordsDescription(id, formData.groupName) && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <span className="text-amber-800 dark:text-amber-200">
+                  לקבוצה זו יש נתונים משויכים: {getLinkedRecordsDescription(id, formData.groupName)}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <AlertDialogCancel>ביטול</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (id) {
-                  deleteGroup(id);
-                  toast.success('הקבוצה נמחקה');
-                  navigate('/admin/groups');
-                }
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              מחק
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Archive Confirmation Dialog */}
-      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
-        <AlertDialogContent dir="rtl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Archive className="w-5 h-5 text-primary" />
-              העברה לארכיון
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-right">
-              האם להעביר את הקבוצה '{formData.groupName}' לארכיון?
-              <br />
-              הקבוצה תוסתר מהרשימה אך הנתונים יישמרו.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel>ביטול</AlertDialogCancel>
-            <AlertDialogAction 
+            <Button
               onClick={() => {
                 if (id) {
                   archiveGroup(id);
                   toast.success('הקבוצה הועברה לארכיון');
+                  setChoiceDialogOpen(false);
                   navigate('/admin/groups');
                 }
               }}
+              className="gap-2"
             >
+              <Archive className="w-4 h-4" />
               העבר לארכיון
-            </AlertDialogAction>
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setChoiceDialogOpen(false);
+                setConfirmGroupName('');
+                setConfirmDeleteDialogOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              מחיקה לצמיתות
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Permanent Delete Confirmation Modal */}
+      <AlertDialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              מחיקה לצמיתות
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right space-y-3">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-destructive">
+                פעולה זו תמחק את הקבוצה ואת כל המידע המשויך אליה (שיבוצים/הזמנות/ארוחות).
+                <br />
+                <strong>לא ניתן לשחזר.</strong>
+              </div>
+              
+              <div className="pt-2">
+                <label className="text-foreground font-medium">
+                  להמשך, הקלד את שם הקבוצה:
+                </label>
+                <div className="mt-2 text-muted-foreground text-sm mb-2">
+                  "{formData.groupName}"
+                </div>
+                <Input
+                  value={confirmGroupName}
+                  onChange={(e) => setConfirmGroupName(e.target.value)}
+                  placeholder="הקלד שם קבוצה..."
+                  dir="rtl"
+                  className="mt-1"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel onClick={() => setConfirmGroupName('')}>
+              ביטול
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (id && confirmGroupName === formData.groupName) {
+                  cascadeDeleteGroupRecords(id, formData.groupName);
+                  deleteGroup(id);
+                  toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
+                  setConfirmDeleteDialogOpen(false);
+                  setConfirmGroupName('');
+                  navigate('/admin/groups');
+                }
+              }}
+              disabled={confirmGroupName !== formData.groupName}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              מחק לצמיתות
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

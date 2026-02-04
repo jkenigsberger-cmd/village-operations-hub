@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { GroupRecord, GroupStatus } from '@/types/adminGroups';
-import { hasLinkedRecords, getLinkedRecordsDescription } from '@/lib/groupLinkedRecords';
+import { getLinkedRecordsDescription, cascadeDeleteGroupRecords } from '@/lib/groupLinkedRecords';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,8 @@ import {
   Trash2,
   Archive,
   RotateCcw,
-  AlertCircle
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isAfter } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -64,10 +66,13 @@ const AdminGroups = () => {
   const { groups, activeGroups, archivedGroups, isLoading, deleteGroup, archiveGroup, restoreGroup } = useAdminGroups();
   
   const [showArchived, setShowArchived] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  
+  // Modal states
+  const [choiceDialogOpen, setChoiceDialogOpen] = useState(false);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupRecord | null>(null);
+  const [confirmGroupName, setConfirmGroupName] = useState('');
 
   if (isLoading) {
     return (
@@ -95,59 +100,68 @@ const AdminGroups = () => {
     return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
   });
 
-  const handleDeleteClick = (e: React.MouseEvent, group: GroupRecord) => {
+  // Open the choice modal (Archive vs Delete)
+  const handleRemoveClick = (e: React.MouseEvent, group: GroupRecord) => {
     e.stopPropagation();
-    const canDelete = !hasLinkedRecords(group.id, group.groupName);
-    if (!canDelete) {
-      // Show info toast about why deletion is blocked
-      const description = getLinkedRecordsDescription(group.id, group.groupName);
-      toast.error(`לא ניתן למחוק קבוצה עם ${description}. ניתן להעביר לארכיון.`);
-      return;
+    setSelectedGroup(group);
+    setChoiceDialogOpen(true);
+  };
+
+  // Handle archive choice
+  const handleArchiveChoice = () => {
+    if (selectedGroup) {
+      archiveGroup(selectedGroup.id);
+      toast.success('הקבוצה הועברה לארכיון');
     }
-    setSelectedGroup(group);
-    setDeleteDialogOpen(true);
+    setChoiceDialogOpen(false);
+    setSelectedGroup(null);
   };
 
-  const handleArchiveClick = (e: React.MouseEvent, group: GroupRecord) => {
-    e.stopPropagation();
-    setSelectedGroup(group);
-    setArchiveDialogOpen(true);
+  // Handle permanent delete choice - show confirmation
+  const handlePermanentDeleteChoice = () => {
+    setChoiceDialogOpen(false);
+    setConfirmGroupName('');
+    setConfirmDeleteDialogOpen(true);
   };
 
+  // Confirm permanent delete
+  const confirmPermanentDelete = () => {
+    if (selectedGroup && confirmGroupName === selectedGroup.groupName) {
+      // Cascade delete all linked records first
+      cascadeDeleteGroupRecords(selectedGroup.id, selectedGroup.groupName);
+      // Then delete the group itself
+      deleteGroup(selectedGroup.id);
+      toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
+    }
+    setConfirmDeleteDialogOpen(false);
+    setSelectedGroup(null);
+    setConfirmGroupName('');
+  };
+
+  // Handle restore click
   const handleRestoreClick = (e: React.MouseEvent, group: GroupRecord) => {
     e.stopPropagation();
     setSelectedGroup(group);
     setRestoreDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedGroup) {
-      deleteGroup(selectedGroup.id);
-      toast.success('הקבוצה נמחקה');
-    }
-    setDeleteDialogOpen(false);
-    setSelectedGroup(null);
-  };
-
-  const confirmArchive = () => {
-    if (selectedGroup) {
-      archiveGroup(selectedGroup.id);
-      toast.success('הקבוצה הועברה לארכיון');
-    }
-    setArchiveDialogOpen(false);
-    setSelectedGroup(null);
-  };
-
+  // Confirm restore
   const confirmRestore = () => {
     if (selectedGroup) {
       restoreGroup(selectedGroup.id);
-      toast.success('הקבוצה הוחזרה מהארכיון');
+      toast.success('הקבוצה שוחזרה מהארכיון');
     }
     setRestoreDialogOpen(false);
     setSelectedGroup(null);
   };
 
-  const canDeleteGroup = (group: GroupRecord) => !hasLinkedRecords(group.id, group.groupName);
+  // Direct permanent delete from archived group
+  const handleDirectPermanentDelete = (e: React.MouseEvent, group: GroupRecord) => {
+    e.stopPropagation();
+    setSelectedGroup(group);
+    setConfirmGroupName('');
+    setConfirmDeleteDialogOpen(true);
+  };
 
   return (
     <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים">
@@ -196,7 +210,6 @@ const AdminGroups = () => {
           {sortedGroups.map((group) => {
             const status = getGroupStatus(group);
             const isArchivedGroup = group.isArchived;
-            const canDelete = canDeleteGroup(group);
             
             return (
               <Card 
@@ -271,35 +284,35 @@ const AdminGroups = () => {
                     <div className="flex items-center gap-2">
                       {/* Action buttons */}
                       {isArchivedGroup ? (
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          onClick={(e) => handleRestoreClick(e, group)}
-                          title="החזר מהארכיון"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </Button>
-                      ) : (
                         <>
                           <Button 
                             variant="outline" 
                             size="icon"
-                            onClick={(e) => handleArchiveClick(e, group)}
-                            title="העבר לארכיון"
+                            onClick={(e) => handleRestoreClick(e, group)}
+                            title="שחזר מהארכיון"
                           >
-                            <Archive className="w-4 h-4" />
+                            <RotateCcw className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="outline" 
                             size="icon"
-                            onClick={(e) => handleDeleteClick(e, group)}
-                            disabled={!canDelete}
-                            title={canDelete ? 'מחק קבוצה' : 'לא ניתן למחוק קבוצה עם שיבוצים'}
-                            className={!canDelete ? 'opacity-50 cursor-not-allowed' : ''}
+                            onClick={(e) => handleDirectPermanentDelete(e, group)}
+                            title="מחיקה לצמיתות"
+                            className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => handleRemoveClick(e, group)}
+                          className="gap-2"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          הסר קבוצה
+                        </Button>
                       )}
                       <Button variant="ghost" size="icon">
                         <ArrowRight className="w-5 h-5" />
@@ -313,51 +326,97 @@ const AdminGroups = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Choice Modal: Archive vs Permanent Delete */}
+      <AlertDialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-destructive" />
-              מחיקת קבוצה
+              <XCircle className="w-5 h-5 text-primary" />
+              הסרת קבוצה
             </AlertDialogTitle>
             <AlertDialogDescription className="text-right">
-              אתה בטוח שברצונך למחוק את הקבוצה '{selectedGroup?.groupName}'?
-              <br />
-              <strong className="text-destructive">הפעולה לא ניתנת לשחזור.</strong>
+              מה ברצונך לעשות עם הקבוצה '{selectedGroup?.groupName}'?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse gap-2">
+          
+          {/* Show linked records info if any */}
+          {selectedGroup && getLinkedRecordsDescription(selectedGroup.id, selectedGroup.groupName) && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <span className="text-amber-800 dark:text-amber-200">
+                  לקבוצה זו יש נתונים משויכים: {getLinkedRecordsDescription(selectedGroup.id, selectedGroup.groupName)}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <AlertDialogCancel>ביטול</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <Button
+              onClick={handleArchiveChoice}
+              className="gap-2"
             >
-              מחק
-            </AlertDialogAction>
+              <Archive className="w-4 h-4" />
+              העבר לארכיון
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handlePermanentDeleteChoice}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              מחיקה לצמיתות
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Archive Confirmation Dialog */}
-      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+      {/* Permanent Delete Confirmation Modal */}
+      <AlertDialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Archive className="w-5 h-5 text-primary" />
-              העברה לארכיון
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              מחיקה לצמיתות
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-right">
-              האם להעביר את הקבוצה '{selectedGroup?.groupName}' לארכיון?
-              <br />
-              הקבוצה תוסתר מהרשימה אך הנתונים יישמרו.
+            <AlertDialogDescription className="text-right space-y-3">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-destructive">
+                פעולה זו תמחק את הקבוצה ואת כל המידע המשויך אליה (שיבוצים/הזמנות/ארוחות).
+                <br />
+                <strong>לא ניתן לשחזר.</strong>
+              </div>
+              
+              <div className="pt-2">
+                <Label className="text-foreground font-medium">
+                  להמשך, הקלד את שם הקבוצה:
+                </Label>
+                <div className="mt-2 text-muted-foreground text-sm mb-2">
+                  "{selectedGroup?.groupName}"
+                </div>
+                <Input
+                  value={confirmGroupName}
+                  onChange={(e) => setConfirmGroupName(e.target.value)}
+                  placeholder="הקלד שם קבוצה..."
+                  dir="rtl"
+                  className="mt-1"
+                />
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel>ביטול</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmArchive}>
-              העבר לארכיון
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setConfirmGroupName('')}>
+              ביטול
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={confirmPermanentDelete}
+              disabled={confirmGroupName !== selectedGroup?.groupName}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              מחק לצמיתות
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -368,10 +427,10 @@ const AdminGroups = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <RotateCcw className="w-5 h-5 text-primary" />
-              החזרה מארכיון
+              שחזור מארכיון
             </AlertDialogTitle>
             <AlertDialogDescription className="text-right">
-              האם להחזיר את הקבוצה '{selectedGroup?.groupName}' מהארכיון?
+              האם לשחזר את הקבוצה '{selectedGroup?.groupName}' מהארכיון?
               <br />
               הקבוצה תוצג שוב ברשימה הפעילה.
             </AlertDialogDescription>
@@ -379,7 +438,7 @@ const AdminGroups = () => {
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogCancel>ביטול</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRestore}>
-              החזר מהארכיון
+              שחזר
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
