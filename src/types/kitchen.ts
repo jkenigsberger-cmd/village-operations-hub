@@ -28,6 +28,10 @@ export interface TimeSlot {
   specialDiets: SpecialDiets;
   groups: MealGroup[];
   updatedAt: string;
+  // Sync tracking fields
+  source?: 'manual' | 'groupSync'; // Origin of the slot
+  groupId?: string; // Linked admin group ID (for groupSync slots)
+  groupName?: string; // Group name for display
 }
 
 export interface KitchenState {

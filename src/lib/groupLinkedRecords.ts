@@ -5,6 +5,7 @@
 // ============================================================
 
 import { ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
+import { removeSyncedRecordsForGroup } from '@/lib/groupSync';
 
 const VILLAGE_STORAGE_KEY = 'aharonson_farm_village_state';
 const KITCHEN_STORAGE_KEY = 'aharonson_farm_kitchen_state';
@@ -270,6 +271,9 @@ export const cascadeDeleteGroupRecords = (groupId: string, groupName: string): v
   } catch (e) {
     console.error('Error cleaning kitchen state:', e);
   }
+
+  // 4. Remove synced records (source='groupSync')
+  removeSyncedRecordsForGroup(groupId);
 
   console.log(`[CASCADE DELETE] Completed for group: ${groupName}`);
 };

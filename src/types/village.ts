@@ -147,6 +147,10 @@ export interface ActivityReservation {
   groupName: string;
   notes?: string;
   createdAt: string;
+  // Sync tracking fields
+  source?: 'manual' | 'groupSync'; // Origin of the reservation
+  groupId?: string; // Linked admin group ID (for groupSync reservations)
+  status?: 'confirmed' | 'conflict'; // Booking status
 }
 
 // ============================================================
