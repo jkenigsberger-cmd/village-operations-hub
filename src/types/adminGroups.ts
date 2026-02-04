@@ -57,6 +57,8 @@ export interface GroupRecord {
   vipTentConfigs?: VIPTentConfig[]; // New - generic VIP tent configurations
   remainingStaff?: number; // init = staffCount
   remainingParticipants?: number; // init = participantCount
+  // Archive support
+  isArchived?: boolean; // If true, group is archived and hidden by default
   createdAt: string;
   updatedAt: string;
 }

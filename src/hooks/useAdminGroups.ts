@@ -139,8 +139,26 @@ export const useAdminGroups = () => {
     }
   }, [groups, updateGroup]);
 
+  // Archive a group (set isArchived = true)
+  const archiveGroup = useCallback((id: string) => {
+    updateGroup(id, { isArchived: true });
+  }, [updateGroup]);
+
+  // Restore a group from archive (set isArchived = false)
+  const restoreGroup = useCallback((id: string) => {
+    updateGroup(id, { isArchived: false });
+  }, [updateGroup]);
+
+  // Get active (non-archived) groups
+  const activeGroups = groups.filter(g => !g.isArchived);
+
+  // Get archived groups
+  const archivedGroups = groups.filter(g => g.isArchived);
+
   return {
     groups,
+    activeGroups,
+    archivedGroups,
     isLoading,
     addGroup,
     updateGroup,
@@ -149,5 +167,7 @@ export const useAdminGroups = () => {
     getDayUseGroupsForDate,
     addLinkedSpaceReservation,
     addLinkedKitchenSlot,
+    archiveGroup,
+    restoreGroup,
   };
 };
