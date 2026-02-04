@@ -1182,12 +1182,9 @@ const AdminGroupEdit = () => {
                     
                     {/* Special needs - shown only when pax > 0 */}
                     {meal.pax > 0 && (
-                      <div className="p-3 bg-background rounded-lg border space-y-3">
-                        <h5 className="text-sm font-medium flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          צרכים מיוחדים
-                        </h5>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="mt-3 pt-3 border-t space-y-3">
+                        <label className="text-xs font-medium text-muted-foreground">צרכים מיוחדים</label>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                           <div className="space-y-1">
                             <label className="text-xs text-muted-foreground">🌱 צמחוני</label>
                             <NumericInput
@@ -1199,6 +1196,7 @@ const AdminGroupEdit = () => {
                                   vegan: meal.specialDiets?.vegan || 0,
                                   glutenFree: meal.specialDiets?.glutenFree || 0,
                                   lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergies: meal.specialDiets?.allergies || 0,
                                   allergiesNotes: meal.specialDiets?.allergiesNotes || ''
                                 } 
                               })}
@@ -1217,6 +1215,7 @@ const AdminGroupEdit = () => {
                                   vegan: val,
                                   glutenFree: meal.specialDiets?.glutenFree || 0,
                                   lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergies: meal.specialDiets?.allergies || 0,
                                   allergiesNotes: meal.specialDiets?.allergiesNotes || ''
                                 } 
                               })}
@@ -1235,6 +1234,7 @@ const AdminGroupEdit = () => {
                                   vegan: meal.specialDiets?.vegan || 0,
                                   glutenFree: val,
                                   lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergies: meal.specialDiets?.allergies || 0,
                                   allergiesNotes: meal.specialDiets?.allergiesNotes || ''
                                 } 
                               })}
@@ -1253,6 +1253,26 @@ const AdminGroupEdit = () => {
                                   vegan: meal.specialDiets?.vegan || 0,
                                   glutenFree: meal.specialDiets?.glutenFree || 0,
                                   lactoseFree: val,
+                                  allergies: meal.specialDiets?.allergies || 0,
+                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
+                                } 
+                              })}
+                              min={0}
+                              max={meal.pax}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">🥜 אלרגיות</label>
+                            <NumericInput
+                              value={meal.specialDiets?.allergies || 0}
+                              onChange={(val) => updateMealPlanItem(meal.id, { 
+                                specialDiets: { 
+                                  ...meal.specialDiets, 
+                                  vegetarian: meal.specialDiets?.vegetarian || 0,
+                                  vegan: meal.specialDiets?.vegan || 0,
+                                  glutenFree: meal.specialDiets?.glutenFree || 0,
+                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergies: val,
                                   allergiesNotes: meal.specialDiets?.allergiesNotes || ''
                                 } 
                               })}
@@ -1262,7 +1282,7 @@ const AdminGroupEdit = () => {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">🥜 אלרגיות / הערות</label>
+                          <label className="text-xs text-muted-foreground">✏️ הערות נוספות</label>
                           <Textarea
                             value={meal.specialDiets?.allergiesNotes || ''}
                             onChange={(e) => updateMealPlanItem(meal.id, { 
@@ -1272,10 +1292,11 @@ const AdminGroupEdit = () => {
                                 vegan: meal.specialDiets?.vegan || 0,
                                 glutenFree: meal.specialDiets?.glutenFree || 0,
                                 lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                allergies: meal.specialDiets?.allergies || 0,
                                 allergiesNotes: e.target.value
                               } 
                             })}
-                            placeholder="אלרגיות או צרכים מיוחדים נוספים..."
+                            placeholder="פירוט אלרגיות או צרכים מיוחדים נוספים..."
                             rows={2}
                           />
                         </div>
