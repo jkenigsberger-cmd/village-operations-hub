@@ -99,11 +99,12 @@ export const SCHEDULE_LOCATIONS = [
 ] as const;
 
 // Space IDs mapping for booking integration
+// Space IDs must match initialData.ts activitySpaces
 export const SPACE_ID_MAP: Record<string, string> = {
   'אוהל מועד': 'ohel_moed',
-  'ממ״ד 6': 'mamad_6',
-  'ממ״ד 7': 'mamad_7',
-  'ממ״ד 8': 'mamad_8',
+  'ממ״ד 6': 'bunker_6',
+  'ממ״ד 7': 'bunker_7',
+  'ממ״ד 8': 'bunker_8',
   'חדר אוכל': 'dining_hall',
 };
 
