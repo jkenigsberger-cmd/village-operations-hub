@@ -11,6 +11,7 @@ import {
   ScheduleItem, 
   ScheduleCategory,
   VIPTentConfig,
+  MealPlanItem,
   SCHEDULE_LOCATIONS, 
   SCHEDULE_CATEGORY_LABELS,
   SPACE_ID_MAP 
@@ -19,6 +20,7 @@ import { MealType, MEAL_LABELS } from '@/types/kitchen';
 import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { VIPTentPlanner } from '@/components/VIPTentPlanner';
+import { NumericInput } from '@/components/NumericInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,22 +57,42 @@ import {
   AlertTriangle,
   UserCheck,
   Tent,
-  Archive
+  Archive,
+  Utensils
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+// Empty schedule item with sensible defaults
 const emptyScheduleItem = (): ScheduleItem => ({
   id: Math.random().toString(36).substring(2, 11),
   date: format(new Date(), 'yyyy-MM-dd'),
   startTime: '09:00',
-  endTime: '',
+  endTime: '10:00',
   category: 'ACTIVITY',
   location: '',
   description: '',
 });
+
+// Empty meal plan item
+const emptyMealPlanItem = (): MealPlanItem => ({
+  id: Math.random().toString(36).substring(2, 11),
+  date: format(new Date(), 'yyyy-MM-dd'),
+  mealType: 'LUNCH',
+  time: '13:00',
+  location: 'DINING_HALL',
+  pax: 0,
+});
+
+// Validate schedule item time range
+const validateScheduleItemTime = (item: ScheduleItem): string | null => {
+  if (item.startTime && item.endTime && item.startTime >= item.endTime) {
+    return 'שעת הסיום חייבת להיות אחרי שעת ההתחלה';
+  }
+  return null;
+};
 
 // Space booking modal component
 interface SpaceBookingModalProps {
@@ -231,7 +253,7 @@ const MealBookingModal: React.FC<MealBookingModalProps> = ({ isOpen, onClose, on
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">מספר סועדים</label>
-            <Input type="number" min={1} value={pax} onChange={(e) => setPax(parseInt(e.target.value) || 0)} />
+            <NumericInput value={pax} onChange={setPax} min={1} />
           </div>
         </div>
         <DialogFooter>
@@ -346,6 +368,7 @@ const AdminGroupEdit = () => {
   const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
   const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
+  const [mealsPlan, setMealsPlan] = useState<MealPlanItem[]>([]);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -364,6 +387,7 @@ const AdminGroupEdit = () => {
     participantCount: 10,
     vipPeoplePerTent: 3,
     vipTentConfigs: [],
+    mealsPlan: [],
     remainingStaff: 0,
     remainingParticipants: 10,
   });
@@ -391,11 +415,13 @@ const AdminGroupEdit = () => {
           participantCount: existing.participantCount || (existing.pax - (existing.staffCount || 0)),
           vipPeoplePerTent: existing.vipPeoplePerTent || 3,
           vipTentConfigs: existing.vipTentConfigs || [],
+          mealsPlan: existing.mealsPlan || [],
           remainingStaff: existing.remainingStaff ?? existing.staffCount ?? 0,
           remainingParticipants: existing.remainingParticipants ?? (existing.pax - (existing.staffCount || 0)),
         });
         // Load VIP tent configs into local state
         setVipTentConfigs(existing.vipTentConfigs || []);
+        setMealsPlan(existing.mealsPlan || []);
       }
     }
   }, [isNew, id, getGroup]);
@@ -424,6 +450,19 @@ const AdminGroupEdit = () => {
     }
   }, [formData.staffCount, isNew]);
 
+  // Validate all schedule items
+  const scheduleValidationErrors = useMemo(() => {
+    const errors: Record<string, string> = {};
+    formData.scheduleItems.forEach(item => {
+      const error = validateScheduleItemTime(item);
+      if (error) {
+        errors[item.id] = error;
+      }
+    });
+    return errors;
+  }, [formData.scheduleItems]);
+
+  const hasScheduleErrors = Object.keys(scheduleValidationErrors).length > 0;
 
   const handleCapacityCheck = () => {
     setIsCheckingCapacity(true);
@@ -458,11 +497,16 @@ const AdminGroupEdit = () => {
       toast.error('מספר הצוות לא יכול להיות גדול ממספר האנשים הכולל');
       return;
     }
+    if (hasScheduleErrors) {
+      toast.error('יש שגיאות בלו״ז - נא לתקן את שעות הסיום');
+      return;
+    }
 
-    // Include vipTentConfigs in the data to save
+    // Include vipTentConfigs and mealsPlan in the data to save
     const dataToSave = {
       ...formData,
       vipTentConfigs,
+      mealsPlan,
     };
 
     if (isNew) {
@@ -496,6 +540,21 @@ const AdminGroupEdit = () => {
       ...prev,
       scheduleItems: prev.scheduleItems.filter(item => item.id !== itemId),
     }));
+  };
+
+  // Meal plan handlers
+  const addMealPlanItem = () => {
+    setMealsPlan(prev => [...prev, emptyMealPlanItem()]);
+  };
+
+  const updateMealPlanItem = (itemId: string, updates: Partial<MealPlanItem>) => {
+    setMealsPlan(prev => prev.map(item =>
+      item.id === itemId ? { ...item, ...updates } : item
+    ));
+  };
+
+  const removeMealPlanItem = (itemId: string) => {
+    setMealsPlan(prev => prev.filter(item => item.id !== itemId));
   };
 
   // Handle space booking
@@ -568,7 +627,7 @@ const AdminGroupEdit = () => {
               <Button variant="outline" onClick={() => navigate('/admin/groups')}>
                 ביטול
               </Button>
-              <Button size="lg" onClick={handleSave}>
+              <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors}>
                 <Save className="w-5 h-5 ml-2" />
                 שמור
               </Button>
@@ -647,11 +706,11 @@ const AdminGroupEdit = () => {
               
               <div className="space-y-2">
                 <label className="text-sm font-medium">{isDayUse ? 'כמות משתתפים *' : 'כמות אנשים כוללת *'}</label>
-                <Input
-                  type="number"
-                  min={1}
+                <NumericInput
                   value={formData.pax}
-                  onChange={(e) => setFormData(prev => ({ ...prev, pax: parseInt(e.target.value) || 0 }))}
+                  onChange={(val) => setFormData(prev => ({ ...prev, pax: val }))}
+                  min={1}
+                  showStepper
                 />
               </div>
             </div>
@@ -666,27 +725,25 @@ const AdminGroupEdit = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">צוות (VIP)</label>
-                    <Input
-                      type="number"
+                    <NumericInput
+                      value={formData.staffCount || 0}
+                      onChange={(val) => setFormData(prev => ({ 
+                        ...prev, 
+                        staffCount: Math.min(val, prev.pax),
+                        remainingStaff: Math.min(val, prev.pax),
+                      }))}
                       min={0}
                       max={formData.pax}
-                      value={formData.staffCount || 0}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        staffCount: Math.min(parseInt(e.target.value) || 0, prev.pax),
-                        remainingStaff: Math.min(parseInt(e.target.value) || 0, prev.pax),
-                      }))}
                     />
                     <p className="text-xs text-muted-foreground">יוקצו לאוהלי VIP</p>
                   </div>
                   
                   <div className="space-y-2">
                     <label className="text-sm font-medium">חניכים</label>
-                    <Input
-                      type="number"
+                    <NumericInput
                       value={formData.participantCount || 0}
+                      onChange={() => {}}
                       disabled
-                      className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">אוטומטי (סה״כ - צוות)</p>
                   </div>
@@ -854,7 +911,7 @@ const AdminGroupEdit = () => {
           </Card>
         )}
 
-        {/* Schedule Card */}
+        {/* Schedule Card (לו״ז) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -867,6 +924,12 @@ const AdminGroupEdit = () => {
             </Button>
           </CardHeader>
           <CardContent>
+            {hasScheduleErrors && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4 flex items-center gap-2 text-destructive">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm">יש שגיאות בלו״ז - נא לתקן לפני שמירה</span>
+              </div>
+            )}
             {formData.scheduleItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -878,14 +941,161 @@ const AdminGroupEdit = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {formData.scheduleItems.map((item, index) => (
-                  <div key={item.id} className="p-4 bg-muted/50 rounded-lg space-y-3">
+                {formData.scheduleItems.map((item, index) => {
+                  const timeError = scheduleValidationErrors[item.id];
+                  return (
+                    <div key={item.id} className={cn(
+                      "p-4 rounded-lg space-y-3",
+                      timeError ? "bg-destructive/10 border border-destructive/30" : "bg-muted/50"
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">פריט {index + 1}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => removeScheduleItem(item.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">תאריך</label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="w-full justify-start text-right">
+                                {format(parseISO(item.date), 'd/M', { locale: he })}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={parseISO(item.date)}
+                                onSelect={(date) => date && updateScheduleItem(item.id, { 
+                                  date: format(date, 'yyyy-MM-dd') 
+                                })}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">שעת התחלה</label>
+                          <Input
+                            type="time"
+                            value={item.startTime}
+                            onChange={(e) => updateScheduleItem(item.id, { startTime: e.target.value })}
+                            className="h-9"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">שעת סיום</label>
+                          <Input
+                            type="time"
+                            value={item.endTime || ''}
+                            onChange={(e) => updateScheduleItem(item.id, { endTime: e.target.value })}
+                            className={cn("h-9", timeError && "border-destructive")}
+                          />
+                          {timeError && (
+                            <p className="text-xs text-destructive">{timeError}</p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">קטגוריה</label>
+                          <Select 
+                            value={item.category}
+                            onValueChange={(value: ScheduleCategory) => updateScheduleItem(item.id, { category: value })}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(SCHEDULE_CATEGORY_LABELS) as ScheduleCategory[]).map(cat => (
+                                <SelectItem key={cat} value={cat}>
+                                  {SCHEDULE_CATEGORY_LABELS[cat]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">מיקום</label>
+                          <Select 
+                            value={item.location}
+                            onValueChange={(value) => updateScheduleItem(item.id, { location: value })}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="בחר מיקום" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SCHEDULE_LOCATIONS.map(loc => (
+                                <SelectItem key={loc} value={loc}>
+                                  {loc}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">תיאור</label>
+                          <Input
+                            value={item.description}
+                            onChange={(e) => updateScheduleItem(item.id, { description: e.target.value })}
+                            placeholder="תיאור הפעילות..."
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Meals Plan Card (ארוחות) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Utensils className="w-5 h-5" />
+              ארוחות
+            </CardTitle>
+            <Button onClick={addMealPlanItem} variant="outline" size="sm">
+              <Plus className="w-4 h-4 ml-1" />
+              הוסף ארוחה
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {mealsPlan.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Utensils className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>אין ארוחות מתוכננות</p>
+                <Button onClick={addMealPlanItem} variant="link" className="mt-2">
+                  <Plus className="w-4 h-4 ml-1" />
+                  הוסף ארוחה ראשונה
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {mealsPlan.map((meal, index) => (
+                  <div key={meal.id} className="p-4 bg-muted/50 rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">פריט {index + 1}</span>
+                      <span className="text-sm font-medium text-muted-foreground">ארוחה {index + 1}</span>
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={() => removeScheduleItem(item.id)}
+                        onClick={() => removeMealPlanItem(meal.id)}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -898,14 +1108,14 @@ const AdminGroupEdit = () => {
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="outline" size="sm" className="w-full justify-start text-right">
-                              {format(parseISO(item.date), 'd/M', { locale: he })}
+                              {format(parseISO(meal.date), 'd/M', { locale: he })}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <CalendarComponent
                               mode="single"
-                              selected={parseISO(item.date)}
-                              onSelect={(date) => date && updateScheduleItem(item.id, { 
+                              selected={parseISO(meal.date)}
+                              onSelect={(date) => date && updateMealPlanItem(meal.id, { 
                                 date: format(date, 'yyyy-MM-dd') 
                               })}
                               initialFocus
@@ -916,40 +1126,44 @@ const AdminGroupEdit = () => {
                       </div>
                       
                       <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">שעת התחלה</label>
-                        <Input
-                          type="time"
-                          value={item.startTime}
-                          onChange={(e) => updateScheduleItem(item.id, { startTime: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">שעת סיום</label>
-                        <Input
-                          type="time"
-                          value={item.endTime || ''}
-                          onChange={(e) => updateScheduleItem(item.id, { endTime: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">קטגוריה</label>
+                        <label className="text-xs text-muted-foreground">סוג ארוחה</label>
                         <Select 
-                          value={item.category}
-                          onValueChange={(value: ScheduleCategory) => updateScheduleItem(item.id, { category: value })}
+                          value={meal.mealType}
+                          onValueChange={(value: 'BREAKFAST' | 'LUNCH' | 'DINNER') => updateMealPlanItem(meal.id, { mealType: value })}
                         >
                           <SelectTrigger className="h-9">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {(Object.keys(SCHEDULE_CATEGORY_LABELS) as ScheduleCategory[]).map(cat => (
-                              <SelectItem key={cat} value={cat}>
-                                {SCHEDULE_CATEGORY_LABELS[cat]}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="BREAKFAST">{MEAL_LABELS.BREAKFAST}</SelectItem>
+                            <SelectItem value="LUNCH">{MEAL_LABELS.LUNCH}</SelectItem>
+                            <SelectItem value="DINNER">{MEAL_LABELS.DINNER}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">שעה</label>
+                        <Input
+                          type="time"
+                          value={meal.time}
+                          onChange={(e) => updateMealPlanItem(meal.id, { time: e.target.value })}
+                          className="h-9"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">מיקום</label>
+                        <Select 
+                          value={meal.location}
+                          onValueChange={(value: 'DINING_HALL' | 'OUTSIDE') => updateMealPlanItem(meal.id, { location: value })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="DINING_HALL">חדר אוכל</SelectItem>
+                            <SelectItem value="OUTSIDE">מחוץ לחדר אוכל</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -957,34 +1171,116 @@ const AdminGroupEdit = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">מיקום</label>
-                        <Select 
-                          value={item.location}
-                          onValueChange={(value) => updateScheduleItem(item.id, { location: value })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="בחר מיקום" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SCHEDULE_LOCATIONS.map(loc => (
-                              <SelectItem key={loc} value={loc}>
-                                {loc}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">תיאור</label>
-                        <Input
-                          value={item.description}
-                          onChange={(e) => updateScheduleItem(item.id, { description: e.target.value })}
-                          placeholder="תיאור הפעילות..."
-                          className="h-9"
+                        <label className="text-xs text-muted-foreground">כמות סועדים</label>
+                        <NumericInput
+                          value={meal.pax}
+                          onChange={(val) => updateMealPlanItem(meal.id, { pax: val })}
+                          min={0}
                         />
                       </div>
                     </div>
+                    
+                    {/* Special needs - shown only when pax > 0 */}
+                    {meal.pax > 0 && (
+                      <div className="p-3 bg-background rounded-lg border space-y-3">
+                        <h5 className="text-sm font-medium flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          צרכים מיוחדים
+                        </h5>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">🌱 צמחוני</label>
+                            <NumericInput
+                              value={meal.specialDiets?.vegetarian || 0}
+                              onChange={(val) => updateMealPlanItem(meal.id, { 
+                                specialDiets: { 
+                                  ...meal.specialDiets, 
+                                  vegetarian: val,
+                                  vegan: meal.specialDiets?.vegan || 0,
+                                  glutenFree: meal.specialDiets?.glutenFree || 0,
+                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
+                                } 
+                              })}
+                              min={0}
+                              max={meal.pax}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">🥬 טבעוני</label>
+                            <NumericInput
+                              value={meal.specialDiets?.vegan || 0}
+                              onChange={(val) => updateMealPlanItem(meal.id, { 
+                                specialDiets: { 
+                                  ...meal.specialDiets, 
+                                  vegetarian: meal.specialDiets?.vegetarian || 0,
+                                  vegan: val,
+                                  glutenFree: meal.specialDiets?.glutenFree || 0,
+                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
+                                } 
+                              })}
+                              min={0}
+                              max={meal.pax}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">🚫 ללא גלוטן</label>
+                            <NumericInput
+                              value={meal.specialDiets?.glutenFree || 0}
+                              onChange={(val) => updateMealPlanItem(meal.id, { 
+                                specialDiets: { 
+                                  ...meal.specialDiets, 
+                                  vegetarian: meal.specialDiets?.vegetarian || 0,
+                                  vegan: meal.specialDiets?.vegan || 0,
+                                  glutenFree: val,
+                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
+                                } 
+                              })}
+                              min={0}
+                              max={meal.pax}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">🥛 ללא לקטוז</label>
+                            <NumericInput
+                              value={meal.specialDiets?.lactoseFree || 0}
+                              onChange={(val) => updateMealPlanItem(meal.id, { 
+                                specialDiets: { 
+                                  ...meal.specialDiets, 
+                                  vegetarian: meal.specialDiets?.vegetarian || 0,
+                                  vegan: meal.specialDiets?.vegan || 0,
+                                  glutenFree: meal.specialDiets?.glutenFree || 0,
+                                  lactoseFree: val,
+                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
+                                } 
+                              })}
+                              min={0}
+                              max={meal.pax}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">🥜 אלרגיות / הערות</label>
+                          <Textarea
+                            value={meal.specialDiets?.allergiesNotes || ''}
+                            onChange={(e) => updateMealPlanItem(meal.id, { 
+                              specialDiets: { 
+                                ...meal.specialDiets, 
+                                vegetarian: meal.specialDiets?.vegetarian || 0,
+                                vegan: meal.specialDiets?.vegan || 0,
+                                glutenFree: meal.specialDiets?.glutenFree || 0,
+                                lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                allergiesNotes: e.target.value
+                              } 
+                            })}
+                            placeholder="אלרגיות או צרכים מיוחדים נוספים..."
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1024,7 +1320,7 @@ const AdminGroupEdit = () => {
           <Button variant="outline" onClick={() => navigate('/admin/groups')}>
             ביטול
           </Button>
-          <Button size="lg" onClick={handleSave}>
+          <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors}>
             <Save className="w-5 h-5 ml-2" />
             שמור
           </Button>

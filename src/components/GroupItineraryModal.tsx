@@ -160,12 +160,10 @@ export const GroupItineraryModal: React.FC<GroupItineraryModalProps> = ({
       items.push({
         time: item.startTime,
         endTime: item.endTime,
-        type: item.category === 'MEAL' ? 'meal' : item.category === 'SPACE' ? 'space' : 'other',
+        type: 'other',
         title: item.description,
         subtitle: item.location,
-        icon: item.category === 'MEAL' 
-          ? <ChefHat className="w-5 h-5 text-amber-500" />
-          : <ClipboardList className="w-5 h-5 text-blue-500" />,
+        icon: <ClipboardList className="w-5 h-5 text-blue-500" />,
       });
     });
 
