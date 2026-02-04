@@ -4,7 +4,25 @@
 
 export type GroupStatus = 'PLANNED' | 'ON_SITE' | 'COMPLETED';
 export type GroupType = 'לינה' | 'יום ללא לינה';
-export type ScheduleCategory = 'MEAL' | 'ACTIVITY' | 'SPACE' | 'OTHER';
+// Updated itinerary categories: פעילות, סדנה, הרצאה, אחר
+export type ScheduleCategory = 'ACTIVITY' | 'WORKSHOP' | 'LECTURE' | 'OTHER';
+
+// Meal plan item stored inside group
+export interface MealPlanItem {
+  id: string;
+  date: string; // YYYY-MM-DD
+  mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+  time: string; // HH:mm
+  location: 'DINING_HALL' | 'OUTSIDE';
+  pax: number;
+  specialDiets?: {
+    vegetarian: number;
+    vegan: number;
+    glutenFree: number;
+    lactoseFree: number;
+    allergiesNotes: string;
+  };
+}
 
 export interface ScheduleItem {
   id: string;
@@ -57,6 +75,8 @@ export interface GroupRecord {
   vipTentConfigs?: VIPTentConfig[]; // New - generic VIP tent configurations
   remainingStaff?: number; // init = staffCount
   remainingParticipants?: number; // init = participantCount
+  // Meals plan stored inside group form
+  mealsPlan?: MealPlanItem[];
   // Archive support
   isArchived?: boolean; // If true, group is archived and hidden by default
   createdAt: string;
@@ -88,9 +108,9 @@ export const SPACE_ID_MAP: Record<string, string> = {
 
 // Category labels in Hebrew
 export const SCHEDULE_CATEGORY_LABELS: Record<ScheduleCategory, string> = {
-  MEAL: 'ארוחה',
   ACTIVITY: 'פעילות',
-  SPACE: 'מרחב',
+  WORKSHOP: 'סדנה',
+  LECTURE: 'הרצאה',
   OTHER: 'אחר',
 };
 
