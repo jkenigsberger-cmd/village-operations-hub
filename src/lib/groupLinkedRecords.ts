@@ -1,6 +1,7 @@
 // ============================================================
 // GROUP LINKED RECORDS UTILITY
 // Checks if a group has any linked data that prevents deletion
+// Provides cascade delete for permanent group removal
 // ============================================================
 
 import { ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
@@ -142,4 +143,133 @@ export const getLinkedRecordsDescription = (groupId: string, groupName: string):
   }
 
   return parts.join(', ');
+};
+
+/**
+ * CASCADE DELETE - Permanently removes a group and ALL linked records
+ * Collections cleaned:
+ * 1. aharonson_allocations - VIP/neighborhood/tent allocations
+ * 2. aharonson_farm_village_state.tents - tent bookings
+ * 3. aharonson_farm_village_state.activityReservations - space bookings  
+ * 4. aharonson_farm_village_state.neighborhoodReservations - neighborhood reservations
+ * 5. aharonson_farm_kitchen_state.timeSlots - kitchen meal slots (removes group from slot)
+ */
+export const cascadeDeleteGroupRecords = (groupId: string, groupName: string): void => {
+  console.log(`[CASCADE DELETE] Starting for group: ${groupName} (${groupId})`);
+
+  // 1. Clean allocations
+  try {
+    const allocationsData = localStorage.getItem(ALLOCATIONS_STORAGE_KEY);
+    if (allocationsData) {
+      const allocs = JSON.parse(allocationsData) as { groupId: string }[];
+      const filtered = allocs.filter(a => a.groupId !== groupId);
+      localStorage.setItem(ALLOCATIONS_STORAGE_KEY, JSON.stringify(filtered));
+      console.log(`[CASCADE DELETE] Removed ${allocs.length - filtered.length} allocations`);
+    }
+  } catch (e) {
+    console.error('Error cleaning allocations:', e);
+  }
+
+  // 2. Clean village state
+  try {
+    const villageData = localStorage.getItem(VILLAGE_STORAGE_KEY);
+    if (villageData) {
+      const state = JSON.parse(villageData);
+      let modified = false;
+
+      // Clean tents - clear booking info for matching groupName
+      if (state.tents) {
+        Object.keys(state.tents).forEach(tentId => {
+          const tent = state.tents[tentId];
+          if (tent.groupName === groupName) {
+            // Clear booking-related fields
+            state.tents[tentId] = {
+              ...tent,
+              groupName: undefined,
+              groupId: undefined,
+              checkInDate: undefined,
+              checkOutDate: undefined,
+              reservedBy: undefined,
+              phone: undefined,
+              notes: '',
+              // Keep physical tent properties
+            };
+            modified = true;
+            console.log(`[CASCADE DELETE] Cleared tent: ${tentId}`);
+          }
+        });
+      }
+
+      // Clean activity reservations
+      if (state.activityReservations) {
+        const originalCount = Object.keys(state.activityReservations).length;
+        const filtered: Record<string, any> = {};
+        Object.entries(state.activityReservations).forEach(([key, res]: [string, any]) => {
+          if (res.groupId !== groupId && res.reservedBy !== groupName) {
+            filtered[key] = res;
+          }
+        });
+        state.activityReservations = filtered;
+        const removed = originalCount - Object.keys(filtered).length;
+        if (removed > 0) {
+          modified = true;
+          console.log(`[CASCADE DELETE] Removed ${removed} activity reservations`);
+        }
+      }
+
+      // Clean neighborhood reservations
+      if (state.neighborhoodReservations) {
+        const originalCount = Object.keys(state.neighborhoodReservations).length;
+        const filtered: Record<string, any> = {};
+        Object.entries(state.neighborhoodReservations).forEach(([key, res]: [string, any]) => {
+          if (res.groupId !== groupId && res.groupName !== groupName) {
+            filtered[key] = res;
+          }
+        });
+        state.neighborhoodReservations = filtered;
+        const removed = originalCount - Object.keys(filtered).length;
+        if (removed > 0) {
+          modified = true;
+          console.log(`[CASCADE DELETE] Removed ${removed} neighborhood reservations`);
+        }
+      }
+
+      if (modified) {
+        localStorage.setItem(VILLAGE_STORAGE_KEY, JSON.stringify(state));
+      }
+    }
+  } catch (e) {
+    console.error('Error cleaning village state:', e);
+  }
+
+  // 3. Clean kitchen time slots - remove group from slots
+  try {
+    const kitchenData = localStorage.getItem(KITCHEN_STORAGE_KEY);
+    if (kitchenData) {
+      const state = JSON.parse(kitchenData);
+      let modified = false;
+
+      if (state.timeSlots) {
+        Object.keys(state.timeSlots).forEach(slotId => {
+          const slot = state.timeSlots[slotId];
+          if (slot.groups && Array.isArray(slot.groups)) {
+            const originalLength = slot.groups.length;
+            slot.groups = slot.groups.filter((g: any) => g.name !== groupName);
+            if (slot.groups.length < originalLength) {
+              modified = true;
+              console.log(`[CASCADE DELETE] Removed group from kitchen slot: ${slotId}`);
+            }
+          }
+        });
+      }
+
+      if (modified) {
+        localStorage.setItem(KITCHEN_STORAGE_KEY, JSON.stringify(state));
+      }
+    }
+  } catch (e) {
+    console.error('Error cleaning kitchen state:', e);
+  }
+
+  console.log(`[CASCADE DELETE] Completed for group: ${groupName}`);
 };
