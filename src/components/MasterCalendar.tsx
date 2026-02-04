@@ -180,7 +180,7 @@ export const MasterCalendar: React.FC = () => {
     events.push(...kitchenEvents);
 
     // 6. Day-use groups from admin groups
-    const dayUseGroups = groups.filter(g => g.groupType === 'יום ללא לינה');
+    const dayUseGroups = groups.filter(g => g.groupType === 'יום ללא לינה' && !g.isArchived);
     dayUseGroups.forEach(group => {
       const start = parseISO(group.startDate);
       const end = parseISO(group.endDate);
@@ -207,6 +207,44 @@ export const MasterCalendar: React.FC = () => {
             linkedMeals: group.linkedKitchenSlotIds,
           },
         });
+      });
+    });
+
+    // 7. Lodging groups arrival/departure from admin groups
+    const lodgingGroups = groups.filter(g => g.groupType === 'לינה' && !g.isArchived);
+    lodgingGroups.forEach(group => {
+      // Arrival event (check-in)
+      events.push({
+        id: `group_arrival_${group.id}`,
+        type: 'TENT_CHECKIN',
+        title: `הגעה: ${group.groupName} (${group.pax} איש)`,
+        groupName: group.groupName,
+        startDate: group.startDate,
+        startTime: group.arrivalTime,
+        location: 'לינה',
+        color: EVENT_COLORS.TENT_CHECKIN,
+        metadata: {
+          groupId: group.id,
+          pax: group.pax,
+          isGroupArrival: true,
+        },
+      });
+      
+      // Departure event (check-out)
+      events.push({
+        id: `group_departure_${group.id}`,
+        type: 'TENT_CHECKOUT',
+        title: `עזיבה: ${group.groupName} (${group.pax} איש)`,
+        groupName: group.groupName,
+        startDate: group.endDate,
+        startTime: group.departureTime,
+        location: 'לינה',
+        color: EVENT_COLORS.TENT_CHECKOUT,
+        metadata: {
+          groupId: group.id,
+          pax: group.pax,
+          isGroupDeparture: true,
+        },
       });
     });
 

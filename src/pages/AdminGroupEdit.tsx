@@ -5,6 +5,7 @@ import { useVillage } from '@/context/VillageContext';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { getLinkedRecordsDescription, cascadeDeleteGroupRecords } from '@/lib/groupLinkedRecords';
+import { syncGroupToModules, SyncResult } from '@/lib/groupSync';
 import { 
   GroupRecord, 
   GroupType,
@@ -509,13 +510,38 @@ const AdminGroupEdit = () => {
       mealsPlan,
     };
 
+    let savedGroup: GroupRecord | undefined;
+    
     if (isNew) {
-      addGroup(dataToSave);
-      toast.success('הקבוצה נוצרה בהצלחה');
+      savedGroup = addGroup(dataToSave);
     } else if (id) {
       updateGroup(id, dataToSave);
-      toast.success('הקבוצה עודכנה בהצלחה');
+      savedGroup = { ...dataToSave, id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     }
+
+    // Sync group data to Kitchen and Spaces modules
+    if (savedGroup) {
+      const syncResult = syncGroupToModules(savedGroup);
+      
+      if (syncResult.conflicts.length > 0) {
+        // Show warning for each conflict
+        syncResult.conflicts.forEach(conflict => {
+          toast.warning(`התנגשות בהזמנת מרחב: ${conflict.space} ${conflict.date} ${conflict.time} (${conflict.existingGroup})`);
+        });
+        toast.success(`הקבוצה נשמרה. נוצרו ${syncResult.kitchenSlotsCreated} ארוחות, ${syncResult.spaceBookingsCreated} הזמנות מרחב (${syncResult.conflicts.length} התנגשויות)`);
+      } else {
+        const syncInfo = [];
+        if (syncResult.kitchenSlotsCreated > 0) syncInfo.push(`${syncResult.kitchenSlotsCreated} ארוחות`);
+        if (syncResult.spaceBookingsCreated > 0) syncInfo.push(`${syncResult.spaceBookingsCreated} הזמנות מרחב`);
+        
+        if (syncInfo.length > 0) {
+          toast.success(`הקבוצה נשמרה וסונכרנה: ${syncInfo.join(', ')}`);
+        } else {
+          toast.success(isNew ? 'הקבוצה נוצרה בהצלחה' : 'הקבוצה עודכנה בהצלחה');
+        }
+      }
+    }
+    
     navigate('/admin/groups');
   };
 
