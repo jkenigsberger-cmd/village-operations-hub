@@ -1,227 +1,197 @@
 
+## Plan: Add Allergies Numeric Count to Group Meals Block
 
-## Plan: Add Dates to VIP Panel & Group Selectors + Staff Count for VIP
+### Problem Identified
+The Kitchen module has **6 special diet fields** including a separate **numeric count for allergies** (`allergies: number`) plus a **notes field** (`notes: string`).
 
-### Summary
-Add date visibility across the application for reservations and groups, and ensure VIP-specific views show "צוות" (staff) counts instead of "חניכים" (participants).
+But the Group's `MealPlanItem` interface only has 5 fields with `allergiesNotes` combining both into just a text field - **missing the allergies count**.
 
----
+**Kitchen SpecialDiets (correct):**
+| Field | Type | Hebrew Label |
+|-------|------|--------------|
+| vegetarian | number | 🌱 צמחוני |
+| vegan | number | 🥬 טבעוני |
+| glutenFree | number | 🚫 ללא גלוטן |
+| lactoseFree | number | 🥛 ללא לקטוז |
+| allergies | number | 🥜 אלרגיות |
+| notes | string | ✏️ דרישות מיוחדות |
 
-### Changes Overview
-
-#### 1. VIPPlanningPanel - Add Group Dates
-
-**File:** `src/components/VIPPlanningPanel.tsx`
-
-**Current:** Shows group name and staff counts but NO dates
-**After:** Add dates next to group name so users know WHEN the staff needs VIP housing
-
-**Changes:**
-- Add dates display: `{groupName} ({startDate} - {endDate})`
-- In the group selector dropdown, add dates: `"נחל 2026 (01/31-02/02) - צוות: 14"`
-- Format dates in Hebrew-friendly format (DD/MM)
-
----
-
-#### 2. NeighborhoodReservationModal - VIP Uses Staff Count
-
-**File:** `src/components/NeighborhoodReservationModal.tsx`
-
-**Current Issue (from screenshot):** Shows "חניכים נשאר: 181" even for VIP
-**After:** For VIP neighborhood, show "צוות נשאר: X" instead
-
-**Changes:**
-- Add `neighborhoodId` awareness - check if it's VIP
-- In group selector: 
-  - VIP → show "צוות נשאר: X" 
-  - Other neighborhoods → show "חניכים נשאר: X"
-- In remaining counters section:
-  - VIP → emphasize צוות counter, max bedsAssigned = remainingStaff
-  - Other → emphasize חניכים counter, max bedsAssigned = remainingParticipants
-- Update validation logic to use correct counter based on neighborhood
+**Current Group MealPlanItem (missing allergies count):**
+| Field | Type | Issue |
+|-------|------|-------|
+| vegetarian | number | ✓ |
+| vegan | number | ✓ |
+| glutenFree | number | ✓ |
+| lactoseFree | number | ✓ |
+| allergiesNotes | string | ❌ Missing numeric count |
 
 ---
 
-#### 3. TentCard - Add Dates Display
+### Solution
 
-**File:** `src/components/TentCard.tsx`
-
-**Current:** Only shows check-in date
-**After:** Show both check-in AND check-out dates for clarity
-
-**Changes:**
-- Format: `{checkIn} - {checkOut}` when both exist
-- Add date range display so staff can see the full reservation period
+Update the `MealPlanItem.specialDiets` interface to match the Kitchen's structure exactly, then add the missing allergies numeric input field in the UI.
 
 ---
 
-#### 4. VIPPlanningPanel - Add Group Selector with Dates
+### Changes
 
-**File:** `src/components/VIPPlanningPanel.tsx`
+#### 1. Update `src/types/adminGroups.ts`
 
-**Current:** Shows group name but selector doesn't show dates clearly
-**After:** Selector shows: `"קבוצה: נחל 2026 | 31/01 - 02/02 | צוות: 14"`
+Change the `specialDiets` structure in `MealPlanItem`:
+
+**Before:**
+```typescript
+specialDiets?: {
+  vegetarian: number;
+  vegan: number;
+  glutenFree: number;
+  lactoseFree: number;
+  allergiesNotes: string;  // Only text
+};
+```
+
+**After:**
+```typescript
+specialDiets?: {
+  vegetarian: number;
+  vegan: number;
+  glutenFree: number;
+  lactoseFree: number;
+  allergies: number;       // NEW: Numeric count
+  allergiesNotes: string;  // Keep for backwards compatibility
+};
+```
+
+---
+
+#### 2. Update `src/pages/AdminGroupEdit.tsx` - Add Allergies Count Field
+
+Add a 5th numeric input for "🥜 אלרגיות" in the special needs grid (currently has 4 inputs in a 2x2 or 4-column grid):
+
+**Current layout (4 fields):**
+```
+┌──────────────┬──────────────┐
+│ 🌱 צמחוני    │ 🥬 טבעוני    │
+├──────────────┼──────────────┤
+│ 🚫 ללא גלוטן │ 🥛 ללא לקטוז │
+└──────────────┴──────────────┘
+🥜 אלרגיות / הערות [textarea]
+```
+
+**New layout (5 numeric + 1 text):**
+```
+┌──────────────┬──────────────┬──────────────┐
+│ 🌱 צמחוני    │ 🥬 טבעוני    │ 🚫 ללא גלוטן │
+├──────────────┼──────────────┼──────────────┤
+│ 🥛 ללא לקטוז │ 🥜 אלרגיות   │              │
+└──────────────┴──────────────┴──────────────┘
+✏️ הערות נוספות [textarea]
+```
 
 ---
 
 ### Implementation Details
 
-#### File 1: `src/components/VIPPlanningPanel.tsx`
+#### File 1: `src/types/adminGroups.ts`
 
-Add dates to group display and selector:
+Update lines 18-24:
 
 ```typescript
-// In stats section, add dates
-<div className="flex items-center gap-2 text-lg font-semibold">
-  <UserCheck className="w-5 h-5 text-primary" />
-  <span>קבוצת צוות (VIP):</span>
-  <span className="text-primary">{selectedGroup.groupName}</span>
-  <span className="text-muted-foreground text-sm">
-    ({formatDate(selectedGroup.startDate)} - {formatDate(selectedGroup.endDate)})
-  </span>
+specialDiets?: {
+  vegetarian: number;
+  vegan: number;
+  glutenFree: number;
+  lactoseFree: number;
+  allergies: number;        // Add this line
+  allergiesNotes: string;
+};
+```
+
+---
+
+#### File 2: `src/pages/AdminGroupEdit.tsx`
+
+**A) Add allergies field in the grid (around line 1263):**
+
+Insert a new input between lactoseFree and the allergiesNotes textarea:
+
+```tsx
+<div className="space-y-1">
+  <label className="text-xs text-muted-foreground">🥜 אלרגיות</label>
+  <NumericInput
+    value={meal.specialDiets?.allergies || 0}
+    onChange={(val) => updateMealPlanItem(meal.id, { 
+      specialDiets: { 
+        ...meal.specialDiets, 
+        vegetarian: meal.specialDiets?.vegetarian || 0,
+        vegan: meal.specialDiets?.vegan || 0,
+        glutenFree: meal.specialDiets?.glutenFree || 0,
+        lactoseFree: meal.specialDiets?.lactoseFree || 0,
+        allergies: val,
+        allergiesNotes: meal.specialDiets?.allergiesNotes || ''
+      } 
+    })}
+    min={0}
+    max={meal.pax}
+  />
 </div>
+```
 
-// In selector dropdown
-<SelectItem key={g.id} value={g.id}>
-  {g.groupName} ({formatDate(g.startDate)}-{formatDate(g.endDate)}) • צוות: {g.staffCount}
-</SelectItem>
+**B) Update grid to accommodate 5 fields:**
+
+Change from `grid-cols-2 md:grid-cols-4` to `grid-cols-2 md:grid-cols-5` or keep as 4 with 5 items (wrapping one).
+
+**C) Update all existing specialDiets updates to include the new `allergies` field:**
+
+Each update call needs to preserve `allergies: meal.specialDiets?.allergies || 0`.
+
+**D) Rename the notes label:**
+
+Change `"🥜 אלרגיות / הערות"` to `"✏️ הערות נוספות"` since allergies now has its own numeric field.
+
+---
+
+### Visual Result
+
+After implementation, the special needs section will show:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ צרכים מיוחדים                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ 🌱 צמחוני  🥬 טבעוני  🚫 ללא גלוטן  🥛 ללא לקטוז  🥜 אלרגיות  │
+│   [ 12 ]     [ 5 ]       [ 3 ]        [ 2 ]        [ 4 ]      │
+├─────────────────────────────────────────────────────────────────┤
+│ ✏️ הערות נוספות                                                │
+│ ┌─────────────────────────────────────────────────────────────┐│
+│ │ בוטנים - 2 אנשים, ביצים - 1 איש                            ││
+│ └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-#### File 2: `src/components/NeighborhoodReservationModal.tsx`
+### Migration
 
-Add VIP-specific logic for staff counts:
-
-**A) Add prop to detect VIP:**
-```typescript
-// Check if this is VIP neighborhood
-const isVIPNeighborhood = neighborhoodId === 'VIP';
-```
-
-**B) Update group selector display (lines 473-482):**
-```typescript
-{availableGroups.map(group => {
-  // For VIP use staff count, for others use participants
-  const remaining = isVIPNeighborhood 
-    ? (group.remainingStaff || 0) 
-    : (group.remainingParticipants || 0);
-  const label = isVIPNeighborhood ? 'צוות נשאר' : 'חניכים נשאר';
-  const startFormatted = group.startDate.slice(5).replace('-', '/');
-  const endFormatted = group.endDate.slice(5).replace('-', '/');
-  return (
-    <SelectItem key={group.id} value={group.id}>
-      {group.groupName} ({startFormatted}–{endFormatted}) • {label}: {remaining}
-    </SelectItem>
-  );
-})}
-```
-
-**C) Update remaining counters section (lines 496-534):**
-- For VIP: Highlight צוות counter, use remainingStaff for max
-- For Others: Highlight חניכים counter, use remainingParticipants for max
-
-**D) Update validation in handleSubmit (lines 273-283):**
-```typescript
-if (selectedGroupId && selectedGroup) {
-  const remaining = isVIPNeighborhood 
-    ? (selectedGroup.remainingStaff || 0)
-    : (selectedGroup.remainingParticipants || 0);
-  if (bedsAssigned > remaining) {
-    const label = isVIPNeighborhood ? 'צוות' : 'חניכים';
-    toast.error(`לא ניתן לשבץ ${bedsAssigned} מיטות - נשאר רק ${remaining} ${label}`);
-    return;
-  }
-}
-```
-
----
-
-#### File 3: `src/components/TentCard.tsx`
-
-Add check-out date display:
-
-```typescript
-{/* Dates section */}
-{(summary.checkInDate || summary.checkOutDate) && (
-  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-    <Calendar className="w-4 h-4" />
-    {summary.checkInDate && new Date(summary.checkInDate).toLocaleDateString('he-IL')}
-    {summary.checkInDate && summary.checkOutDate && ' - '}
-    {summary.checkOutDate && new Date(summary.checkOutDate).toLocaleDateString('he-IL')}
-  </span>
-)}
-```
+Existing data with `allergiesNotes` but no `allergies` count will continue to work - the count defaults to 0 and the notes remain.
 
 ---
 
 ### Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/components/VIPPlanningPanel.tsx` | Add dates to group display and selector |
-| `src/components/NeighborhoodReservationModal.tsx` | Use צוות for VIP, חניכים for others |
-| `src/components/TentCard.tsx` | Show both check-in and check-out dates |
+| File | Change |
+|------|--------|
+| `src/types/adminGroups.ts` | Add `allergies: number` to specialDiets interface |
+| `src/pages/AdminGroupEdit.tsx` | Add allergies numeric input, update grid, rename notes label |
 
 ---
 
-### Visual Examples
+### Acceptance Tests
 
-**VIPPlanningPanel after changes:**
-```
-┌────────────────────────────────────────────────────────────────────┐
-│  📋 תכנון VIP - צוות                                               │
-│                                                                    │
-│  קבוצת צוות (VIP): נחל 2026 (31/01 - 02/02)                       │
-│                                                                    │
-│  ┌──────────┐  ┌──────────────────┐  ┌─────────────┐  ┌──────────┐│
-│  │ צוות סה״כ │  │ צוות נשאר לשיבוץ │  │ אוהלי VIP   │  │ נדרשים   ││
-│  │    14    │  │       11        │  │ מתוכננים: 5 │  │    4     ││
-│  └──────────┘  └──────────────────┘  └─────────────┘  └──────────┘│
-└────────────────────────────────────────────────────────────────────┘
-```
-
-**NeighborhoodReservationModal for VIP:**
-```
-┌─ קשר לקבוצה קיימת ─────────────────────────────────────────────────┐
-│                                                                    │
-│  [▾ נחל 2026 (31/01-02/02) • צוות נשאר: 14  ]  ← Now shows צוות   │
-│                                                                    │
-│  ┌──────────────┐  ┌──────────────┐                                │
-│  │ צוות נשאר   │  │ חניכים נשאר │                                │
-│  │     14      │  │    181      │                                │
-│  │  (for VIP)  │  │             │                                │
-│  └──────────────┘  └──────────────┘                                │
-│                                                                    │
-│  כמה מיטות לשבץ מהקבוצה?                                          │
-│  [________] (מקסימום: 14)  ← Uses צוות for VIP                    │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
-**TentCard after changes:**
-```
-┌─────────────────────────────────────────┐
-│  VIP 82           ⭐ VIP ♂️             │
-│  נחל 2026                               │
-│                                         │
-│  [===========] 3/3                      │
-│                                         │
-│  🟢 נקי   📅 31/01 - 02/02              │  ← Now shows BOTH dates
-└─────────────────────────────────────────┘
-```
-
----
-
-### Acceptance Criteria
-
-| Test | Expected Behavior |
-|------|-------------------|
-| 1. Open VIP Planning Panel | Shows group name WITH dates (31/01 - 02/02) |
-| 2. Group selector in VIP panel | Shows dates and צוות count per group |
-| 3. Open reservation modal in VIP neighborhood | Group selector shows "צוות נשאר: X" (not חניכים) |
-| 4. Open reservation modal in N1-N7 | Group selector shows "חניכים נשאר: X" (unchanged) |
-| 5. Select group in VIP reservation | Max beds = remainingStaff, not remainingParticipants |
-| 6. View any tent card with reservation | Shows check-in AND check-out dates |
-| 7. Submit VIP reservation | Validation uses צוות counter |
-
+| # | Test | Expected |
+|---|------|----------|
+| 1 | Add meal with pax > 0 | Special needs section shows 5 numeric fields (צמחוני, טבעוני, ללא גלוטן, ללא לקטוז, אלרגיות) |
+| 2 | Enter allergies count (e.g., 4) | Value persists in field |
+| 3 | Enter notes in "הערות נוספות" | Notes persist separately from allergies count |
+| 4 | Save group and refresh | All special diet values including allergies count are preserved |
+| 5 | Old groups without allergies field | Display correctly with allergies = 0 by default |
