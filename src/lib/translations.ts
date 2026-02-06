@@ -6,6 +6,7 @@ export const HE = {
   nav: {
     overview: 'דף הבית',
     calendar: 'לוח שנה',
+    allocations: 'שיבוצים',
     neighborhoods: 'שכונות',
     facilities: 'מתקנים משותפים',
     bathrooms: 'שירותים ומקלחות',
@@ -118,6 +119,8 @@ export const HE = {
     importData: 'ייבוא נתונים',
     resetToDefault: 'איפוס לברירת מחדל',
     aboutDataStorage: 'אודות אחסון הנתונים',
+    allAllocations: 'כל השיבוצים',
+    todayAllocations: 'שיבוצים להיום',
   },
   
   // Messages
@@ -154,6 +157,14 @@ export const HE = {
     clearBedsConfirm: 'לנקות את כל המיטות?',
     clearBedsWarning: 'כל המיטות יוגדרו כפנויות ושמות האורחים יוסרו.',
     yesClearAll: 'כן, נקה הכל',
+    noAllocationsToday: 'אין שיבוצים להיום',
+    noAllocations: 'אין שיבוצים ממתינים',
+  },
+  
+  // Neighborhood calendar
+  neighborhood: {
+    bookingsForDate: 'הזמנות לתאריך',
+    noBookingsForDate: 'אין הזמנות לתאריך זה',
   },
   
   // Form labels
