@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
 import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
@@ -11,10 +12,11 @@ import { TentCard } from '@/components/TentCard';
 import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
 import { GlobalSearch } from '@/components/GlobalSearch';
+import { PendingAllocationCard } from '@/components/PendingAllocationCard';
 import { GENDER_LEGEND } from '@/lib/tentColors';
 import { HE } from '@/lib/translations';
 import { 
-  Calendar, 
+  Calendar,
   Bath, 
   CalendarDays, 
   Tent,
@@ -33,7 +35,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChefHat,
-  Settings
+  Settings,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -49,6 +52,7 @@ type MenuSection = 'overview' | 'calendar' | 'neighborhoods' | 'facilities' | 'b
 
 const Index = () => {
   const navigate = useNavigate();
+  const { groups } = useAdminGroups();
 const { 
     state, 
     isLoading, 
@@ -75,6 +79,47 @@ const {
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTentId, setSelectedTentId] = useState<string | null>(null);
+
+  // Filter groups pending allocation
+  const pendingAllocationGroups = useMemo(() => {
+    return groups.filter(g => {
+      // Exclude day-use and archived groups
+      if (g.groupType === 'יום ללא לינה') return false;
+      if (g.isArchived) return false;
+      
+      // Include if status is pending or has remaining counts
+      const hasPendingStatus = g.assignmentStatus === 'pending_allocation' || 
+                               g.assignmentStatus === 'pending_capacity_issue';
+      const hasRemainingStaff = (g.remainingStaff ?? g.staffCount ?? 0) > 0;
+      const hasRemainingParticipants = (g.remainingParticipants ?? g.participantCount ?? (g.pax - (g.staffCount || 0))) > 0;
+      
+      return hasPendingStatus || hasRemainingStaff || hasRemainingParticipants;
+    });
+  }, [groups]);
+
+  // Pending Allocations Section Component
+  const PendingAllocationsSection = () => {
+    if (pendingAllocationGroups.length === 0) return null;
+    
+    return (
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold flex items-center gap-3">
+            <ClipboardList className="w-8 h-8" />
+            שיבוץ ממתין
+            <span className="px-3 py-1 text-sm rounded-full bg-amber-500 text-white">
+              {pendingAllocationGroups.length}
+            </span>
+          </h2>
+        </div>
+        <div className="space-y-3">
+          {pendingAllocationGroups.map(group => (
+            <PendingAllocationCard key={group.id} group={group} />
+          ))}
+        </div>
+      </section>
+    );
+  };
 
   // Calculate check-ins and check-outs for selected date
   const summaryForDate = useMemo(() => {
@@ -376,6 +421,9 @@ const {
                 </div>
               </div>
             </section>
+
+            {/* Pending Allocations Section */}
+            <PendingAllocationsSection />
 
             {/* Interactive Neighborhoods Mini-Maps */}
             <section>

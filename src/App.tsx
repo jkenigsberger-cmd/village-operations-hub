@@ -18,6 +18,7 @@ import AdminIncome from "./pages/AdminIncome";
 import AdminExpenses from "./pages/AdminExpenses";
 import AdminOutsourced from "./pages/AdminOutsourced";
 import AdminReports from "./pages/AdminReports";
+import GroupAllocation from "./pages/GroupAllocation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/admin/expenses" element={<AdminExpenses />} />
             <Route path="/admin/outsourced" element={<AdminOutsourced />} />
             <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/allocation/:id" element={<GroupAllocation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
