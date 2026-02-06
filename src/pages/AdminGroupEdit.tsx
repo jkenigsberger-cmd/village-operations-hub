@@ -22,7 +22,6 @@ import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { VIPTentPlanner } from '@/components/VIPTentPlanner';
 import { NumericInput } from '@/components/NumericInput';
-import { TimePickerField } from '@/components/TimePickerField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -157,17 +156,14 @@ const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({ isOpen, onClose, 
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <TimePickerField
-              label="שעת התחלה"
-              value={startTime}
-              onChange={(v) => setStartTime(v || '09:00')}
-            />
-            <TimePickerField
-              label="שעת סיום"
-              value={endTime}
-              onChange={(v) => setEndTime(v || '12:00')}
-              error={startTime >= endTime ? 'שעת הסיום חייבת להיות אחרי שעת ההתחלה' : undefined}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">שעת התחלה</label>
+              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">שעת סיום</label>
+              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">הערות (אופציונלי)</label>
@@ -240,11 +236,10 @@ const MealBookingModal: React.FC<MealBookingModalProps> = ({ isOpen, onClose, on
               max={groupDates.end}
             />
           </div>
-          <TimePickerField
-            label="שעה"
-            value={time}
-            onChange={(v) => setTime(v || '13:00')}
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium">שעה</label>
+            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">מיקום</label>
             <Select value={location} onValueChange={(v) => setLocation(v as 'DINING_HALL' | 'OUTSIDE')}>
@@ -890,16 +885,28 @@ const AdminGroupEdit = () => {
             {/* Day-use specific time fields */}
             {isDayUse && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <TimePickerField
-                  label="שעת הגעה"
-                  value={formData.arrivalTime || '09:00'}
-                  onChange={(v) => setFormData(prev => ({ ...prev, arrivalTime: v || '09:00' }))}
-                />
-                <TimePickerField
-                  label="שעת סיום"
-                  value={formData.departureTime || '17:00'}
-                  onChange={(v) => setFormData(prev => ({ ...prev, departureTime: v || '17:00' }))}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    שעת הגעה
+                  </label>
+                  <Input
+                    type="time"
+                    value={formData.arrivalTime || '09:00'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    שעת סיום
+                  </label>
+                  <Input
+                    type="time"
+                    value={formData.departureTime || '17:00'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
+                  />
+                </div>
               </div>
             )}
 
@@ -1014,18 +1021,28 @@ const AdminGroupEdit = () => {
                           </Popover>
                         </div>
                         
-                        <TimePickerField
-                          label="שעת התחלה"
-                          value={item.startTime}
-                          onChange={(v) => updateScheduleItem(item.id, { startTime: v || '09:00' })}
-                        />
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">שעת התחלה</label>
+                          <Input
+                            type="time"
+                            value={item.startTime}
+                            onChange={(e) => updateScheduleItem(item.id, { startTime: e.target.value })}
+                            className="h-9"
+                          />
+                        </div>
                         
-                        <TimePickerField
-                          label="שעת סיום"
-                          value={item.endTime || ''}
-                          onChange={(v) => updateScheduleItem(item.id, { endTime: v || '' })}
-                          error={timeError || undefined}
-                        />
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">שעת סיום</label>
+                          <Input
+                            type="time"
+                            value={item.endTime || ''}
+                            onChange={(e) => updateScheduleItem(item.id, { endTime: e.target.value })}
+                            className={cn("h-9", timeError && "border-destructive")}
+                          />
+                          {timeError && (
+                            <p className="text-xs text-destructive">{timeError}</p>
+                          )}
+                        </div>
                         
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">קטגוריה</label>
@@ -1163,11 +1180,15 @@ const AdminGroupEdit = () => {
                         </Select>
                       </div>
                       
-                      <TimePickerField
-                        label="שעה"
-                        value={meal.time}
-                        onChange={(v) => updateMealPlanItem(meal.id, { time: v || '13:00' })}
-                      />
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">שעה</label>
+                        <Input
+                          type="time"
+                          value={meal.time}
+                          onChange={(e) => updateMealPlanItem(meal.id, { time: e.target.value })}
+                          className="h-9"
+                        />
+                      </div>
                       
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">מיקום</label>
