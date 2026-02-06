@@ -395,8 +395,9 @@ export const useGroupAllocation = () => {
       
       // Check village state for existing bookings
       if (state) {
-        const tentId = `VIP_${tentCode}`;
-        const tent = state.tents[tentId];
+        const fullTentCode = `VIP ${tentCode}`; // "VIP 80"
+        const actualTentId = findTentIdByCode(fullTentCode);
+        const tent = actualTentId ? state.tents[actualTentId] : null;
         if (tent && tent.checkInDate && tent.checkOutDate && tent.groupName) {
           if (dateRangesOverlap(startDate, endDate, tent.checkInDate, tent.checkOutDate)) {
             const tentGroup = groups.find(g => g.groupName === tent.groupName);
