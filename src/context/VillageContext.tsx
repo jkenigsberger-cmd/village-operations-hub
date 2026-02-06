@@ -1,3 +1,4 @@
+// @refresh reset - Force full refresh when this file changes to avoid HMR hook queue issues
 import React, { createContext, useContext, ReactNode } from 'react';
 import { 
   VillageState, 

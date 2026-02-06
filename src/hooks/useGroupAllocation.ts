@@ -1,3 +1,4 @@
+// @refresh reset - Force full refresh when this file changes to avoid HMR hook queue issues
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from './useAdminGroups';

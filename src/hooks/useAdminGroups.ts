@@ -1,3 +1,4 @@
+// @refresh reset - Force full refresh when this file changes to avoid HMR hook queue issues
 import { useState, useEffect, useCallback } from 'react';
 import { GroupRecord, GroupType, VIPTentConfig, ADMIN_GROUPS_STORAGE_KEY } from '@/types/adminGroups';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
