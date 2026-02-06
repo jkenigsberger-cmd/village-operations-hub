@@ -9,6 +9,7 @@ import { syncGroupToModules, SyncResult } from '@/lib/groupSync';
 import { 
   GroupRecord, 
   GroupType,
+  AssignmentStatus,
   ScheduleItem, 
   ScheduleCategory,
   VIPTentConfig,
@@ -445,6 +446,7 @@ const AdminGroupEdit = () => {
     mealsPlan: [],
     remainingStaff: 0,
     remainingParticipants: 10,
+    assignmentStatus: 'pending_allocation' as AssignmentStatus,
   });
 
   useEffect(() => {
@@ -473,6 +475,7 @@ const AdminGroupEdit = () => {
           mealsPlan: existing.mealsPlan || [],
           remainingStaff: existing.remainingStaff ?? existing.staffCount ?? 0,
           remainingParticipants: existing.remainingParticipants ?? (existing.pax - (existing.staffCount || 0)),
+          assignmentStatus: existing.assignmentStatus || 'pending_allocation',
         });
         // Load VIP tent configs into local state
         setVipTentConfigs(existing.vipTentConfigs || []);
@@ -580,11 +583,28 @@ const AdminGroupEdit = () => {
       return;
     }
 
-    // Include vipTentConfigs and mealsPlan in the data to save
+    // Determine assignmentStatus based on capacity check
+    let assignmentStatus: AssignmentStatus = 'pending_allocation';
+    const isDayUseGroup = formData.groupType === 'יום ללא לינה';
+    
+    // For lodging groups, check if there's a capacity issue
+    if (!isDayUseGroup && capacityResult && !capacityResult.isAvailable) {
+      assignmentStatus = 'pending_capacity_issue';
+      toast.warning('נשמר כטיוטה – אין מספיק מקום בתאריכים שנבחרו');
+    }
+    
+    // Initialize remaining counters for new groups
+    const staffCount = formData.staffCount || 0;
+    const participantCount = formData.pax - staffCount;
+
+    // Include vipTentConfigs, mealsPlan, and assignmentStatus in the data to save
     const dataToSave = {
       ...formData,
       vipTentConfigs,
       mealsPlan,
+      assignmentStatus: isDayUseGroup ? undefined : assignmentStatus, // Only for lodging groups
+      remainingStaff: isNew ? staffCount : formData.remainingStaff,
+      remainingParticipants: isNew ? participantCount : formData.remainingParticipants,
     };
 
     let savedGroup: GroupRecord | undefined;
@@ -781,6 +801,124 @@ const AdminGroupEdit = () => {
               )}
             </div>
 
+            {/* DATES SECTION - NOW FIRST */}
+            <div className="p-4 bg-accent/30 rounded-lg border border-accent space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                {isDayUse ? 'תאריך ושעות הפעילות' : 'תאריכי השהייה'}
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{isDayUse ? 'תאריך הפעילות *' : 'תאריך הגעה *'}</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-right">
+                        <Calendar className="ml-2 h-4 w-4" />
+                        {format(parseISO(formData.startDate), 'd בMMMM yyyy', { locale: he })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseISO(formData.startDate)}
+                        onSelect={(date) => date && setFormData(prev => {
+                          const newStartDate = format(date, 'yyyy-MM-dd');
+                          return { 
+                            ...prev, 
+                            startDate: newStartDate,
+                            // For day-use groups, end date always equals start date
+                            endDate: prev.groupType === 'יום ללא לינה' ? newStartDate : prev.endDate
+                          };
+                        })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                {/* End date - hidden for day-use groups */}
+                {!isDayUse && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">תאריך עזיבה *</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-right">
+                          <Calendar className="ml-2 h-4 w-4" />
+                          {format(parseISO(formData.endDate), 'd בMMMM yyyy', { locale: he })}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={parseISO(formData.endDate)}
+                          onSelect={(date) => date && setFormData(prev => ({ 
+                            ...prev, 
+                            endDate: format(date, 'yyyy-MM-dd') 
+                          }))}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+
+              {/* Day-use specific time fields */}
+              {isDayUse && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      שעת הגעה
+                    </label>
+                    <Input
+                      type="time"
+                      value={formData.arrivalTime || '09:00'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      שעת סיום
+                    </label>
+                    <Input
+                      type="time"
+                      value={formData.departureTime || '17:00'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Capacity Check Button - show after dates are set for lodging groups */}
+              {!isDayUse && formData.startDate && formData.endDate && (
+                <div className="pt-2 space-y-3">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={handleCapacityCheck}
+                    disabled={isCheckingCapacity}
+                    className="w-full md:w-auto"
+                  >
+                    {isCheckingCapacity ? (
+                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 ml-2" />
+                    )}
+                    בדיקת זמינות
+                  </Button>
+                  
+                  {/* Capacity Result */}
+                  <CapacityResultDisplay result={capacityResult} />
+                </div>
+              )}
+            </div>
+
+            {/* Basic contact/group info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">שם הקבוצה *</label>
@@ -877,113 +1015,6 @@ const AdminGroupEdit = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Capacity Check Button */}
-                <div className="pt-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleCapacityCheck}
-                    disabled={isCheckingCapacity}
-                    className="w-full md:w-auto"
-                  >
-                    {isCheckingCapacity ? (
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 ml-2" />
-                    )}
-                    בדיקת קיבולת
-                  </Button>
-                </div>
-
-                {/* Capacity Result */}
-                <CapacityResultDisplay result={capacityResult} />
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{isDayUse ? 'תאריך הפעילות' : 'תאריך התחלה'}</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-right">
-                      <Calendar className="ml-2 h-4 w-4" />
-                      {format(parseISO(formData.startDate), 'd בMMMM yyyy', { locale: he })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={parseISO(formData.startDate)}
-                      onSelect={(date) => date && setFormData(prev => {
-                        const newStartDate = format(date, 'yyyy-MM-dd');
-                        return { 
-                          ...prev, 
-                          startDate: newStartDate,
-                          // For day-use groups, end date always equals start date
-                          endDate: prev.groupType === 'יום ללא לינה' ? newStartDate : prev.endDate
-                        };
-                      })}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              {/* End date - hidden for day-use groups (auto-set to same as start date) */}
-              {!isDayUse && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">תאריך סיום</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-right">
-                        <Calendar className="ml-2 h-4 w-4" />
-                        {format(parseISO(formData.endDate), 'd בMMMM yyyy', { locale: he })}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={parseISO(formData.endDate)}
-                        onSelect={(date) => date && setFormData(prev => ({ 
-                          ...prev, 
-                          endDate: format(date, 'yyyy-MM-dd') 
-                        }))}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-            </div>
-
-            {/* Day-use specific time fields */}
-            {isDayUse && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    שעת הגעה
-                  </label>
-                  <Input
-                    type="time"
-                    value={formData.arrivalTime || '09:00'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    שעת סיום
-                  </label>
-                  <Input
-                    type="time"
-                    value={formData.departureTime || '17:00'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
-                  />
-                </div>
               </div>
             )}
 
@@ -1027,56 +1058,70 @@ const AdminGroupEdit = () => {
         )}
 
         {/* Schedule Card (לו״ז) */}
-        <Card>
+        <Card className={cn(!formData.startDate && "opacity-60")}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
               לו״ז הקבוצה
             </CardTitle>
-            <Button onClick={addScheduleItem} variant="outline" size="sm">
+            <Button 
+              onClick={addScheduleItem} 
+              variant="outline" 
+              size="sm"
+              disabled={!formData.startDate}
+            >
               <Plus className="w-4 h-4 ml-1" />
               הוסף שורה
             </Button>
           </CardHeader>
           <CardContent>
-            {/* Date coherence errors banner */}
-            {hasDateCoherenceErrors && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2 text-destructive font-medium mb-2">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span>נמצאו פריטים מחוץ לטווח התאריכים של הקבוצה</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  התאריכים חייבים להיות בין {format(parseISO(formData.startDate), 'd/M/yyyy', { locale: he })} ל-{format(parseISO(formData.endDate), 'd/M/yyyy', { locale: he })}
-                </p>
-                <ul className="text-sm space-y-1">
-                  {dateCoherenceErrors.map(error => (
-                    <li key={error.id} className="flex items-center gap-2 text-destructive">
-                      <span>•</span>
-                      <span>{error.type === 'schedule' ? 'לו״ז' : 'ארוחה'}:</span>
-                      <span className="font-medium">{format(parseISO(error.date), 'd/M/yyyy', { locale: he })}</span>
-                      <span className="text-muted-foreground">- {error.description}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Prompt to set dates first */}
+            {!formData.startDate && (
+              <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 flex items-center gap-3 text-amber-800 dark:text-amber-200">
+                <Calendar className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm font-medium">יש לבחור תאריך הגעה ותאריך עזיבה לפני מילוי לו״ז</span>
               </div>
             )}
-            {hasScheduleErrors && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4 flex items-center gap-2 text-destructive">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm">יש שגיאות בלו״ז - נא לתקן לפני שמירה</span>
-              </div>
-            )}
-            {formData.scheduleItems.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>אין פריטים בלו״ז</p>
-                <Button onClick={addScheduleItem} variant="link" className="mt-2">
-                  <Plus className="w-4 h-4 ml-1" />
-                  הוסף פריט ראשון
-                </Button>
-              </div>
-            ) : (
+            {formData.startDate && (
+              <>
+                {/* Date coherence errors banner */}
+                {hasDateCoherenceErrors && (
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-2 text-destructive font-medium mb-2">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                      <span>נמצאו פריטים מחוץ לטווח התאריכים של הקבוצה</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      התאריכים חייבים להיות בין {format(parseISO(formData.startDate), 'd/M/yyyy', { locale: he })} ל-{format(parseISO(formData.endDate), 'd/M/yyyy', { locale: he })}
+                    </p>
+                    <ul className="text-sm space-y-1">
+                      {dateCoherenceErrors.map(error => (
+                        <li key={error.id} className="flex items-center gap-2 text-destructive">
+                          <span>•</span>
+                          <span>{error.type === 'schedule' ? 'לו״ז' : 'ארוחה'}:</span>
+                          <span className="font-medium">{format(parseISO(error.date), 'd/M/yyyy', { locale: he })}</span>
+                          <span className="text-muted-foreground">- {error.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {hasScheduleErrors && (
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4 flex items-center gap-2 text-destructive">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm">יש שגיאות בלו״ז - נא לתקן לפני שמירה</span>
+                  </div>
+                )}
+                {formData.scheduleItems.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>אין פריטים בלו״ז</p>
+                    <Button onClick={addScheduleItem} variant="link" className="mt-2">
+                      <Plus className="w-4 h-4 ml-1" />
+                      הוסף פריט ראשון
+                    </Button>
+                  </div>
+                ) : (
               <div className="space-y-4">
                 {formData.scheduleItems.map((item, index) => {
                   const timeError = scheduleValidationErrors[item.id];
@@ -1219,33 +1264,49 @@ const AdminGroupEdit = () => {
                   );
                 })}
               </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
         {/* Meals Plan Card (ארוחות) */}
-        <Card>
+        <Card className={cn(!formData.startDate && "opacity-60")}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Utensils className="w-5 h-5" />
               ארוחות
             </CardTitle>
-            <Button onClick={addMealPlanItem} variant="outline" size="sm">
+            <Button 
+              onClick={addMealPlanItem} 
+              variant="outline" 
+              size="sm"
+              disabled={!formData.startDate}
+            >
               <Plus className="w-4 h-4 ml-1" />
               הוסף ארוחה
             </Button>
           </CardHeader>
           <CardContent>
-            {mealsPlan.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Utensils className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>אין ארוחות מתוכננות</p>
-                <Button onClick={addMealPlanItem} variant="link" className="mt-2">
-                  <Plus className="w-4 h-4 ml-1" />
-                  הוסף ארוחה ראשונה
-                </Button>
+            {/* Prompt to set dates first */}
+            {!formData.startDate && (
+              <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 flex items-center gap-3 text-amber-800 dark:text-amber-200">
+                <Calendar className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm font-medium">יש לבחור תאריך הגעה ותאריך עזיבה לפני מילוי ארוחות</span>
               </div>
-            ) : (
+            )}
+            {formData.startDate && (
+              <>
+                {mealsPlan.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Utensils className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>אין ארוחות מתוכננות</p>
+                    <Button onClick={addMealPlanItem} variant="link" className="mt-2">
+                      <Plus className="w-4 h-4 ml-1" />
+                      הוסף ארוחה ראשונה
+                    </Button>
+                  </div>
+                ) : (
               <div className="space-y-4">
                 {mealsPlan.map((meal, index) => {
                   const hasMealDateError = invalidItemIds.has(meal.id);
@@ -1489,6 +1550,8 @@ const AdminGroupEdit = () => {
                   );
                 })}
               </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

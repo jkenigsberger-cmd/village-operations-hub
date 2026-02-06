@@ -4,6 +4,7 @@
 
 export type GroupStatus = 'PLANNED' | 'ON_SITE' | 'COMPLETED';
 export type GroupType = 'לינה' | 'יום ללא לינה';
+export type AssignmentStatus = 'pending_allocation' | 'partially_allocated' | 'fully_allocated' | 'pending_capacity_issue';
 // Updated itinerary categories: פעילות, סדנה, הרצאה, אחר
 export type ScheduleCategory = 'ACTIVITY' | 'WORKSHOP' | 'LECTURE' | 'OTHER';
 
@@ -80,6 +81,8 @@ export interface GroupRecord {
   mealsPlan?: MealPlanItem[];
   // Archive support
   isArchived?: boolean; // If true, group is archived and hidden by default
+  // Assignment tracking
+  assignmentStatus?: AssignmentStatus; // Tracks allocation workflow status
   createdAt: string;
   updatedAt: string;
 }
