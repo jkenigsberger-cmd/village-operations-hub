@@ -3,7 +3,7 @@ import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from './useAdminGroups';
 import { AllocationRecord, CapacityCheckResult, ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
 import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
-import { NeighborhoodId } from '@/types/village';
+import { NeighborhoodId, TentGender } from '@/types/village';
 import { parseISO, isBefore } from 'date-fns';
 import { 
   dateRangesOverlapForOccupancy, 
@@ -17,7 +17,7 @@ const VIP_TENT_CODES = ['80', '81', '82', '83', '84', '85', '86', '87', '88', '8
 const VIP_BEDS_PER_TENT = 3;
 
 export const useGroupAllocation = () => {
-  const { state } = useVillage();
+  const { state, updateTentGroupName, updateTentDates, updateTentGender } = useVillage();
   const { groups, updateGroup } = useAdminGroups();
   const [allocations, setAllocations] = useState<AllocationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -357,8 +357,20 @@ export const useGroupAllocation = () => {
     excludeGroupId?: string
   ): { tentCode: string; available: boolean; conflictingGroup?: string }[] => {
     
+    // Get the current group to check for WITHIN-group conflicts
+    const currentGroup = excludeGroupId ? groups.find(g => g.id === excludeGroupId) : null;
+    
     return VIP_TENT_CODES.map(tentCode => {
-      // Check allocations for this tent code
+      // FIX: Check if tent is already assigned WITHIN the current group
+      if (currentGroup?.vipTentConfigs?.some(config => config.assignedTentCode === tentCode)) {
+        return {
+          tentCode,
+          available: false,
+          conflictingGroup: currentGroup.groupName + ' (כבר שובץ)'
+        };
+      }
+      
+      // Check allocations for this tent code (other groups)
       const conflictingAlloc = allocations.find(alloc => 
         alloc.allocationType === 'VIP_TENT' &&
         alloc.resourceId === tentCode &&
@@ -460,8 +472,21 @@ export const useGroupAllocation = () => {
       vipTentConfigs: updatedConfigs,
       remainingStaff: newRemainingStaff,
     });
+    
+    // SYNC TO VILLAGE STATE: Update the physical tent with group info
+    const tentId = `VIP_${tentCode}`;
+    updateTentGroupName(tentId, group.groupName);
+    updateTentDates(tentId, group.startDate, group.endDate);
+    if (configToAssign.gender) {
+      const villageGender: TentGender = configToAssign.gender === 'male' ? 'MALE' : 
+                                         configToAssign.gender === 'female' ? 'FEMALE' : undefined;
+      if (villageGender) {
+        updateTentGender(tentId, villageGender);
+      }
+    }
+    
     return true;
-  }, [groups, updateGroup, getAvailableVIPTents]);
+  }, [groups, updateGroup, getAvailableVIPTents, updateTentGroupName, updateTentDates, updateTentGender]);
 
   // Unassign a VIP config from its tent code
   const unassignVIPConfig = useCallback((groupId: string, configId: string): boolean => {
@@ -471,6 +496,9 @@ export const useGroupAllocation = () => {
     // Find the config being unassigned
     const configToUnassign = group.vipTentConfigs.find(c => c.id === configId);
     if (!configToUnassign || !configToUnassign.assignedTentCode) return false;
+
+    // Store tentCode before clearing it
+    const tentCode = configToUnassign.assignedTentCode;
 
     // Calculate beds being freed (to restore remainingStaff)
     const bedsBeingFreed = configToUnassign.bedsPlanned + (configToUnassign.hasExtraBed ? 1 : 0);
@@ -487,8 +515,15 @@ export const useGroupAllocation = () => {
       vipTentConfigs: updatedConfigs,
       remainingStaff: newRemainingStaff,
     });
+    
+    // SYNC TO VILLAGE STATE: Clear the physical tent
+    const tentId = `VIP_${tentCode}`;
+    updateTentGroupName(tentId, '');
+    updateTentDates(tentId, undefined, undefined);
+    updateTentGender(tentId, undefined);
+    
     return true;
-  }, [groups, updateGroup]);
+  }, [groups, updateGroup, updateTentGroupName, updateTentDates, updateTentGender]);
 
   return {
     allocations,
