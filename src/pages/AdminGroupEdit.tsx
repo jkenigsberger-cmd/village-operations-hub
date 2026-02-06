@@ -61,7 +61,7 @@ import {
   Archive,
   Utensils
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -93,6 +93,60 @@ const validateScheduleItemTime = (item: ScheduleItem): string | null => {
     return 'שעת הסיום חייבת להיות אחרי שעת ההתחלה';
   }
   return null;
+};
+
+// Date coherence validation types
+interface DateValidationError {
+  id: string;
+  type: 'schedule' | 'meal';
+  date: string;
+  description: string;
+}
+
+// Check if a date is within the group's date range (inclusive)
+const isDateInRange = (itemDate: string, startDate: string, endDate: string): boolean => {
+  const date = parseISO(itemDate);
+  const start = parseISO(startDate);
+  const end = parseISO(endDate);
+  
+  return isSameDay(date, start) || isSameDay(date, end) || 
+         isWithinInterval(date, { start, end });
+};
+
+// Validate all items are within group date range
+const validateDateCoherence = (
+  startDate: string,
+  endDate: string,
+  scheduleItems: ScheduleItem[],
+  mealsPlan: MealPlanItem[]
+): DateValidationError[] => {
+  const errors: DateValidationError[] = [];
+  
+  // Validate schedule items
+  scheduleItems.forEach(item => {
+    if (!isDateInRange(item.date, startDate, endDate)) {
+      errors.push({
+        id: item.id,
+        type: 'schedule',
+        date: item.date,
+        description: `${SCHEDULE_CATEGORY_LABELS[item.category]}${item.description ? ` - ${item.description}` : ''}`,
+      });
+    }
+  });
+  
+  // Validate meals
+  mealsPlan.forEach(meal => {
+    if (!isDateInRange(meal.date, startDate, endDate)) {
+      errors.push({
+        id: meal.id,
+        type: 'meal',
+        date: meal.date,
+        description: `${MEAL_LABELS[meal.mealType]} ${meal.time}`,
+      });
+    }
+  });
+  
+  return errors;
 };
 
 // Space booking modal component
@@ -451,7 +505,7 @@ const AdminGroupEdit = () => {
     }
   }, [formData.staffCount, isNew]);
 
-  // Validate all schedule items
+  // Validate all schedule items for time range errors
   const scheduleValidationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
     formData.scheduleItems.forEach(item => {
@@ -464,6 +518,23 @@ const AdminGroupEdit = () => {
   }, [formData.scheduleItems]);
 
   const hasScheduleErrors = Object.keys(scheduleValidationErrors).length > 0;
+
+  // Validate date coherence - all items must be within group date range
+  const dateCoherenceErrors = useMemo(() => {
+    return validateDateCoherence(
+      formData.startDate,
+      formData.endDate,
+      formData.scheduleItems,
+      mealsPlan
+    );
+  }, [formData.startDate, formData.endDate, formData.scheduleItems, mealsPlan]);
+
+  const hasDateCoherenceErrors = dateCoherenceErrors.length > 0;
+  
+  // Create a Set of invalid item IDs for quick lookup
+  const invalidItemIds = useMemo(() => {
+    return new Set(dateCoherenceErrors.map(e => e.id));
+  }, [dateCoherenceErrors]);
 
   const handleCapacityCheck = () => {
     setIsCheckingCapacity(true);
@@ -500,6 +571,12 @@ const AdminGroupEdit = () => {
     }
     if (hasScheduleErrors) {
       toast.error('יש שגיאות בלו״ז - נא לתקן את שעות הסיום');
+      return;
+    }
+    
+    // Validate date coherence before saving
+    if (hasDateCoherenceErrors) {
+      toast.error('נמצאו פריטים מחוץ לטווח התאריכים של הקבוצה - נא לתקן לפני שמירה');
       return;
     }
 
@@ -653,7 +730,7 @@ const AdminGroupEdit = () => {
               <Button variant="outline" onClick={() => navigate('/admin/groups')}>
                 ביטול
               </Button>
-              <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors}>
+              <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors || hasDateCoherenceErrors}>
                 <Save className="w-5 h-5 ml-2" />
                 שמור
               </Button>
@@ -962,6 +1039,28 @@ const AdminGroupEdit = () => {
             </Button>
           </CardHeader>
           <CardContent>
+            {/* Date coherence errors banner */}
+            {hasDateCoherenceErrors && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 text-destructive font-medium mb-2">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span>נמצאו פריטים מחוץ לטווח התאריכים של הקבוצה</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  התאריכים חייבים להיות בין {format(parseISO(formData.startDate), 'd/M/yyyy', { locale: he })} ל-{format(parseISO(formData.endDate), 'd/M/yyyy', { locale: he })}
+                </p>
+                <ul className="text-sm space-y-1">
+                  {dateCoherenceErrors.map(error => (
+                    <li key={error.id} className="flex items-center gap-2 text-destructive">
+                      <span>•</span>
+                      <span>{error.type === 'schedule' ? 'לו״ז' : 'ארוחה'}:</span>
+                      <span className="font-medium">{format(parseISO(error.date), 'd/M/yyyy', { locale: he })}</span>
+                      <span className="text-muted-foreground">- {error.description}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {hasScheduleErrors && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4 flex items-center gap-2 text-destructive">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -981,10 +1080,11 @@ const AdminGroupEdit = () => {
               <div className="space-y-4">
                 {formData.scheduleItems.map((item, index) => {
                   const timeError = scheduleValidationErrors[item.id];
+                  const hasDateError = invalidItemIds.has(item.id);
                   return (
                     <div key={item.id} className={cn(
                       "p-4 rounded-lg space-y-3",
-                      timeError ? "bg-destructive/10 border border-destructive/30" : "bg-muted/50"
+                      (timeError || hasDateError) ? "bg-destructive/10 border-2 border-destructive/50" : "bg-muted/50"
                     )}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-muted-foreground">פריט {index + 1}</span>
@@ -1000,10 +1100,19 @@ const AdminGroupEdit = () => {
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">תאריך</label>
+                          <label className={cn("text-xs", hasDateError ? "text-destructive font-medium" : "text-muted-foreground")}>
+                            תאריך {hasDateError && '⚠️'}
+                          </label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" size="sm" className="w-full justify-start text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className={cn(
+                                  "w-full justify-start text-right",
+                                  hasDateError && "border-destructive text-destructive"
+                                )}
+                              >
                                 {format(parseISO(item.date), 'd/M', { locale: he })}
                               </Button>
                             </PopoverTrigger>
@@ -1019,6 +1128,18 @@ const AdminGroupEdit = () => {
                               />
                             </PopoverContent>
                           </Popover>
+                          {hasDateError && (
+                            <div className="flex gap-1 mt-1">
+                              <Button 
+                                variant="link" 
+                                size="sm" 
+                                className="h-auto p-0 text-xs text-destructive"
+                                onClick={() => updateScheduleItem(item.id, { date: formData.startDate })}
+                              >
+                                עדכן לתאריך הגעה
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="space-y-1">
@@ -1126,42 +1247,68 @@ const AdminGroupEdit = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {mealsPlan.map((meal, index) => (
-                  <div key={meal.id} className="p-4 bg-muted/50 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">ארוחה {index + 1}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => removeMealPlanItem(meal.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">תאריך</label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-full justify-start text-right">
-                              {format(parseISO(meal.date), 'd/M', { locale: he })}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <CalendarComponent
-                              mode="single"
-                              selected={parseISO(meal.date)}
-                              onSelect={(date) => date && updateMealPlanItem(meal.id, { 
-                                date: format(date, 'yyyy-MM-dd') 
-                              })}
-                              initialFocus
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                {mealsPlan.map((meal, index) => {
+                  const hasMealDateError = invalidItemIds.has(meal.id);
+                  return (
+                    <div key={meal.id} className={cn(
+                      "p-4 rounded-lg space-y-3",
+                      hasMealDateError ? "bg-destructive/10 border-2 border-destructive/50" : "bg-muted/50"
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">ארוחה {index + 1}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => removeMealPlanItem(meal.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <label className={cn("text-xs", hasMealDateError ? "text-destructive font-medium" : "text-muted-foreground")}>
+                            תאריך {hasMealDateError && '⚠️'}
+                          </label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className={cn(
+                                  "w-full justify-start text-right",
+                                  hasMealDateError && "border-destructive text-destructive"
+                                )}
+                              >
+                                {format(parseISO(meal.date), 'd/M', { locale: he })}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={parseISO(meal.date)}
+                                onSelect={(date) => date && updateMealPlanItem(meal.id, { 
+                                  date: format(date, 'yyyy-MM-dd') 
+                                })}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {hasMealDateError && (
+                            <div className="flex gap-1 mt-1">
+                              <Button 
+                                variant="link" 
+                                size="sm" 
+                                className="h-auto p-0 text-xs text-destructive"
+                                onClick={() => updateMealPlanItem(meal.id, { date: formData.startDate })}
+                              >
+                                עדכן לתאריך הגעה
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">סוג ארוחה</label>
@@ -1339,7 +1486,8 @@ const AdminGroupEdit = () => {
                         </div>
                       </div>
                     </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -1377,7 +1525,7 @@ const AdminGroupEdit = () => {
           <Button variant="outline" onClick={() => navigate('/admin/groups')}>
             ביטול
           </Button>
-          <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors}>
+          <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors || hasDateCoherenceErrors}>
             <Save className="w-5 h-5 ml-2" />
             שמור
           </Button>
