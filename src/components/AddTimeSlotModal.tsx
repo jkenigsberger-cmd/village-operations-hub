@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Clock, MapPin, Users, Plus, AlertTriangle } from 'lucide-react';
+import { TimePickerField } from '@/components/TimePickerField';
+import { MapPin, Users, Plus, AlertTriangle } from 'lucide-react';
 
 interface AddTimeSlotModalProps {
   open: boolean;
@@ -73,18 +74,11 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
 
         <div className="space-y-6 pt-4">
           {/* Time */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5" />
-              שעה
-            </Label>
-            <Input
-              type="time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="text-xl font-bold h-14 text-center"
-            />
-          </div>
+          <TimePickerField
+            label="שעה"
+            value={time}
+            onChange={(v) => setTime(v || DEFAULT_TIMES[mealType])}
+          />
 
           {/* Location */}
           <div className="space-y-2">
