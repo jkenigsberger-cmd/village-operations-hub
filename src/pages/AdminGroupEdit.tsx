@@ -685,7 +685,11 @@ const AdminGroupEdit = () => {
                 <Button
                   type="button"
                   variant={isDayUse ? 'default' : 'outline'}
-                  onClick={() => setFormData(prev => ({ ...prev, groupType: 'יום ללא לינה' }))}
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    groupType: 'יום ללא לינה',
+                    endDate: prev.startDate // Day-use is single day
+                  }))}
                   className="flex-1"
                 >
                   <Sun className="w-4 h-4 ml-2" />
@@ -822,7 +826,7 @@ const AdminGroupEdit = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">{isDayUse ? 'תאריך התחלה' : 'תאריך התחלה'}</label>
+                <label className="text-sm font-medium">{isDayUse ? 'תאריך הפעילות' : 'תאריך התחלה'}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-right">
@@ -834,10 +838,15 @@ const AdminGroupEdit = () => {
                     <CalendarComponent
                       mode="single"
                       selected={parseISO(formData.startDate)}
-                      onSelect={(date) => date && setFormData(prev => ({ 
-                        ...prev, 
-                        startDate: format(date, 'yyyy-MM-dd') 
-                      }))}
+                      onSelect={(date) => date && setFormData(prev => {
+                        const newStartDate = format(date, 'yyyy-MM-dd');
+                        return { 
+                          ...prev, 
+                          startDate: newStartDate,
+                          // For day-use groups, end date always equals start date
+                          endDate: prev.groupType === 'יום ללא לינה' ? newStartDate : prev.endDate
+                        };
+                      })}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
@@ -845,29 +854,32 @@ const AdminGroupEdit = () => {
                 </Popover>
               </div>
               
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{isDayUse ? 'תאריך סיום' : 'תאריך סיום'}</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-right">
-                      <Calendar className="ml-2 h-4 w-4" />
-                      {format(parseISO(formData.endDate), 'd בMMMM yyyy', { locale: he })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={parseISO(formData.endDate)}
-                      onSelect={(date) => date && setFormData(prev => ({ 
-                        ...prev, 
-                        endDate: format(date, 'yyyy-MM-dd') 
-                      }))}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+              {/* End date - hidden for day-use groups (auto-set to same as start date) */}
+              {!isDayUse && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">תאריך סיום</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-right">
+                        <Calendar className="ml-2 h-4 w-4" />
+                        {format(parseISO(formData.endDate), 'd בMMMM yyyy', { locale: he })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseISO(formData.endDate)}
+                        onSelect={(date) => date && setFormData(prev => ({ 
+                          ...prev, 
+                          endDate: format(date, 'yyyy-MM-dd') 
+                        }))}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
             </div>
 
             {/* Day-use specific time fields */}
