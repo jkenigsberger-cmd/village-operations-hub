@@ -1,86 +1,109 @@
 
+## למה אתה עדיין לא רואה את זה (שורש הבעיה)
+למרות שמצאנו את ה־ID הנכון של אוהל VIP לפי `code`, הסנכרון עדיין “נעלם” בגלל בעיית **דריסה (overwrite) של state** ב־`VillageContext`:
 
-# תיקון: סנכרון שיבוץ VIP עם מצב הכפר
+ב־`assignVIPConfig` אנחנו קוראים ברצף:
+1) `updateTentGroupName(...)`
+2) `updateTentDates(...)`
+3) `updateTentGender(...)`
 
-## הבעיות שזוהו
+אבל ב־`VillageContext.tsx` הפונקציות האלה **לא משתמשות** ב־functional update (`saveState(prev => ...)`) אלא ב־`saveState({ ...state, ... })` עם `state` מה־closure.  
+התוצאה: הקריאה האחרונה (בדרך כלל `updateTentGender`) שומרת “צילום” ישן של האוהל ומוחקת את השם/תאריכים שנכתבו רגע קודם. לכן:
+- אין `groupName` / `checkInDate` / `checkOutDate` → אין “Reservation”
+- במפה וברשת זה נראה כאילו כל האוהלים ריקים
 
-### בעיה 1: `getAvailableVIPTents` מחפשת אוהל לפי ID שגוי
-
-**קובץ:** `src/hooks/useGroupAllocation.ts` (שורות 398-399)
-
-```typescript
-// הקוד הנוכחי (באג!):
-const tentId = `VIP_${tentCode}`;  // יוצר "VIP_80" עם קו תחתון
-const tent = state.tents[tentId]; // מנסה לגשת לפי ID - אבל ה-ID הוא רנדומלי!
-```
-
-**בעיה כפולה:**
-1. השימוש בקו תחתון (`VIP_80`) במקום רווח (`VIP 80`)
-2. ניסיון לגשת לאוהל לפי `code` כאילו היה `id` - אבל ה-ID של האוהלים הוא מחרוזת רנדומלית!
-
-### בעיה 2: הפונקציה לא משתמשת ב-`findTentIdByCode`
-
-בעוד שתיקנו את `assignVIPConfig` ו-`unassignVIPConfig` להשתמש ב-`findTentIdByCode`, הפונקציה `getAvailableVIPTents` עדיין משתמשת בגישה הישנה והשגויה.
+בנוסף, גם אם יופיע שם הקבוצה, כרגע המיטות נשארות `FREE`, ולכן הרשת מראה `0/3` (מבלבל לעובדים).
 
 ---
 
-## הפתרון
+## מה ניישם כדי שזה יוצג במפה וברשת (וגם “0/3” יהפוך ל־“3/3”)
+### 1) תיקון דריסת state ב־VillageContext (הקריטי)
+נעדכן ב־`src/context/VillageContext.tsx` את הפונקציות הבאות לעבוד עם `saveState(prev => ...)`:
+- `updateTentGroupName`
+- `updateTentDates`
+- `updateTentGender`
 
-### שינוי 1: תיקון `getAvailableVIPTents` להשתמש ב-`findTentIdByCode`
+כך כמה עדכונים רצופים לאוהל לא ימחקו אחד את השני.
 
-**קובץ:** `src/hooks/useGroupAllocation.ts`
+בנוסף נשדרג את `updateTentDates` כדי לאפשר ניקוי תאריכים בצורה מפורשת:
+- `undefined` = להשאיר כמו שהוא (התנהגות קיימת)
+- `null` = לנקות (להפוך ל־`undefined`)
 
-**לפני (שורות 397-412):**
-```typescript
-// Check village state for existing bookings
-if (state) {
-  const tentId = `VIP_${tentCode}`;  // שגוי!
-  const tent = state.tents[tentId];
-  if (tent && tent.checkInDate && tent.checkOutDate && tent.groupName) {
-    // ...
-  }
-}
-```
+נעדכן גם את ה־types של הפונקציות ב־`VillageContextType` בהתאם.
 
-**אחרי:**
-```typescript
-// Check village state for existing bookings
-if (state) {
-  const fullTentCode = `VIP ${tentCode}`; // "VIP 80"
-  const actualTentId = findTentIdByCode(fullTentCode);
-  const tent = actualTentId ? state.tents[actualTentId] : null;
-  if (tent && tent.checkInDate && tent.checkOutDate && tent.groupName) {
-    // ...
-  }
-}
-```
+### 2) לגרום לכך שהרשת/מפה תראה “בשימוש” באמת (מיטות RESERVED)
+כדי שהעובדים יבינו מיד “האוהל תפוס” וגם שהרשת תציג `3/3` במקום `0/3`, נוסיף פעולה אטומית שמסמנת מיטות כ־`RESERVED` באוהל VIP שהוקצה.
+
+נוסיף ב־`src/context/VillageContext.tsx` פונקציה חדשה (מינימלית וממוקדת) למשל:
+- `setTentReservedBeds(tentId: string, reservedCount: number)`
+
+היא תעשה functional `saveState(prev => ...)` ותעדכן **באותה שמירה**:
+- `prev.tents[tentId].beds` (המערך בתוך האוהל)
+- `prev.beds[bedId]` (מפת המיטות הגלובלית)
+
+לוגיקה בטוחה:
+- להפוך `FREE -> RESERVED` עבור N מיטות ראשונות (עד max beds)
+- בהורדה/ניקוי: להפוך `RESERVED -> FREE` רק אם אין שם אורח (`guestName`) ורק אם הסטטוס הוא `RESERVED` (לא לגעת ב־`OCCUPIED/BLOCKED`)
+
+### 3) עדכון useGroupAllocation כדי לסנכרן מלא (שם+תאריכים+מגדר+מיטות)
+בקובץ `src/hooks/useGroupAllocation.ts`:
+- ב־`assignVIPConfig` אחרי שמצאנו `actualTentId`:
+  - `updateTentGroupName(actualTentId, group.groupName)`
+  - `updateTentDates(actualTentId, group.startDate, group.endDate)`
+  - `updateTentGender(actualTentId, ...)` לפי המגדר
+  - `setTentReservedBeds(actualTentId, min(bedsBeingAssigned, tentBedsLength))`
+- ב־`unassignVIPConfig`:
+  - `updateTentGroupName(actualTentId, '')`
+  - `updateTentDates(actualTentId, null, null)` כדי לנקות
+  - `updateTentGender(actualTentId, undefined)` כדי לנקות
+  - `setTentReservedBeds(actualTentId, 0)` כדי לשחרר (בצורה בטוחה)
+
+### 4) “ריפוי” נתונים שכבר שובצו בעבר (כדי שלא תצטרך לשבץ מחדש)
+כי כבר ביצעת שיבוצים לפני שהתיקון הזה קיים, נוסיף ב־`useGroupAllocation` `useEffect` קטן שמופעל כש־`state` ו־`groups` זמינים, ועובר על:
+- כל `group.vipTentConfigs` עם `assignedTentCode`
+- מוצא את אוהל ה־VIP בפועל לפי code
+- אם האוהל חסר `groupName`/תאריכים (או נראה ריק) — משלים את השדות ומסמן מיטות `RESERVED`
+
+האפקט יהיה “שמרני” כדי לא לדרוס מצב ידני:
+- נעדכן רק אם האוהל ריק (`!tent.groupName && !tent.checkInDate && !tent.checkOutDate`) או אם הוא כבר שייך לאותה קבוצה אבל חסרים שדות.
 
 ---
 
-## סיכום הקובץ לעדכון
+## קבצים שנשנה
+1) `src/context/VillageContext.tsx`
+   - מעבר של `updateTentGroupName/updateTentDates/updateTentGender` ל־functional updates
+   - שדרוג `updateTentDates` לתמוך ב־`null` לניקוי
+   - הוספת `setTentReservedBeds` (עדכון מיטות אטומי)
+   - עדכון `VillageContextType` (חתימות)
 
-| קובץ | שינוי |
-|------|-------|
-| `src/hooks/useGroupAllocation.ts` | תיקון `getAvailableVIPTents` שורות ~397-412 להשתמש ב-`findTentIdByCode` |
+2) `src/hooks/useGroupAllocation.ts`
+   - שימוש ב־`setTentReservedBeds`
+   - ניקוי תאריכים עם `null` ב־unassign
+   - הוספת `useEffect` “ריפוי” לסנכרון שיבוצים קיימים
 
 ---
 
-## בדיקות קבלה
+## בדיקות קבלה (מה אתה אמור לראות אחרי הפרסום)
+1) במסך השיבוץ (`/allocation/:id`):
+   - שיבוץ אוהל VIP מצליח
 
-1. **שיבוץ אוהל VIP:**
-   - צור קבוצה עם צוות
-   - פתח מסך שיבוץ ושבץ תצורה לאוהל VIP 80
-   - **צפוי:** הודעת הצלחה
+2) בשכונת VIP (`/neighborhood/VIP`) ברשת:
+   - על כרטיס האוהל מופיע שם הקבוצה ותאריכים
+   - הספירה משתנה ל־`3/3` (או לפי התכנון עד המקסימום של האוהל)
 
-2. **תצוגת שכונת VIP:**
-   - נווט לשכונת VIP
-   - **צפוי:** אוהל 80 מציג את שם הקבוצה ותאריכים
+3) בשכונת VIP במפה:
+   - אוהלים משובצים צבועים לפי מגדר (כי יש Reservation פעיל)
 
-3. **מפת VIP בדשבורד:**
-   - חזור לדשבורד
-   - **צפוי:** מפת VIP מציגה צבע מגדר על אוהל 80
+4) בדשבורד (MiniMap VIP):
+   - אוהלים משובצים מסומנים/צבועים בהתאם
 
-4. **מניעת שיבוץ כפול:**
-   - נסה לשבץ תצורה נוספת לאוהל 80
-   - **צפוי:** האוהל מסומן כתפוס
+5) רענון דף (F5):
+   - הנתונים נשארים (נשמרו ב־LocalStorage)
+
+---
+
+## הערות בטיחות (Minimal change)
+- אין שינוי במבנה LocalStorage או מפת הכפר.
+- לא נוגעים בלוגיקות מפה/לוח שנה/Booking Engine מעבר לעדכון ממוקד של פעולות עדכון אוהל כדי למנוע דריסות.
+- השינוי הוא ממוקד כדי ש־VIP allocation ייחשב “Reservation” לכל המערכת (רשת+מפה+קיבולת).
 
