@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
+import { TimeInput } from '@/components/TimeInput';
 import { CleaningStatus, WorkingStatus, ActivityReservation, ActivitySpace } from '@/types/village';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivitySpaceReportModal } from '@/components/ActivitySpaceReportModal';
@@ -597,35 +598,21 @@ const Activities = () => {
 
                 {/* Time Selection */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground mb-1 block">
-                      שעת התחלה
-                    </label>
-                    <select
-                      value={formData.startTime}
-                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl border-2 border-input bg-background text-lg font-mono"
-                    >
-                      {HOURS.map(hour => (
-                        <option key={hour} value={hour}>{hour}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground mb-1 block">
-                      שעת סיום
-                    </label>
-                    <select
-                      value={formData.endTime}
-                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl border-2 border-input bg-background text-lg font-mono"
-                    >
-                      {HOURS.map(hour => (
-                        <option key={hour} value={hour}>{hour}</option>
-                      ))}
-                      <option value="22:00">22:00</option>
-                    </select>
-                  </div>
+                  <TimeInput
+                    label="שעת התחלה"
+                    value={formData.startTime}
+                    onChange={(value) => setFormData({ ...formData, startTime: value })}
+                    showPresets
+                    showStepButtons
+                  />
+                  <TimeInput
+                    label="שעת סיום"
+                    value={formData.endTime}
+                    onChange={(value) => setFormData({ ...formData, endTime: value })}
+                    minTime={formData.startTime}
+                    showPresets
+                    showStepButtons
+                  />
                 </div>
 
                 {/* Group Selection */}
