@@ -50,6 +50,12 @@ export const useGroupAllocation = () => {
     return dateRangesOverlapForOccupancy(start1, end1, start2, end2);
   }, []);
 
+  // Helper: Find tent ID by code (e.g., "VIP 80")
+  const findTentIdByCode = useCallback((code: string): string | undefined => {
+    if (!state) return undefined;
+    return Object.values(state.tents).find(t => t.code === code)?.id;
+  }, [state]);
+
   // Get VIP capacity info for a date range (uses hotel rule: departure excluded)
   const getVIPCapacity = useCallback((startDate: string, endDate: string, excludeGroupId?: string) => {
     if (!state) return { total: TOTAL_VIP_BEDS, used: 0, available: TOTAL_VIP_BEDS };
@@ -474,19 +480,22 @@ export const useGroupAllocation = () => {
     });
     
     // SYNC TO VILLAGE STATE: Update the physical tent with group info
-    const tentId = `VIP_${tentCode}`;
-    updateTentGroupName(tentId, group.groupName);
-    updateTentDates(tentId, group.startDate, group.endDate);
-    if (configToAssign.gender) {
-      const villageGender: TentGender = configToAssign.gender === 'male' ? 'MALE' : 
-                                         configToAssign.gender === 'female' ? 'FEMALE' : undefined;
-      if (villageGender) {
-        updateTentGender(tentId, villageGender);
+    const fullTentCode = `VIP ${tentCode}`; // e.g., "VIP 80"
+    const actualTentId = findTentIdByCode(fullTentCode);
+    if (actualTentId) {
+      updateTentGroupName(actualTentId, group.groupName);
+      updateTentDates(actualTentId, group.startDate, group.endDate);
+      if (configToAssign.gender) {
+        const villageGender: TentGender = configToAssign.gender === 'male' ? 'MALE' : 
+                                           configToAssign.gender === 'female' ? 'FEMALE' : undefined;
+        if (villageGender) {
+          updateTentGender(actualTentId, villageGender);
+        }
       }
     }
     
     return true;
-  }, [groups, updateGroup, getAvailableVIPTents, updateTentGroupName, updateTentDates, updateTentGender]);
+  }, [groups, updateGroup, getAvailableVIPTents, updateTentGroupName, updateTentDates, updateTentGender, findTentIdByCode]);
 
   // Unassign a VIP config from its tent code
   const unassignVIPConfig = useCallback((groupId: string, configId: string): boolean => {
@@ -517,13 +526,16 @@ export const useGroupAllocation = () => {
     });
     
     // SYNC TO VILLAGE STATE: Clear the physical tent
-    const tentId = `VIP_${tentCode}`;
-    updateTentGroupName(tentId, '');
-    updateTentDates(tentId, undefined, undefined);
-    updateTentGender(tentId, undefined);
+    const fullTentCode = `VIP ${tentCode}`; // e.g., "VIP 80"
+    const actualTentId = findTentIdByCode(fullTentCode);
+    if (actualTentId) {
+      updateTentGroupName(actualTentId, '');
+      updateTentDates(actualTentId, undefined, undefined);
+      updateTentGender(actualTentId, undefined);
+    }
     
     return true;
-  }, [groups, updateGroup, updateTentGroupName, updateTentDates, updateTentGender]);
+  }, [groups, updateGroup, updateTentGroupName, updateTentDates, updateTentGender, findTentIdByCode]);
 
   return {
     allocations,
