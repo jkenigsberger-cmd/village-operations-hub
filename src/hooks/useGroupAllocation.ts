@@ -4,12 +4,17 @@ import { useAdminGroups } from './useAdminGroups';
 import { AllocationRecord, CapacityCheckResult, ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
 import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
 import { NeighborhoodId } from '@/types/village';
-import { parseISO, isWithinInterval, isBefore, isAfter, isSameDay } from 'date-fns';
+import { parseISO, isBefore } from 'date-fns';
+import { 
+  dateRangesOverlapForOccupancy, 
+  TOTAL_VIP_BEDS,
+  getAvailableBedsForRange,
+  loadAllocations as loadAllocationsFromStorage
+} from '@/lib/occupancyCalculator';
 
 // VIP tent IDs (80-89)
 const VIP_TENT_CODES = ['80', '81', '82', '83', '84', '85', '86', '87', '88', '89'];
 const VIP_BEDS_PER_TENT = 3;
-const TOTAL_VIP_BEDS = VIP_TENT_CODES.length * VIP_BEDS_PER_TENT; // 30
 
 export const useGroupAllocation = () => {
   const { state } = useVillage();
@@ -40,16 +45,12 @@ export const useGroupAllocation = () => {
     }
   }, []);
 
-  // Helper: check if date ranges overlap
+  // Helper: check if date ranges overlap using hotel rule (departure excluded)
   const dateRangesOverlap = useCallback((start1: string, end1: string, start2: string, end2: string): boolean => {
-    const s1 = parseISO(start1);
-    const e1 = parseISO(end1);
-    const s2 = parseISO(start2);
-    const e2 = parseISO(end2);
-    return isBefore(s1, e2) && isBefore(s2, e1);
+    return dateRangesOverlapForOccupancy(start1, end1, start2, end2);
   }, []);
 
-  // Get VIP capacity info for a date range
+  // Get VIP capacity info for a date range (uses hotel rule: departure excluded)
   const getVIPCapacity = useCallback((startDate: string, endDate: string, excludeGroupId?: string) => {
     if (!state) return { total: TOTAL_VIP_BEDS, used: 0, available: TOTAL_VIP_BEDS };
 
@@ -59,7 +60,7 @@ export const useGroupAllocation = () => {
 
     let usedBeds = 0;
 
-    // Check allocations for VIP tents in overlapping dates
+    // Check allocations for VIP tents in overlapping dates (hotel rule applied in dateRangesOverlap)
     allocations.forEach(alloc => {
       if (alloc.allocationType === 'VIP_TENT' && dateRangesOverlap(startDate, endDate, alloc.dateRangeStart, alloc.dateRangeEnd)) {
         if (!excludeGroupId || alloc.groupId !== excludeGroupId) {
@@ -85,14 +86,17 @@ export const useGroupAllocation = () => {
       }
     });
 
+    // Cap usedBeds to physical capacity (never exceed max)
+    usedBeds = Math.min(usedBeds, TOTAL_VIP_BEDS);
+
     return {
       total: TOTAL_VIP_BEDS,
       used: usedBeds,
-      available: TOTAL_VIP_BEDS - usedBeds,
+      available: Math.max(0, TOTAL_VIP_BEDS - usedBeds),
     };
   }, [state, allocations, dateRangesOverlap]);
 
-  // Get neighborhood capacity info for a date range
+  // Get neighborhood capacity info for a date range (uses hotel rule: departure excluded)
   const getNeighborhoodCapacity = useCallback((startDate: string, endDate: string, excludeGroupId?: string) => {
     if (!state) return { total: 0, used: 0, available: 0, lockedNeighborhoods: [] };
 
@@ -118,7 +122,7 @@ export const useGroupAllocation = () => {
 
         neighborhoodBeds += tent.beds.length;
 
-        // Check if tent has overlapping booking from another group
+        // Check if tent has overlapping booking from another group (hotel rule applied)
         if (tent.checkInDate && tent.checkOutDate && tent.groupName) {
           if (dateRangesOverlap(startDate, endDate, tent.checkInDate, tent.checkOutDate)) {
             // Find if this belongs to a different group
@@ -132,7 +136,7 @@ export const useGroupAllocation = () => {
         }
       });
 
-      // Check neighborhood-level allocations
+      // Check neighborhood-level allocations (hotel rule applied in dateRangesOverlap)
       allocations.forEach(alloc => {
         if (alloc.allocationType === 'NEIGHBORHOOD' && alloc.resourceId === nId) {
           if (dateRangesOverlap(startDate, endDate, alloc.dateRangeStart, alloc.dateRangeEnd)) {
@@ -153,10 +157,13 @@ export const useGroupAllocation = () => {
       }
     });
 
+    // Cap usedBeds to physical capacity (never exceed max)
+    usedBeds = Math.min(usedBeds, totalBeds);
+
     return {
       total: totalBeds,
       used: usedBeds,
-      available: totalBeds - usedBeds,
+      available: Math.max(0, totalBeds - usedBeds),
       lockedNeighborhoods,
     };
   }, [state, groups, allocations, dateRangesOverlap]);
