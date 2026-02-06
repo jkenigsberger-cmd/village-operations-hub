@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Clock, MapPin, Users, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { TimePickerField } from '@/components/TimePickerField';
+import { MapPin, Users, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TimeSlotDetailModalProps {
@@ -96,18 +97,11 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
           </div>
 
           {/* Time */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5" />
-              שעה
-            </Label>
-            <Input
-              type="time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="text-xl font-bold h-14 text-center"
-            />
-          </div>
+          <TimePickerField
+            label="שעה"
+            value={time}
+            onChange={(v) => setTime(v || '12:00')}
+          />
 
           {/* Location */}
           <div className="space-y-2">
