@@ -10,6 +10,8 @@ import { NeighborhoodBulkActions } from '@/components/NeighborhoodBulkActions';
 import { NeighborhoodReservationModal } from '@/components/NeighborhoodReservationModal';
 import { TentDetailModal } from '@/components/TentDetailModal';
 import { VIPPlanningPanel } from '@/components/VIPPlanningPanel';
+import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
+import { NeighborhoodBookingsList } from '@/components/NeighborhoodBookingsList';
 import { NeighborhoodId, Tent } from '@/types/village';
 import { 
   Search, 
@@ -19,11 +21,12 @@ import {
   Layers,
   Map,
   Grid3X3,
-  Plus
+  Plus,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { parseISO, isWithinInterval, isBefore, isAfter } from 'date-fns';
+import { parseISO, isWithinInterval, isBefore, isAfter, format } from 'date-fns';
 
 type ViewMode = 'grid' | 'map';
 
@@ -42,6 +45,7 @@ const Neighborhood = () => {
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [selectedTent, setSelectedTent] = useState<Tent | null>(null);
   const [selectedVIPGroupId, setSelectedVIPGroupId] = useState<string | null>(null);
+  const [viewDate, setViewDate] = useState<Date>(new Date());
 
   const neighborhoodId = id as NeighborhoodId;
   const isVIPNeighborhood = neighborhoodId === 'VIP';
@@ -239,6 +243,16 @@ const Neighborhood = () => {
       </header>
 
       <main className="container py-6">
+        {/* Date Picker & Bookings Calendar Section */}
+        <div className="tile p-4 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <CalendarDays className="w-5 h-5 text-primary" />
+            <span className="font-semibold">צפה בהזמנות לתאריך</span>
+          </div>
+          <NeighborhoodDatePicker value={viewDate} onChange={setViewDate} />
+          <NeighborhoodBookingsList neighborhoodId={neighborhoodId} date={viewDate} />
+        </div>
+
         {/* VIP Planning Panel - only for VIP neighborhood */}
         {isVIPNeighborhood && (
           <VIPPlanningPanel

@@ -48,7 +48,7 @@ import { he } from 'date-fns/locale';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
-type MenuSection = 'overview' | 'calendar' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
+type MenuSection = 'overview' | 'calendar' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -97,23 +97,42 @@ const {
     });
   }, [groups]);
 
-  // Pending Allocations Section Component
+  // Filter allocations for TODAY only (for overview section)
+  const todayAllocations = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return pendingAllocationGroups.filter(g => {
+      const start = g.startDate;
+      const end = g.endDate;
+      // Include if today is within the group's date range
+      return start <= todayStr && end >= todayStr;
+    });
+  }, [pendingAllocationGroups]);
+
+  // Pending Allocations Section Component - for overview (TODAY only)
   const PendingAllocationsSection = () => {
-    if (pendingAllocationGroups.length === 0) return null;
+    if (todayAllocations.length === 0) return null;
     
     return (
       <section className="mb-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold flex items-center gap-3">
             <ClipboardList className="w-8 h-8" />
-            שיבוץ ממתין
+            {HE.pages.todayAllocations}
             <span className="px-3 py-1 text-sm rounded-full bg-amber-500 text-white">
-              {pendingAllocationGroups.length}
+              {todayAllocations.length}
             </span>
           </h2>
+          {pendingAllocationGroups.length > todayAllocations.length && (
+            <button 
+              onClick={() => setActiveSection('allocations')}
+              className="text-primary hover:underline font-semibold flex items-center gap-1"
+            >
+              {HE.pages.allAllocations} ({pendingAllocationGroups.length}) ←
+            </button>
+          )}
         </div>
         <div className="space-y-3">
-          {pendingAllocationGroups.map(group => (
+          {todayAllocations.map(group => (
             <PendingAllocationCard key={group.id} group={group} />
           ))}
         </div>
@@ -198,6 +217,7 @@ const {
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: HE.nav.overview, icon: Home },
     { key: 'calendar', label: HE.nav.calendar, icon: CalendarDays },
+    { key: 'allocations', label: HE.nav.allocations, icon: ClipboardList, count: pendingAllocationGroups.length > 0 ? pendingAllocationGroups.length : undefined },
     { key: 'neighborhoods', label: HE.nav.neighborhoods, icon: Tent },
     { key: 'facilities', label: HE.nav.facilities, icon: Flame },
     { key: 'bathrooms', label: HE.nav.bathrooms, icon: ShowerHead, count: facilitiesNeedingAttention.length },
@@ -479,6 +499,33 @@ const {
         {/* Calendar Section */}
         {activeSection === 'calendar' && (
           <MasterCalendar />
+        )}
+
+        {/* Allocations Section - ALL pending allocations */}
+        {activeSection === 'allocations' && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <ClipboardList className="w-8 h-8" />
+              {HE.pages.allAllocations}
+              {pendingAllocationGroups.length > 0 && (
+                <span className="px-3 py-1 text-sm rounded-full bg-amber-500 text-white">
+                  {pendingAllocationGroups.length}
+                </span>
+              )}
+            </h2>
+            {pendingAllocationGroups.length === 0 ? (
+              <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
+                <p className="text-xl font-medium">{HE.messages.noAllocations}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingAllocationGroups.map(group => (
+                  <PendingAllocationCard key={group.id} group={group} />
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {/* Neighborhoods Section */}
