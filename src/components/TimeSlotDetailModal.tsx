@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { TimeInput } from '@/components/TimeInput';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { MapPin, Users, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, MapPin, Users, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TimeSlotDetailModalProps {
@@ -97,13 +96,18 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
           </div>
 
           {/* Time */}
-          <TimeInput
-            label="שעה"
-            value={time}
-            onChange={setTime}
-            showPresets
-            showStepButtons
-          />
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-lg">
+              <Clock className="w-5 h-5" />
+              שעה
+            </Label>
+            <Input
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+              className="text-xl font-bold h-14 text-center"
+            />
+          </div>
 
           {/* Location */}
           <div className="space-y-2">
