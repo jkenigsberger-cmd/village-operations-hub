@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from './useAdminGroups';
 import { AllocationRecord, CapacityCheckResult, ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
@@ -543,8 +543,12 @@ export const useGroupAllocation = () => {
 
   // HEALING EFFECT: Sync existing VIP assignments to village state
   // This runs once when state and groups are loaded to fix any missing data
+  // Use a ref to ensure it only runs once per mount
+  const healingRanRef = useRef(false);
+  
   useEffect(() => {
     if (!state || isLoading || groups.length === 0) return;
+    if (healingRanRef.current) return; // Already ran
 
     let healed = false;
 
@@ -588,6 +592,7 @@ export const useGroupAllocation = () => {
 
     if (healed) {
       console.log('VIP tent healing completed');
+      healingRanRef.current = true;
     }
   }, [state, isLoading, groups, findTentIdByCode, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds]);
 
