@@ -258,19 +258,29 @@ const AdminGroups = () => {
                         </div>
                       )}
                       
-                      {/* Remaining allocation counters */}
+                      {/* Remaining allocation counters - shows beds left to assign, NOT occupancy */}
                       {group.groupType !== 'יום ללא לינה' && (group.staffCount || group.participantCount) && (
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {(group.staffCount !== undefined && group.staffCount > 0) && (
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                              צוות נשאר: {group.remainingStaff ?? group.staffCount}/{group.staffCount}
-                            </span>
-                          )}
-                          {(group.participantCount !== undefined && group.participantCount > 0) && (
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              חניכים נשאר: {group.remainingParticipants ?? group.participantCount}/{group.participantCount}
-                            </span>
-                          )}
+                          {(group.staffCount !== undefined && group.staffCount > 0) && (() => {
+                            const remaining = group.remainingStaff ?? group.staffCount;
+                            const total = group.staffCount;
+                            const assigned = total - remaining;
+                            return (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                צוות: שובצו {assigned}/{total}
+                              </span>
+                            );
+                          })()}
+                          {(group.participantCount !== undefined && group.participantCount > 0) && (() => {
+                            const remaining = group.remainingParticipants ?? group.participantCount;
+                            const total = group.participantCount;
+                            const assigned = total - remaining;
+                            return (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                חניכים: שובצו {assigned}/{total}
+                              </span>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
