@@ -22,6 +22,7 @@ import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { VIPTentPlanner } from '@/components/VIPTentPlanner';
 import { NumericInput } from '@/components/NumericInput';
+import { TimeInput } from '@/components/TimeInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -156,14 +157,21 @@ const SpaceBookingModal: React.FC<SpaceBookingModalProps> = ({ isOpen, onClose, 
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">שעת התחלה</label>
-              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">שעת סיום</label>
-              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-            </div>
+            <TimeInput
+              label="שעת התחלה"
+              value={startTime}
+              onChange={setStartTime}
+              showPresets
+              showStepButtons
+            />
+            <TimeInput
+              label="שעת סיום"
+              value={endTime}
+              onChange={setEndTime}
+              minTime={startTime}
+              showPresets
+              showStepButtons
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">הערות (אופציונלי)</label>
@@ -236,10 +244,13 @@ const MealBookingModal: React.FC<MealBookingModalProps> = ({ isOpen, onClose, on
               max={groupDates.end}
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">שעה</label>
-            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
+          <TimeInput
+            label="שעה"
+            value={time}
+            onChange={setTime}
+            showPresets
+            showStepButtons
+          />
           <div className="space-y-2">
             <label className="text-sm font-medium">מיקום</label>
             <Select value={location} onValueChange={(v) => setLocation(v as 'DINING_HALL' | 'OUTSIDE')}>
@@ -885,28 +896,21 @@ const AdminGroupEdit = () => {
             {/* Day-use specific time fields */}
             {isDayUse && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    שעת הגעה
-                  </label>
-                  <Input
-                    type="time"
-                    value={formData.arrivalTime || '09:00'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    שעת סיום
-                  </label>
-                  <Input
-                    type="time"
-                    value={formData.departureTime || '17:00'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
-                  />
-                </div>
+                <TimeInput
+                  label="שעת הגעה"
+                  value={formData.arrivalTime || '09:00'}
+                  onChange={(value) => setFormData(prev => ({ ...prev, arrivalTime: value }))}
+                  showPresets
+                  showStepButtons
+                />
+                <TimeInput
+                  label="שעת סיום"
+                  value={formData.departureTime || '17:00'}
+                  onChange={(value) => setFormData(prev => ({ ...prev, departureTime: value }))}
+                  minTime={formData.arrivalTime || '09:00'}
+                  showPresets
+                  showStepButtons
+                />
               </div>
             )}
 
@@ -1021,28 +1025,23 @@ const AdminGroupEdit = () => {
                           </Popover>
                         </div>
                         
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">שעת התחלה</label>
-                          <Input
-                            type="time"
-                            value={item.startTime}
-                            onChange={(e) => updateScheduleItem(item.id, { startTime: e.target.value })}
-                            className="h-9"
-                          />
-                        </div>
+                        <TimeInput
+                          label="שעת התחלה"
+                          value={item.startTime}
+                          onChange={(value) => updateScheduleItem(item.id, { startTime: value })}
+                          showPresets
+                          showStepButtons={false}
+                        />
                         
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">שעת סיום</label>
-                          <Input
-                            type="time"
-                            value={item.endTime || ''}
-                            onChange={(e) => updateScheduleItem(item.id, { endTime: e.target.value })}
-                            className={cn("h-9", timeError && "border-destructive")}
-                          />
-                          {timeError && (
-                            <p className="text-xs text-destructive">{timeError}</p>
-                          )}
-                        </div>
+                        <TimeInput
+                          label="שעת סיום"
+                          value={item.endTime || ''}
+                          onChange={(value) => updateScheduleItem(item.id, { endTime: value })}
+                          minTime={item.startTime}
+                          error={timeError || undefined}
+                          showPresets
+                          showStepButtons={false}
+                        />
                         
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">קטגוריה</label>
@@ -1180,15 +1179,13 @@ const AdminGroupEdit = () => {
                         </Select>
                       </div>
                       
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">שעה</label>
-                        <Input
-                          type="time"
-                          value={meal.time}
-                          onChange={(e) => updateMealPlanItem(meal.id, { time: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
+                      <TimeInput
+                        label="שעה"
+                        value={meal.time}
+                        onChange={(value) => updateMealPlanItem(meal.id, { time: value })}
+                        showPresets
+                        showStepButtons={false}
+                      />
                       
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">מיקום</label>
