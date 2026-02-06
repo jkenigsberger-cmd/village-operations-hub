@@ -1,66 +1,281 @@
-# Group Data Synchronization - COMPLETED
 
-## Summary
-Implemented idempotent synchronization from Admin Groups to Kitchen and Common Spaces modules.
+# שלב 2: הודעות שיבוץ + מסך שיבוץ (עם תמיכה במגדר)
 
-## Changes Made
+## סקירה כללית
 
-### 1. New Types Added
-- **TimeSlot** (src/types/kitchen.ts): Added `source`, `groupId`, `groupName` fields
-- **ActivityReservation** (src/types/village.ts): Added `source`, `groupId`, `status` fields
+מימוש מלא של מערכת השיבוץ כולל:
+1. כרטיס "שיבוץ ממתין" בדשבורד הראשי
+2. מסך שיבוץ ייעודי עם תמיכה במגדר לצוות VIP
+3. שיבוץ חניכים לשכונות
+4. מעקב השלמה אוטומטי
 
-### 2. New Module: src/lib/groupSync.ts
-- `syncGroupToModules(group)`: Idempotent sync that:
-  1. Removes all existing records with `source='groupSync'` AND `groupId=group.id`
-  2. Creates new kitchen slots from `mealsPlan`
-  3. Creates new space bookings from `scheduleItems` (with conflict detection)
-- `removeSyncedRecordsForGroup(groupId)`: Cleanup on group delete
+---
 
-### 3. Integration in AdminGroupEdit.tsx
-- On group save, calls `syncGroupToModules()` 
-- Shows toast warnings for booking conflicts
-- Shows sync summary (X meals, Y space bookings)
+## A) דשבורד - כרטיס "שיבוץ ממתין"
 
-### 4. Calendar Updates (MasterCalendar.tsx)
-- Added lodging group arrival/departure markers
-- Excluded archived groups from day-use events
-- Calendar derives all events from existing stores (no separate calendar storage)
+### מיקום:
+בסקשן Overview בדף הבית, מיד אחרי הכרטיסיות הקיימות.
 
-### 5. Cascade Delete Updated (groupLinkedRecords.ts)
-- Added `removeSyncedRecordsForGroup()` call to cascade delete
+### תצוגה:
+```text
++---------------------------------------------+
+| 📋 שיבוץ ממתין                         [3] |
++---------------------------------------------+
+| +---------------------------------------+   |
+| | קבוצת אהרונסון                        |   |
+| | 1-5 פברואר | 80 אנשים                |   |
+| | צוות: 3/14 | חניכים: 0/66             |   |
+| | [ממתין לשיבוץ]       [פתח שיבוץ ->]  |   |
+| +---------------------------------------+   |
+| ...                                         |
++---------------------------------------------+
+```
 
-## Sync Behavior
+### פילטר קבוצות:
+- `assignmentStatus` = `pending_allocation` או `pending_capacity_issue`
+- או `remainingStaff > 0` או `remainingParticipants > 0`
+- לא מציג קבוצות `יום ללא לינה` או ארכיון
 
-### On Group SAVE:
-1. Remove old synced records for this group
-2. Create kitchen slots from `mealsPlan[]` (where pax > 0)
-3. Create space bookings from `scheduleItems[]` (for bookable locations)
-4. If conflict exists → booking saved with `status='conflict'` + toast warning
+---
 
-### On Group DELETE:
-- All records with `source='groupSync'` and matching `groupId` are removed
-- Manual records (no source or different source) are preserved
+## B) מסך שיבוץ - `/allocation/:groupId`
 
-## Bookable Spaces
-- אוהל מועד
-- ממ״ד 6
-- ממ״ד 7
-- ממ״ד 8
-- חדר אוכל
+### מבנה הדף:
 
-## Acceptance Criteria Met
-✅ Create group with meals → Kitchen shows meals
-✅ Edit group, add meal → Kitchen updates without duplicates (idempotent)
-✅ Remove meal → Kitchen removes it
-✅ Add itinerary item in ממ״ד 7 → Spaces shows booking
-✅ If conflict exists → booking flagged, warning shown
-✅ Calendar shows arrival + meals + space items from same data
-✅ Delete group → synced kitchen + space items removed
+```text
++-------------------------------------------------------------+
+| <- חזור          שיבוץ לקבוצה: קבוצת אהרונסון                |
++-------------------------------------------------------------+
+|                                                             |
+|  [📅] 1-5 פברואר 2026  |  [👥] 80 אנשים                     |
+|                                                             |
+|  +------------------+    +------------------+                |
+|  |   צוות נשאר     |    |  חניכים נשאר    |                |
+|  |      14         |    |      66          |                |
+|  |   לשיבוץ        |    |   לשיבוץ         |                |
+|  +------------------+    +------------------+                |
+|                                                             |
+|  [💡] אוהלי VIP מומלצים: 5  |  שכונות דרושות: ~1            |
+|                                                             |
++-------------------------------------------------------------+
+|  [שיבוץ VIP (צוות)]  |  [שיבוץ חניכים (רגיל)]               |
++-------------------------------------------------------------+
+|                                                             |
+|  << תוכן הטאב הנבחר >>                                      |
+|                                                             |
++-------------------------------------------------------------+
+```
 
-## Files Modified
-- src/types/kitchen.ts
-- src/types/village.ts
-- src/lib/groupSync.ts (NEW)
-- src/lib/groupLinkedRecords.ts
-- src/pages/AdminGroupEdit.tsx
-- src/components/MasterCalendar.tsx
+---
+
+## C) טאב VIP עם תמיכת מגדר (החידוש העיקרי)
+
+### שני אזורים בטאב:
+
+#### אזור 1: תצורות ממתינות לשיבוץ (מהקבוצה)
+
+מציג את כל ה-`vipTentConfigs` שעדיין לא שובצו (`assignedTentCode === undefined`):
+
+```text
++-------------------------------------------------------------+
+| תצורות צוות ממתינות לשיבוץ:                                 |
++-------------------------------------------------------------+
+| +----------+  +----------+  +----------+  +----------+       |
+| | אוהל 1   |  | אוהל 2   |  | אוהל 3   |  | אוהל 4   |       |
+| | 3 מיטות  |  | 2 מיטות  |  | 3+1 מיט  |  | 2 מיטות  |       |
+| | [♀️ נקבה]|  | [♂️ זכר] |  | [♂️ זכר] |  | [---]    |       |
+| | [לא שובץ]|  | [לא שובץ]|  | [לא שובץ]|  | [לא שובץ]|       |
+| +----------+  +----------+  +----------+  +----------+       |
++-------------------------------------------------------------+
+```
+
+צבעים:
+- גבול ורוד = נקבה
+- גבול כחול = זכר  
+- גבול אפור = לא הוגדר
+
+#### אזור 2: אוהלי VIP פיזיים (80-89)
+
+רשת של 10 אוהלים עם מצב זמינות:
+
+```text
++-------------------------------------------------------------+
+| אוהלי VIP זמינים (80-89):                                   |
++-------------------------------------------------------------+
+| +--------+ +--------+ +--------+ +--------+ +--------+       |
+| | VIP 80 | | VIP 81 | | VIP 82 | | VIP 83 | | VIP 84 |       |
+| |   [✓]  | |   [✓]  | |   [X]  | |   [✓]  | |   [✓]  |       |
+| |  פנוי  | |  פנוי  | | קבוצה X| |  פנוי  | |  פנוי  |       |
+| +--------+ +--------+ +--------+ +--------+ +--------+       |
+| +--------+ +--------+ +--------+ +--------+ +--------+       |
+| | VIP 85 | | VIP 86 | | VIP 87 | | VIP 88 | | VIP 89 |       |
+| |   [✓]  | |   [✓]  | |   [✓]  | |   [✓]  | |   [✓]  |       |
+| |  פנוי  | |  פנוי  | |  פנוי  | |  פנוי  | |  פנוי  |       |
+| +--------+ +--------+ +--------+ +--------+ +--------+       |
++-------------------------------------------------------------+
+```
+
+### זרימת שיבוץ VIP:
+
+1. **לחיצה על תצורה ממתינה** (אוהל 1, 2, וכו') -> נבחרת
+2. **לחיצה על אוהל VIP פנוי** (80-89) -> מודאל אישור:
+
+```text
++----------------------------------+
+| שיבוץ תצורה לאוהל VIP           |
++----------------------------------+
+| תצורה: אוהל 2                    |
+| מיטות: 2                         |
+| מגדר: ♂️ זכר                     |
+|                                  |
+| שיבוץ לאוהל: VIP 81              |
+|                                  |
+| [ביטול]          [שבץ ✓]        |
++----------------------------------+
+```
+
+3. **באישור:**
+   - קריאה ל-`assignVIPConfig(groupId, configId, tentCode)`
+   - הפונקציה הקיימת כבר מעדכנת `remainingStaff`
+   - התצורה נעלמת מרשימת "ממתינות"
+   - האוהל מסומן כתפוס
+
+### התאמת מגדר (המלצה חזותית):
+
+בעת בחירת תצורה עם מגדר מוגדר:
+- אוהלים VIP יקבלו סימון המלצה אם הם ריקים
+- לא חוסמים שיבוץ - רק ממליצים
+
+---
+
+## D) טאב חניכים (רגיל)
+
+### תצוגה:
+
+```text
++-------------------------------------------------------------+
+| שכונות זמינות לחניכים:                                      |
++-------------------------------------------------------------+
+| +-------------------------------------------------------+   |
+| | שכונה 1                                               |   |
+| | 64 מיטות | 8 אוהלים                                   |   |
+| | [פנוי ✓]                             [שבץ שכונה]     |   |
+| +-------------------------------------------------------+   |
+| +-------------------------------------------------------+   |
+| | שכונה 2                                               |   |
+| | 64 מיטות | 8 אוהלים                                   |   |
+| | [נעול לקבוצה: ABC 🔒]                                 |   |
+| +-------------------------------------------------------+   |
+| ...                                                         |
++-------------------------------------------------------------+
+```
+
+### פעולה:
+
+לחיצה על "שבץ שכונה" פותחת מודאל:
+
+```text
++----------------------------------+
+| שיבוץ שכונה 1                    |
++----------------------------------+
+| קיבולת: 64 מיטות                 |
+| חניכים נשאר: 66                  |
+|                                  |
+| כמות מיטות לשיבוץ:               |
+| [64] (ברירת מחדל = קיבולת)       |
+|                                  |
+| [ביטול]          [שבץ ✓]        |
++----------------------------------+
+```
+
+באישור:
+- קריאה ל-`addAllocation(groupId, 'NEIGHBORHOOD', ...)`
+- הפחתה מ-`remainingParticipants`
+
+---
+
+## E) כלל השלמה
+
+### תנאי:
+- `remainingStaff === 0`
+- `remainingParticipants === 0`
+
+### תצוגה:
+
+```text
++---------------------------------------------+
+|  [✓] שיבוץ הושלם!                           |
+|                                             |
+|  [סמן כהושלם וחזור לדשבורד]                 |
++---------------------------------------------+
+```
+
+### פעולה:
+- `updateGroup(groupId, { assignmentStatus: 'fully_allocated' })`
+- ניווט לדשבורד
+- הקבוצה נעלמת מ"שיבוץ ממתין"
+
+---
+
+## פרטים טכניים
+
+### קבצים חדשים:
+
+| קובץ | תיאור |
+|------|-------|
+| `src/pages/GroupAllocation.tsx` | מסך שיבוץ ראשי |
+| `src/components/PendingAllocationCard.tsx` | כרטיס קבוצה ממתינה בדשבורד |
+| `src/components/VIPAllocationTab.tsx` | טאב שיבוץ VIP עם מגדר |
+| `src/components/ParticipantAllocationTab.tsx` | טאב שיבוץ חניכים |
+| `src/components/VIPConfigCard.tsx` | כרטיס תצורה ממתינה |
+| `src/components/VIPTentSlot.tsx` | כרטיס אוהל VIP פיזי |
+
+### קבצים מעודכנים:
+
+| קובץ | שינוי |
+|------|-------|
+| `src/pages/Index.tsx` | הוספת סקשן "שיבוץ ממתין" |
+| `src/App.tsx` | הוספת route `/allocation/:groupId` |
+
+### Hooks קיימים בשימוש:
+- `useGroupAllocation` - `assignVIPConfig`, `unassignVIPConfig`, `addAllocation`, `getAvailableVIPTents`, `getUnassignedVIPConfigs`
+- `useAdminGroups` - `groups`, `updateGroup`
+- `useVillage` - מידע על שכונות ואוהלים
+
+### אין שינוי ב:
+- Kitchen sync
+- Common Spaces sync
+- Calendar
+- Map rendering
+- Housekeeping/Maintenance
+- לוגיקת הזמנות קיימת
+
+---
+
+## בדיקות קבלה
+
+1. **יצירת קבוצה עם 80 איש ו-14 צוות** (5 תצורות VIP עם מגדרים) -> נשמרת עם `pending_allocation`
+
+2. **דשבורד מציג הקבוצה** תחת "שיבוץ ממתין" עם כפתור "פתח שיבוץ"
+
+3. **פתיחת מסך שיבוץ:**
+   - מונים: `remainingStaff=14`, `remainingParticipants=66`
+   - טאב VIP מציג 5 תצורות ממתינות עם צבעי מגדר
+
+4. **שיבוץ תצורת VIP (3 מיטות, זכר) לאוהל 83:**
+   - `remainingStaff` יורד ב-3
+   - התצורה נעלמת מרשימת ממתינות
+   - אוהל 83 מסומן כתפוס
+
+5. **שיבוץ שכונה 1 (64 מיטות):**
+   - `remainingParticipants` יורד ל-2
+
+6. **כאשר שני המונים = 0:**
+   - מופיע "שיבוץ הושלם!" + כפתור סימון
+
+7. **סימון כהושלם:**
+   - `assignmentStatus = 'fully_allocated'`
+   - הקבוצה נעלמת מ"שיבוץ ממתין"
+
+8. **רענון דף:**
+   - כל הנתונים נשמרים
