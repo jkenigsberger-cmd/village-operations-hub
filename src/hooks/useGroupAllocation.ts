@@ -17,7 +17,7 @@ const VIP_TENT_CODES = ['80', '81', '82', '83', '84', '85', '86', '87', '88', '8
 const VIP_BEDS_PER_TENT = 3;
 
 export const useGroupAllocation = () => {
-  const { state, updateTentGroupName, updateTentDates, updateTentGender } = useVillage();
+  const { state, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds } = useVillage();
   const { groups, updateGroup } = useAdminGroups();
   const [allocations, setAllocations] = useState<AllocationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -488,15 +488,17 @@ export const useGroupAllocation = () => {
       updateTentDates(actualTentId, group.startDate, group.endDate);
       if (configToAssign.gender) {
         const villageGender: TentGender = configToAssign.gender === 'male' ? 'MALE' : 
-                                           configToAssign.gender === 'female' ? 'FEMALE' : undefined;
-        if (villageGender) {
-          updateTentGender(actualTentId, villageGender);
-        }
+                                           configToAssign.gender === 'female' ? 'FEMALE' : 'MIXED';
+        updateTentGender(actualTentId, villageGender);
       }
+      // Mark beds as RESERVED
+      const tent = state?.tents[actualTentId];
+      const maxBeds = tent?.beds.length || 3;
+      setTentReservedBeds(actualTentId, Math.min(bedsBeingAssigned, maxBeds));
     }
     
     return true;
-  }, [groups, updateGroup, getAvailableVIPTents, updateTentGroupName, updateTentDates, updateTentGender, findTentIdByCode]);
+  }, [groups, updateGroup, getAvailableVIPTents, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds, findTentIdByCode, state]);
 
   // Unassign a VIP config from its tent code
   const unassignVIPConfig = useCallback((groupId: string, configId: string): boolean => {
@@ -531,12 +533,63 @@ export const useGroupAllocation = () => {
     const actualTentId = findTentIdByCode(fullTentCode);
     if (actualTentId) {
       updateTentGroupName(actualTentId, '');
-      updateTentDates(actualTentId, undefined, undefined);
+      updateTentDates(actualTentId, null, null); // null = clear dates
       updateTentGender(actualTentId, undefined);
+      setTentReservedBeds(actualTentId, 0); // Free all reserved beds
     }
     
     return true;
-  }, [groups, updateGroup, updateTentGroupName, updateTentDates, updateTentGender, findTentIdByCode]);
+  }, [groups, updateGroup, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds, findTentIdByCode]);
+
+  // HEALING EFFECT: Sync existing VIP assignments to village state
+  // This runs once when state and groups are loaded to fix any missing data
+  useEffect(() => {
+    if (!state || isLoading || groups.length === 0) return;
+
+    let healed = false;
+
+    groups.forEach(group => {
+      if (!group.vipTentConfigs) return;
+
+      group.vipTentConfigs.forEach(config => {
+        if (!config.assignedTentCode) return;
+
+        const fullTentCode = `VIP ${config.assignedTentCode}`;
+        const actualTentId = findTentIdByCode(fullTentCode);
+        if (!actualTentId) return;
+
+        const tent = state.tents[actualTentId];
+        if (!tent) return;
+
+        // Only heal if tent appears empty or belongs to same group but missing data
+        const isEmpty = !tent.groupName && !tent.checkInDate && !tent.checkOutDate;
+        const isSameGroupButMissingData = tent.groupName === group.groupName && (!tent.checkInDate || !tent.checkOutDate);
+
+        if (isEmpty || isSameGroupButMissingData) {
+          console.log(`Healing VIP tent ${config.assignedTentCode} for group ${group.groupName}`);
+          
+          updateTentGroupName(actualTentId, group.groupName);
+          updateTentDates(actualTentId, group.startDate, group.endDate);
+          
+          if (config.gender) {
+            const villageGender: TentGender = config.gender === 'male' ? 'MALE' : 
+                                               config.gender === 'female' ? 'FEMALE' : 'MIXED';
+            updateTentGender(actualTentId, villageGender);
+          }
+          
+          const bedsToReserve = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
+          const maxBeds = tent.beds.length;
+          setTentReservedBeds(actualTentId, Math.min(bedsToReserve, maxBeds));
+          
+          healed = true;
+        }
+      });
+    });
+
+    if (healed) {
+      console.log('VIP tent healing completed');
+    }
+  }, [state, isLoading, groups, findTentIdByCode, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds]);
 
   return {
     allocations,

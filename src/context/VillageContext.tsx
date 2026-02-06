@@ -33,10 +33,11 @@ interface VillageContextType {
   // Tent operations
   updateTentCleaningStatus: (tentId: string, status: CleaningStatus, assignedTo?: string) => void;
   updateTentGroupName: (tentId: string, groupName: string) => void;
-  updateTentDates: (tentId: string, checkIn?: string, checkOut?: string) => void;
+  updateTentDates: (tentId: string, checkIn?: string | null, checkOut?: string | null) => void;
   updateTentNotes: (tentId: string, notes: string) => void;
   updateTentPeopleCount: (tentId: string, count: number | undefined) => void;
-  updateTentGender: (tentId: string, gender: TentGender) => void;
+  updateTentGender: (tentId: string, gender: TentGender | undefined) => void;
+  setTentReservedBeds: (tentId: string, reservedCount: number) => void;
   updateTentPrivateBathroom: (tentId: string, hasPrivateBathroom: boolean) => void;
   updateTentPrivateShower: (tentId: string, hasPrivateShower: boolean) => void;
   updateTentCleaningAssignment: (tentId: string, assignedTo: string) => void;
@@ -233,35 +234,43 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateTentGroupName = (tentId: string, groupName: string) => {
     if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, groupName, lastUpdated: new Date().toISOString() },
-    };
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
 
-    saveState({ ...state, tents: updatedTents });
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: { ...tent, groupName, lastUpdated: new Date().toISOString() },
+      };
+
+      return { ...prev, tents: updatedTents };
+    });
   };
 
-  const updateTentDates = (tentId: string, checkInDate?: string, checkOutDate?: string) => {
+  const updateTentDates = (tentId: string, checkInDate?: string | null, checkOutDate?: string | null) => {
     if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { 
-        ...tent, 
-        checkInDate: checkInDate ?? tent.checkInDate, 
-        checkOutDate: checkOutDate ?? tent.checkOutDate,
-        lastUpdated: new Date().toISOString() 
-      },
-    };
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
 
-    saveState({ ...state, tents: updatedTents });
+      // null = clear, undefined = keep existing
+      const newCheckIn = checkInDate === null ? undefined : (checkInDate ?? tent.checkInDate);
+      const newCheckOut = checkOutDate === null ? undefined : (checkOutDate ?? tent.checkOutDate);
+
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: { 
+          ...tent, 
+          checkInDate: newCheckIn, 
+          checkOutDate: newCheckOut,
+          lastUpdated: new Date().toISOString() 
+        },
+      };
+
+      return { ...prev, tents: updatedTents };
+    });
   };
 
   const updateTentNotes = (tentId: string, notes: string) => {
@@ -299,18 +308,59 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const updateTentGender = (tentId: string, gender: TentGender) => {
+  const updateTentGender = (tentId: string, gender: TentGender | undefined) => {
     if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, gender, lastUpdated: new Date().toISOString() },
-    };
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
 
-    saveState({ ...state, tents: updatedTents });
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: { ...tent, gender, lastUpdated: new Date().toISOString() },
+      };
+
+      return { ...prev, tents: updatedTents };
+    });
+  };
+
+  // Atomically set bed statuses to RESERVED for VIP tent assignments
+  const setTentReservedBeds = (tentId: string, reservedCount: number) => {
+    if (!state) return;
+
+    saveState((prev) => {
+      const tent = prev.tents[tentId];
+      if (!tent) return prev;
+
+      const updatedBeds = { ...prev.beds };
+      const updatedTentBeds = tent.beds.map((bed, index) => {
+        const shouldBeReserved = index < reservedCount;
+        let newStatus = bed.status;
+
+        if (shouldBeReserved) {
+          // Only mark as RESERVED if currently FREE
+          if (bed.status === 'FREE') {
+            newStatus = 'RESERVED';
+          }
+        } else {
+          // Clear RESERVED status if no guest name and was RESERVED
+          if (bed.status === 'RESERVED' && !bed.guestName) {
+            newStatus = 'FREE';
+          }
+        }
+
+        const updatedBed = { ...bed, status: newStatus };
+        updatedBeds[bed.id] = updatedBed;
+        return updatedBed;
+      });
+
+      const updatedTents = {
+        ...prev.tents,
+        [tentId]: { ...tent, beds: updatedTentBeds, lastUpdated: new Date().toISOString() },
+      };
+
+      return { ...prev, beds: updatedBeds, tents: updatedTents };
+    });
   };
 
   const updateTentPrivateBathroom = (tentId: string, hasPrivateBathroom: boolean) => {
@@ -1303,6 +1353,7 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
     updateTentNotes,
     updateTentPeopleCount,
     updateTentGender,
+    setTentReservedBeds,
     updateTentPrivateBathroom,
     updateTentPrivateShower,
     updateTentCleaningAssignment,
