@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users } from 'lucide-react';
+import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users, Cloud, Database } from 'lucide-react';
 import { HE } from '@/lib/translations';
+import { importAllFromLocalStorage, hasLocalStorageData, clearLocalStorageData, ImportResult } from '@/lib/dataImport';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -16,6 +17,11 @@ const Settings = () => {
   const [importSuccess, setImportSuccess] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Cloud import state
+  const [isImportingToCloud, setIsImportingToCloud] = useState(false);
+  const [cloudImportResult, setCloudImportResult] = useState<ImportResult | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   if (isLoading || !state) {
     return (
@@ -73,6 +79,39 @@ const Settings = () => {
     reader.readAsText(file);
   };
 
+  // Import data from localStorage to Cloud
+  const handleImportToCloud = async () => {
+    setIsImportingToCloud(true);
+    setCloudImportResult(null);
+    
+    try {
+      const result = await importAllFromLocalStorage();
+      setCloudImportResult(result);
+      
+      if (result.success) {
+        setShowClearConfirm(true);
+      }
+    } catch (error) {
+      setCloudImportResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsImportingToCloud(false);
+    }
+  };
+
+  const handleClearLocalStorage = () => {
+    clearLocalStorageData();
+    setShowClearConfirm(false);
+    setCloudImportResult({
+      ...cloudImportResult!,
+      message: cloudImportResult!.message + ' (נתונים מקומיים נמחקו)'
+    });
+  };
+
+  const hasLocalData = hasLocalStorageData();
+
   const stats = {
     neighborhoods: Object.keys(state.neighborhoods).length,
     tents: Object.keys(state.tents).length,
@@ -97,6 +136,87 @@ const Settings = () => {
       </header>
 
       <main className="container py-6 space-y-8">
+        {/* Cloud Import Section - Show prominently if there's local data */}
+        {hasLocalData && (
+          <section className="tile border-2 border-primary bg-primary/5">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-primary">
+              <Cloud className="w-7 h-7" />
+              העלאת נתונים לענן
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              זוהו נתונים מאוחסנים בדפדפן. לחץ כאן כדי להעלות אותם לענן ולאפשר גישה ממכשירים מרובים.
+            </p>
+            
+            {cloudImportResult && (
+              <div className={`p-4 rounded-xl mb-4 flex items-start gap-3 ${
+                cloudImportResult.success 
+                  ? 'bg-status-clean/20 border-2 border-status-clean' 
+                  : 'bg-destructive/10 border-2 border-destructive'
+              }`}>
+                {cloudImportResult.success ? (
+                  <Check className="w-6 h-6 text-status-clean flex-shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-6 h-6 text-destructive flex-shrink-0" />
+                )}
+                <div>
+                  <p className="font-semibold">{cloudImportResult.message}</p>
+                  {cloudImportResult.stats && (
+                    <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                      <span>שכונות: {cloudImportResult.stats.neighborhoods}</span>
+                      <span>אוהלים: {cloudImportResult.stats.tents}</span>
+                      <span>מיטות: {cloudImportResult.stats.beds}</span>
+                      <span>קבוצות: {cloudImportResult.stats.groups}</span>
+                      <span>מתקנים: {cloudImportResult.stats.facilities}</span>
+                      <span>מטבח: {cloudImportResult.stats.kitchenSlots}</span>
+                      <span>שיבוצים: {cloudImportResult.stats.allocations}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {showClearConfirm && (
+              <div className="p-4 bg-muted rounded-xl mb-4">
+                <p className="font-medium mb-3">
+                  הנתונים הועלו בהצלחה! האם למחוק את הנתונים המקומיים מהדפדפן?
+                </p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleClearLocalStorage}
+                    className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium"
+                  >
+                    כן, מחק נתונים מקומיים
+                  </button>
+                  <button 
+                    onClick={() => setShowClearConfirm(false)}
+                    className="px-4 py-2 bg-muted-foreground/20 rounded-lg font-medium"
+                  >
+                    לא, השאר לעת עתה
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={handleImportToCloud}
+              disabled={isImportingToCloud}
+              className="px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50"
+            >
+              {isImportingToCloud ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  מעלה נתונים...
+                </>
+              ) : (
+                <>
+                  <Database className="w-6 h-6" />
+                  העלה נתונים מהדפדפן לענן
+                </>
+              )}
+            </button>
+          </section>
+        )}
+
         {/* Admin Groups Section */}
         <section className="tile border-primary/30 bg-primary/5">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -259,11 +379,10 @@ const Settings = () => {
         <section className="tile bg-muted/30">
           <h2 className="text-xl font-bold mb-4">{HE.pages.aboutDataStorage}</h2>
           <ul className="space-y-2 text-muted-foreground">
-            <li>• {HE.dataManagement.dataStoredLocally}</li>
-            <li>• {HE.dataManagement.dataPersists}</li>
-            <li>• {HE.dataManagement.exportRegularly}</li>
-            <li>• {HE.dataManagement.useImport}</li>
-            <li>• {HE.dataManagement.noInternetRequired}</li>
+            <li>• הנתונים מאוחסנים בענן ומסונכרנים בזמן אמת</li>
+            <li>• ניתן לגשת לנתונים מכל מחשב או טלפון</li>
+            <li>• שינויים מתעדכנים אוטומטית בכל המכשירים המחוברים</li>
+            <li>• מומלץ לייצא גיבוי באופן קבוע</li>
           </ul>
         </section>
       </main>
