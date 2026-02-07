@@ -1,212 +1,264 @@
 
-# ארגון מחדש: לוח שיבוצים, לשונית שיבוצים נפרדת, ולוח שנה בשכונות
+# Database Migration Plan: localStorage to Cloud Backend
 
-## סיכום הבקשה
+## Overview
 
-1. **דשבורד הבית** - להציג רק שיבוצים ליום הנוכחי (במקום כל הממתינים)
-2. **לשונית שיבוצים חדשה** - טאב נפרד בתפריט הראשי לכל השיבוצים הממתינים + התראה כשיש ממתינים
-3. **לוח שנה בתצוגת שכונה** - לבחור תאריך ולראות הזמנות עתידיות + שיבוצים לאותה שכונה
+This plan migrates all operational data from browser localStorage to the Cloud backend, enabling:
+- **Multi-device access**: Same data across PCs and mobiles
+- **Real-time updates**: All users see live changes instantly
+- **Data persistence**: No data loss when clearing browser storage
+- **Foundation for user roles**: Required for future Owner/Worker permissions
 
----
+## Current Data Architecture
 
-## מבנה השינויים
+The application currently stores data in **6 localStorage keys**:
 
-### 1. דשבורד (Index.tsx) - שיבוצים ליום הנוכחי בלבד
-
-**שינוי ב-`PendingAllocationsSection`:**
-- סינון רק לקבוצות ש-`startDate` או `endDate` הוא היום
-- שינוי הכותרת ל-"שיבוצים להיום"
-
-```typescript
-const todayAllocations = useMemo(() => {
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  return pendingAllocationGroups.filter(g => 
-    g.startDate === todayStr || g.endDate === todayStr
-  );
-}, [pendingAllocationGroups]);
-```
-
-### 2. הוספת טאב "שיבוצים" לתפריט הראשי
-
-**שינוי ב-`menuItems`:**
-- הוספת פריט `allocation` עם אייקון `ClipboardList`
-- הצגת באדג' עם מספר הקבוצות הממתינות (כל הקבוצות, לא רק היום)
-
-```typescript
-{ key: 'allocations', label: 'שיבוצים', icon: ClipboardList, count: pendingAllocationGroups.length }
-```
-
-**הוספת סקשן `allocations`:**
-- רשימת כל הקבוצות הממתינות לשיבוץ (לא משנה התאריך)
-- קישור מהיר לעמוד `/allocation/:id`
-
-### 3. לוח שנה בתצוגת שכונה (Neighborhood.tsx)
-
-**הוספת רכיב `NeighborhoodCalendar`:**
-- בורר תאריכים עם ניווט ימינה/שמאלה
-- הצגת הזמנות/שיבוצים לשכונה הנבחרת לפי תאריך
-
-**מקורות נתונים:**
-1. `neighborhoodReservations` - הזמנות קיימות לשכונה
-2. `allocations` מ-`useGroupAllocation` - שיבוצים פעילים
-3. `tents` עם `checkInDate/checkOutDate` - אוהלים בודדים עם תפוסה
-
-**תצוגה:**
-- רשימת קבוצות/הזמנות פעילות לתאריך הנבחר
-- אינדיקטור תפוסה לכל אוהל (כמה מיטות תפוסות)
-- לחיצה על קבוצה פותחת מודל עם פרטים
+| Storage Key | Purpose | Data Type |
+|-------------|---------|-----------|
+| `aharonson_farm_village_state` | Tents, beds, facilities, reservations | Large JSON (~2MB potential) |
+| `aharonson_admin_groups` | Group reservations with meals/schedules | Array of group records |
+| `aharonson_farm_kitchen_state` | Kitchen time slots | Record of time slots |
+| `aharonson_allocations` | Bed/tent assignments | Array of allocations |
+| `af_admin_income` | Income entries | Array |
+| `af_admin_expenses` | Expense entries | Array |
+| `af_admin_outsourced` | Outsourced worker hours | Array |
 
 ---
 
-## קבצים לעדכון
+## Database Schema Design
 
-| קובץ | שינויים |
-|------|----------|
-| `src/pages/Index.tsx` | סינון שיבוצים להיום בלבד + הוספת טאב שיבוצים |
-| `src/pages/Neighborhood.tsx` | הוספת בורר תאריך + תצוגת הזמנות לתאריך |
-| `src/components/NeighborhoodDatePicker.tsx` | רכיב חדש - בורר תאריך עם ניווט |
-| `src/components/NeighborhoodBookingsList.tsx` | רכיב חדש - רשימת הזמנות/שיבוצים לתאריך |
-| `src/lib/translations.ts` | הוספת תרגומים חדשים |
+### Phase 1: Core Tables
+
+```text
++------------------+     +------------------+     +------------------+
+|   neighborhoods  |     |      tents       |     |       beds       |
++------------------+     +------------------+     +------------------+
+| id (PK)          |     | id (PK)          |     | id (PK)          |
+| name             |<--->| neighborhood_id  |<--->| tent_id          |
+| display_name     |     | code             |     | label            |
+| has_double_tents |     | cleaning_status  |     | bed_type         |
+| is_white_tent    |     | group_name       |     | status           |
++------------------+     | check_in_date    |     | guest_name       |
+                         | check_out_date   |     +------------------+
+                         | ...              |
+                         +------------------+
+```
+
+### Tables Overview
+
+1. **Static Structure** (rarely changes):
+   - `neighborhoods` - 8 neighborhoods (N1-N7 + VIP)
+   - `tents` - ~50 tents with configuration
+   - `beds` - ~335 beds linked to tents
+   - `facilities` - Toilets/showers with location
+   - `facility_areas` - Facility groupings
+   - `activity_spaces` - Common spaces (אוהל מועד, etc.)
+
+2. **Operational Data** (changes frequently):
+   - `neighborhood_reservations` - Group bookings for neighborhoods
+   - `activity_reservations` - Space bookings
+   - `facility_reservations` - Facility time slots
+   - `daily_tasks` - Cleaning/maintenance tasks
+   - `kitchen_time_slots` - Meal schedules
+
+3. **Admin Data**:
+   - `groups` - Group records with all details
+   - `allocations` - Bed/tent assignments
+   - `income` - Financial income entries
+   - `expenses` - Financial expense entries
+   - `outsourced` - External worker hours
 
 ---
 
-## תכנון טכני מפורט
+## Migration Strategy
 
-### א. Index.tsx - שינויים
+### Approach: Parallel Operation (Recommended)
 
-1. **הוספת `MenuSection`:**
-```typescript
-type MenuSection = 'overview' | 'calendar' | 'allocations' | 'neighborhoods' | ...
-```
-
-2. **הוספת באדג' לתפריט:**
-```typescript
-{ key: 'allocations', label: 'שיבוצים', icon: ClipboardList, count: pendingAllocationGroups.length }
-```
-
-3. **סינון `todayAllocations` לסקשן overview:**
-```typescript
-const todayAllocations = useMemo(() => {
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  return pendingAllocationGroups.filter(g => {
-    const start = g.startDate;
-    const end = g.endDate;
-    return start === todayStr || end === todayStr || 
-           (start <= todayStr && end >= todayStr);
-  });
-}, [pendingAllocationGroups]);
-```
-
-4. **סקשן `allocations` מלא:**
-```typescript
-{activeSection === 'allocations' && (
-  <section>
-    <h2>שיבוצים ממתינים</h2>
-    {pendingAllocationGroups.map(group => (
-      <PendingAllocationCard key={group.id} group={group} />
-    ))}
-  </section>
-)}
-```
-
-### ב. Neighborhood.tsx - הוספת לוח שנה
-
-1. **State חדש:**
-```typescript
-const [viewDate, setViewDate] = useState<Date>(new Date());
-```
-
-2. **חישוב הזמנות לתאריך:**
-```typescript
-const bookingsForDate = useMemo(() => {
-  const dateStr = format(viewDate, 'yyyy-MM-dd');
-  // 1. Neighborhood reservations
-  const nReservations = Object.values(state.neighborhoodReservations || {})
-    .filter(r => r.neighborhoodId === neighborhoodId && 
-                 r.checkInDate <= dateStr && r.checkOutDate >= dateStr);
-  // 2. Tent-level bookings
-  const tentBookings = neighborhood.tentIds
-    .map(id => state.tents[id])
-    .filter(t => t.checkInDate && t.checkOutDate &&
-                 t.checkInDate <= dateStr && t.checkOutDate >= dateStr);
-  return { nReservations, tentBookings };
-}, [state, viewDate, neighborhoodId]);
-```
-
-3. **רכיב בורר תאריך:**
-- כפתורי ניווט: `<`, `>`, "היום"
-- Popover עם Calendar
-
-4. **רשימת הזמנות:**
-- כרטיסים לכל קבוצה/הזמנה
-- צבע לפי מגדר
-- מספר אוהלים/מיטות
-
-### ג. רכיבים חדשים
-
-**NeighborhoodDatePicker.tsx:**
-```typescript
-interface Props {
-  value: Date;
-  onChange: (date: Date) => void;
-}
-// Popover עם Calendar + כפתורי ניווט
-```
-
-**NeighborhoodBookingsList.tsx:**
-```typescript
-interface Props {
-  neighborhoodId: NeighborhoodId;
-  date: Date;
-}
-// רשימת הזמנות/שיבוצים לתאריך
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                     MIGRATION PHASES                         │
+├─────────────────────────────────────────────────────────────┤
+│  Phase 1: Create Database Schema                             │
+│  ├── Create all tables with proper relationships            │
+│  ├── Enable Row Level Security (RLS)                         │
+│  └── Set policies for public read (no auth yet)             │
+├─────────────────────────────────────────────────────────────┤
+│  Phase 2: Add Database Hooks                                 │
+│  ├── Create new hooks: useSupabaseVillage, useSupabaseGroups│
+│  ├── Implement CRUD operations via Supabase client          │
+│  └── Add real-time subscriptions for live updates           │
+├─────────────────────────────────────────────────────────────┤
+│  Phase 3: Replace Context Providers                          │
+│  ├── Update VillageContext to use Supabase hooks            │
+│  ├── Update useAdminGroups to use Supabase                   │
+│  ├── Update useKitchenData to use Supabase                   │
+│  └── Update useGroupAllocation to use Supabase               │
+├─────────────────────────────────────────────────────────────┤
+│  Phase 4: Data Import & Cleanup                              │
+│  ├── Create import tool in Settings page                     │
+│  ├── Import existing localStorage data                       │
+│  └── Remove localStorage dependencies                        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## תרגומים להוספה
+## Technical Implementation Details
 
-```typescript
-nav: {
-  allocations: 'שיבוצים',
-},
-pages: {
-  allAllocations: 'כל השיבוצים',
-  todayAllocations: 'שיבוצים להיום',
-},
-messages: {
-  noAllocationsToday: 'אין שיבוצים להיום',
-  noAllocations: 'אין שיבוצים ממתינים',
-},
-neighborhood: {
-  bookingsForDate: 'הזמנות לתאריך',
-  noBookingsForDate: 'אין הזמנות לתאריך זה',
-},
+### Database Tables SQL (Phase 1)
+
+**Table 1: Neighborhoods**
+- Stores the 8 neighborhood definitions
+- Static data, populated once from initialData.ts
+
+**Table 2: Tents**
+- Links to neighborhood via foreign key
+- Stores dynamic fields: cleaning_status, group_name, dates, notes
+- Includes VIP-specific fields (private bathroom/shower status)
+
+**Table 3: Beds**
+- Links to tent via foreign key
+- Stores: status (FREE/RESERVED/OCCUPIED/BLOCKED), guest_name
+
+**Table 4: Groups**
+- Main group reservation records
+- JSON columns for complex nested data (meal_plan, schedule_items, vip_tent_configs)
+- This approach avoids excessive normalization for rarely-queried nested structures
+
+**Table 5: Allocations**
+- Links groups to resources (VIP tents, neighborhoods, tents)
+- Tracks bed assignments
+
+**Table 6-8: Facilities, FacilityAreas, ActivitySpaces**
+- Static structure with dynamic status fields
+
+**Table 9-11: Reservations (neighborhood, activity, facility)**
+- Time-based bookings with conflict detection
+
+**Table 12: KitchenTimeSlots**
+- Meal scheduling with special diets as JSON
+
+**Table 13: DailyTasks**
+- Cleaning and maintenance tracking
+
+**Table 14-16: Finance (income, expenses, outsourced)**
+- Financial record keeping
+
+### Real-time Subscriptions
+
+Enable real-time updates so all devices see changes instantly:
+
+```text
+Tables with realtime enabled:
+├── tents (status changes, cleaning updates)
+├── beds (occupancy changes)
+├── groups (new bookings)
+├── allocations (assignment changes)
+├── kitchen_time_slots (meal updates)
+└── daily_tasks (task completion)
 ```
 
+### Hook Modifications
+
+Each current localStorage hook will be modified to:
+1. Fetch data from database on mount
+2. Subscribe to real-time changes
+3. Update database instead of localStorage
+4. Handle offline gracefully (queue changes)
+
+Example transformation for `useVillageData`:
+- Current: Reads/writes to localStorage
+- New: Reads from Supabase, subscribes to changes, writes to Supabase
+
+### Data Import Tool
+
+A one-time import feature in Settings will:
+1. Read existing localStorage data
+2. Transform to database format
+3. Insert into Supabase tables
+4. Verify data integrity
+5. Optionally clear localStorage after success
+
 ---
 
-## תוצאות צפויות
+## Unchanged Functionality
 
-1. **דשבורד:**
-   - סקשן "שיבוצים להיום" מציג רק קבוצות שמגיעות/עוזבות/שוהות היום
-   - טאב "שיבוצים" בתפריט עם באדג' אדום אם יש ממתינים
-
-2. **טאב שיבוצים:**
-   - רשימה מלאה של כל הקבוצות הממתינות לשיבוץ
-   - קישור מהיר לעמוד שיבוץ
-
-3. **תצוגת שכונה:**
-   - בורר תאריך בחלק העליון
-   - רשימת הזמנות/שיבוצים פעילים לתאריך הנבחר
-   - העובד יכול לראות מה מתוכנן לעתיד
+The following will remain exactly the same:
+- All UI components
+- All page layouts
+- All business logic in VillageContext
+- Calendar views and calculations
+- Occupancy calculations
+- Group sync logic (will write to DB instead of localStorage)
 
 ---
 
-## הערות יישום
+## Files to Create
 
-- שימוש ב-`date-fns` לחישובי תאריכים (כבר מותקן)
-- שימוש ברכיבי UI קיימים: `Calendar`, `Popover`, `Button`, `Card`
-- שמירה על עקרון "Minimal Change" - לא נוגעים בלוגיקות אחרות
-- תמיכה ב-RTL כמו שאר האפליקציה
+| File | Purpose |
+|------|---------|
+| `src/hooks/useSupabaseVillage.ts` | Database CRUD + realtime for village state |
+| `src/hooks/useSupabaseGroups.ts` | Database CRUD for admin groups |
+| `src/hooks/useSupabaseKitchen.ts` | Database CRUD for kitchen data |
+| `src/hooks/useSupabaseAllocations.ts` | Database CRUD for allocations |
+| `src/hooks/useSupabaseFinance.ts` | Database CRUD for finance data |
+| `src/lib/dataImport.ts` | Import utility from localStorage |
 
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useVillageData.ts` | Replace localStorage with Supabase calls |
+| `src/hooks/useAdminGroups.ts` | Replace localStorage with Supabase calls |
+| `src/hooks/useKitchenData.ts` | Replace localStorage with Supabase calls |
+| `src/hooks/useGroupAllocation.ts` | Replace localStorage with Supabase calls |
+| `src/hooks/useAdminFinance.ts` | Replace localStorage with Supabase calls |
+| `src/lib/groupSync.ts` | Update to use database instead of localStorage |
+| `src/pages/Settings.tsx` | Add data import/export for database |
+
+---
+
+## Row Level Security (RLS)
+
+Initial setup (before authentication):
+- All tables: Public read/write access
+- This allows the app to work without login initially
+
+After authentication is added:
+- Read: All authenticated users
+- Write: Only authenticated users
+- Admin actions: Only Owner role
+
+---
+
+## Risks and Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Data loss during migration | Keep localStorage as backup, import tool verifies data |
+| Network latency | Optimistic updates with rollback on error |
+| Real-time sync conflicts | Last-write-wins with timestamp comparison |
+| Large initial load | Load minimal data first, lazy load details |
+
+---
+
+## Implementation Order
+
+1. **Create database schema** (SQL migration)
+2. **Seed static data** (neighborhoods, tents, beds, facilities)
+3. **Create new hooks** with Supabase integration
+4. **Update contexts** to use new hooks
+5. **Add import tool** in Settings
+6. **Test with existing localStorage data**
+7. **Enable real-time** on key tables
+8. **Remove localStorage fallbacks** after verification
+
+---
+
+## Success Criteria
+
+- All existing data accessible across devices
+- Changes visible in real-time on all connected clients
+- No changes to user-facing functionality
+- Export/import working with database
+- Graceful handling of network issues
