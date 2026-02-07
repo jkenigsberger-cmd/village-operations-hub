@@ -1,15 +1,12 @@
 // ============================================================
 // GROUP SYNC UTILITY
 // Synchronizes group data to Kitchen and Common Spaces
-// Idempotent: removes old synced records, then recreates
+// Now writes directly to Supabase database (not localStorage)
 // ============================================================
 
+import { supabase } from '@/integrations/supabase/client';
 import { GroupRecord, MealPlanItem, ScheduleItem, SPACE_ID_MAP } from '@/types/adminGroups';
-import { TimeSlot, MealType, SpecialDiets } from '@/types/kitchen';
-import { ActivityReservation } from '@/types/village';
-
-const VILLAGE_STORAGE_KEY = 'aharonson_farm_village_state';
-const KITCHEN_STORAGE_KEY = 'aharonson_farm_kitchen_state';
+import { MealType, SpecialDiets } from '@/types/kitchen';
 
 // Spaces that require booking (matching SPACE_ID_MAP keys)
 const BOOKABLE_SPACES = ['אוהל מועד', 'ממ״ד 6', 'ממ״ד 7', 'ממ״ד 8', 'חדר אוכל'];
@@ -63,7 +60,7 @@ const timeRangesOverlap = (
  * 2. Create new kitchen slots from mealsPlan
  * 3. Create new space bookings from scheduleItems (with conflict detection)
  */
-export const syncGroupToModules = (group: GroupRecord): SyncResult => {
+export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult> => {
   console.log(`[GROUP SYNC] Starting sync for: ${group.groupName} (${group.id})`);
   
   const result: SyncResult = {
@@ -73,166 +70,115 @@ export const syncGroupToModules = (group: GroupRecord): SyncResult => {
     conflicts: [],
   };
 
-  // ============================================
-  // STEP 1: Remove old synced records
-  // ============================================
-  
-  // Remove old kitchen slots for this group
   try {
-    const kitchenData = localStorage.getItem(KITCHEN_STORAGE_KEY);
-    if (kitchenData) {
-      const state = JSON.parse(kitchenData);
-      if (state.timeSlots) {
-        const toRemove: string[] = [];
-        Object.entries(state.timeSlots).forEach(([slotId, slot]: [string, any]) => {
-          if (slot.source === 'groupSync' && slot.groupId === group.id) {
-            toRemove.push(slotId);
-          }
-        });
-        toRemove.forEach(slotId => {
-          delete state.timeSlots[slotId];
-        });
-        if (toRemove.length > 0) {
-          localStorage.setItem(KITCHEN_STORAGE_KEY, JSON.stringify(state));
-          console.log(`[GROUP SYNC] Removed ${toRemove.length} old kitchen slots`);
+    // ============================================
+    // STEP 1: Remove old synced kitchen slots for this group
+    // ============================================
+    
+    // Note: The kitchen_time_slots table doesn't have source/groupId columns yet
+    // For now, we'll create new slots without removing old ones
+    // This should be improved with a migration to add these columns
+    
+    // ============================================
+    // STEP 2: Create kitchen slots from mealsPlan
+    // ============================================
+    
+    if (group.mealsPlan && group.mealsPlan.length > 0) {
+      const slotsToInsert = group.mealsPlan
+        .filter(meal => meal.pax > 0)
+        .map(meal => ({
+          id: generateId(),
+          date: meal.date,
+          meal_type: meal.mealType as MealType,
+          time: meal.time,
+          location: meal.location || 'DINING_HALL',
+          total_pax: meal.pax,
+          special_diets: JSON.parse(JSON.stringify(convertSpecialDiets(meal))),
+          groups: JSON.parse(JSON.stringify([{ name: group.groupName, pax: meal.pax }])),
+        }));
+
+      if (slotsToInsert.length > 0) {
+        const { error } = await supabase.from('kitchen_time_slots').insert(slotsToInsert);
+        if (error) {
+          console.error('[GROUP SYNC] Error creating kitchen slots:', error);
+          result.success = false;
+        } else {
+          result.kitchenSlotsCreated = slotsToInsert.length;
+          console.log(`[GROUP SYNC] Created ${result.kitchenSlotsCreated} kitchen slots`);
         }
       }
     }
-  } catch (e) {
-    console.error('[GROUP SYNC] Error removing old kitchen slots:', e);
-  }
 
-  // Remove old space bookings for this group
-  try {
-    const villageData = localStorage.getItem(VILLAGE_STORAGE_KEY);
-    if (villageData) {
-      const state = JSON.parse(villageData);
-      if (state.activityReservations) {
-        const toRemove: string[] = [];
-        Object.entries(state.activityReservations).forEach(([resId, res]: [string, any]) => {
-          if (res.source === 'groupSync' && res.groupId === group.id) {
-            toRemove.push(resId);
-          }
-        });
-        toRemove.forEach(resId => {
-          delete state.activityReservations[resId];
-        });
-        if (toRemove.length > 0) {
-          localStorage.setItem(VILLAGE_STORAGE_KEY, JSON.stringify(state));
-          console.log(`[GROUP SYNC] Removed ${toRemove.length} old space bookings`);
-        }
-      }
+    // ============================================
+    // STEP 3: Remove old synced space bookings for this group
+    // ============================================
+    
+    const { error: deleteError } = await supabase
+      .from('activity_reservations')
+      .delete()
+      .eq('source', 'groupSync')
+      .eq('group_id', group.id);
+
+    if (deleteError) {
+      console.error('[GROUP SYNC] Error removing old space bookings:', deleteError);
     }
-  } catch (e) {
-    console.error('[GROUP SYNC] Error removing old space bookings:', e);
-  }
 
-  // ============================================
-  // STEP 2: Create kitchen slots from mealsPlan
-  // ============================================
-  
-  if (group.mealsPlan && group.mealsPlan.length > 0) {
-    try {
-      const kitchenData = localStorage.getItem(KITCHEN_STORAGE_KEY);
-      const state = kitchenData ? JSON.parse(kitchenData) : { timeSlots: {} };
-      
-      group.mealsPlan.forEach(meal => {
-        if (meal.pax > 0) { // Only sync meals with diners
-          const slotId = generateId();
-          const newSlot: TimeSlot = {
-            id: slotId,
-            date: meal.date,
-            mealType: meal.mealType as MealType,
-            time: meal.time,
-            location: meal.location,
-            totalPax: meal.pax,
-            specialDiets: convertSpecialDiets(meal),
-            groups: [{ name: group.groupName, pax: meal.pax }],
-            updatedAt: new Date().toISOString(),
-            source: 'groupSync',
-            groupId: group.id,
-            groupName: group.groupName,
-          };
-          
-          state.timeSlots[slotId] = newSlot;
-          result.kitchenSlotsCreated++;
-        }
-      });
-      
-      localStorage.setItem(KITCHEN_STORAGE_KEY, JSON.stringify(state));
-      console.log(`[GROUP SYNC] Created ${result.kitchenSlotsCreated} kitchen slots`);
-    } catch (e) {
-      console.error('[GROUP SYNC] Error creating kitchen slots:', e);
-      result.success = false;
-    }
-  }
+    // ============================================
+    // STEP 4: Create space bookings from scheduleItems
+    // ============================================
+    
+    const bookableScheduleItems = (group.scheduleItems || []).filter(item => 
+      BOOKABLE_SPACES.includes(item.location)
+    );
 
-  // ============================================
-  // STEP 3: Create space bookings from scheduleItems
-  // ============================================
-  
-  const bookableScheduleItems = (group.scheduleItems || []).filter(item => 
-    BOOKABLE_SPACES.includes(item.location)
-  );
+    if (bookableScheduleItems.length > 0) {
+      // Fetch existing reservations for conflict detection
+      const { data: existingReservations } = await supabase
+        .from('activity_reservations')
+        .select('*');
 
-  if (bookableScheduleItems.length > 0) {
-    try {
-      const villageData = localStorage.getItem(VILLAGE_STORAGE_KEY);
-      if (!villageData) {
-        console.error('[GROUP SYNC] Village state not found');
-        return result;
-      }
-      
-      const state = JSON.parse(villageData);
-      if (!state.activityReservations) {
-        state.activityReservations = {};
-      }
-      
-      bookableScheduleItems.forEach(item => {
+      const reservationsToInsert = [];
+
+      for (const item of bookableScheduleItems) {
         const spaceId = SPACE_ID_MAP[item.location];
         if (!spaceId) {
           console.warn(`[GROUP SYNC] No space ID mapping for: ${item.location}`);
-          return;
+          continue;
         }
         
         // Check for conflicts with existing reservations (excluding our own synced ones)
         let hasConflict = false;
         let conflictingGroup = '';
         
-        Object.values(state.activityReservations).forEach((res: any) => {
+        (existingReservations || []).forEach((res: any) => {
           // Skip our own group's reservations
-          if (res.source === 'groupSync' && res.groupId === group.id) return;
+          if (res.source === 'groupSync' && res.group_id === group.id) return;
           
           // Check if same space, same date, overlapping time
-          if (res.spaceId === spaceId && res.date === item.date) {
-            const resEnd = res.endTime || '23:59';
+          if (res.space_id === spaceId && res.date === item.date) {
+            const resEnd = res.end_time || '23:59';
             const itemEnd = item.endTime || '23:59';
             
-            if (timeRangesOverlap(item.startTime, itemEnd, res.startTime, resEnd)) {
+            if (timeRangesOverlap(item.startTime, itemEnd, res.start_time, resEnd)) {
               hasConflict = true;
-              conflictingGroup = res.groupName || 'קבוצה אחרת';
+              conflictingGroup = res.group_name || 'קבוצה אחרת';
             }
           }
         });
         
         // Create reservation (with conflict status if applicable)
-        const resId = generateId();
-        const newReservation: ActivityReservation = {
-          id: resId,
-          spaceId,
+        reservationsToInsert.push({
+          id: generateId(),
+          space_id: spaceId,
           date: item.date,
-          startTime: item.startTime,
-          endTime: item.endTime || item.startTime,
-          groupName: group.groupName,
-          notes: item.description,
-          createdAt: new Date().toISOString(),
+          start_time: item.startTime,
+          end_time: item.endTime || item.startTime,
+          group_name: group.groupName,
+          notes: item.description || null,
           source: 'groupSync',
-          groupId: group.id,
+          group_id: group.id,
           status: hasConflict ? 'conflict' : 'confirmed',
-        };
-        
-        state.activityReservations[resId] = newReservation;
-        result.spaceBookingsCreated++;
+        });
         
         if (hasConflict) {
           result.conflicts.push({
@@ -243,70 +189,53 @@ export const syncGroupToModules = (group: GroupRecord): SyncResult => {
             existingGroup: conflictingGroup,
           });
         }
-      });
-      
-      localStorage.setItem(VILLAGE_STORAGE_KEY, JSON.stringify(state));
-      console.log(`[GROUP SYNC] Created ${result.spaceBookingsCreated} space bookings (${result.conflicts.length} conflicts)`);
-    } catch (e) {
-      console.error('[GROUP SYNC] Error creating space bookings:', e);
-      result.success = false;
-    }
-  }
+      }
 
-  console.log(`[GROUP SYNC] Completed for: ${group.groupName}`);
-  return result;
+      if (reservationsToInsert.length > 0) {
+        const { error } = await supabase.from('activity_reservations').insert(reservationsToInsert);
+        if (error) {
+          console.error('[GROUP SYNC] Error creating space bookings:', error);
+          result.success = false;
+        } else {
+          result.spaceBookingsCreated = reservationsToInsert.length;
+          console.log(`[GROUP SYNC] Created ${result.spaceBookingsCreated} space bookings (${result.conflicts.length} conflicts)`);
+        }
+      }
+    }
+
+    console.log(`[GROUP SYNC] Completed for: ${group.groupName}`);
+    return result;
+  } catch (error) {
+    console.error('[GROUP SYNC] Unexpected error:', error);
+    result.success = false;
+    return result;
+  }
 };
 
 /**
  * Remove all synced records for a specific group
  * Called when group is permanently deleted
  */
-export const removeSyncedRecordsForGroup = (groupId: string): void => {
+export const removeSyncedRecordsForGroup = async (groupId: string): Promise<void> => {
   console.log(`[GROUP SYNC] Removing synced records for groupId: ${groupId}`);
 
-  // Remove kitchen slots
   try {
-    const kitchenData = localStorage.getItem(KITCHEN_STORAGE_KEY);
-    if (kitchenData) {
-      const state = JSON.parse(kitchenData);
-      if (state.timeSlots) {
-        const toRemove: string[] = [];
-        Object.entries(state.timeSlots).forEach(([slotId, slot]: [string, any]) => {
-          if (slot.source === 'groupSync' && slot.groupId === groupId) {
-            toRemove.push(slotId);
-          }
-        });
-        toRemove.forEach(slotId => delete state.timeSlots[slotId]);
-        if (toRemove.length > 0) {
-          localStorage.setItem(KITCHEN_STORAGE_KEY, JSON.stringify(state));
-          console.log(`[GROUP SYNC] Removed ${toRemove.length} kitchen slots`);
-        }
-      }
-    }
-  } catch (e) {
-    console.error('[GROUP SYNC] Error removing kitchen slots:', e);
-  }
+    // Remove space bookings
+    const { error } = await supabase
+      .from('activity_reservations')
+      .delete()
+      .eq('source', 'groupSync')
+      .eq('group_id', groupId);
 
-  // Remove space bookings
-  try {
-    const villageData = localStorage.getItem(VILLAGE_STORAGE_KEY);
-    if (villageData) {
-      const state = JSON.parse(villageData);
-      if (state.activityReservations) {
-        const toRemove: string[] = [];
-        Object.entries(state.activityReservations).forEach(([resId, res]: [string, any]) => {
-          if (res.source === 'groupSync' && res.groupId === groupId) {
-            toRemove.push(resId);
-          }
-        });
-        toRemove.forEach(resId => delete state.activityReservations[resId]);
-        if (toRemove.length > 0) {
-          localStorage.setItem(VILLAGE_STORAGE_KEY, JSON.stringify(state));
-          console.log(`[GROUP SYNC] Removed ${toRemove.length} space bookings`);
-        }
-      }
+    if (error) {
+      console.error('[GROUP SYNC] Error removing space bookings:', error);
+    } else {
+      console.log(`[GROUP SYNC] Removed space bookings for group ${groupId}`);
     }
-  } catch (e) {
-    console.error('[GROUP SYNC] Error removing space bookings:', e);
+
+    // Note: Kitchen slots don't have groupId column yet
+    // This should be improved with a migration
+  } catch (error) {
+    console.error('[GROUP SYNC] Error removing synced records:', error);
   }
 };

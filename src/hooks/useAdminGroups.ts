@@ -1,174 +1,157 @@
 // @refresh reset - Force full refresh when this file changes to avoid HMR hook queue issues
 import { useState, useEffect, useCallback } from 'react';
-import { GroupRecord, GroupType, VIPTentConfig, ADMIN_GROUPS_STORAGE_KEY } from '@/types/adminGroups';
-import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { GroupRecord, GroupType, GroupStatus, VIPTentConfig, MealPlanItem, ScheduleItem } from '@/types/adminGroups';
+import { parseISO, isWithinInterval, isSameDay } from 'date-fns';
 
-// Migrate legacy vipTentPlans to vipTentConfigs
-const migrateVIPTentPlans = (group: GroupRecord): GroupRecord => {
-  // If already has vipTentConfigs, skip migration
-  if (group.vipTentConfigs && group.vipTentConfigs.length > 0) {
-    return group;
-  }
-  
-  // If has legacy vipTentPlans, migrate them
-  if (group.vipTentPlans && group.vipTentPlans.length > 0) {
-    const migratedConfigs: VIPTentConfig[] = group.vipTentPlans.map(plan => ({
-      id: Math.random().toString(36).substring(2, 11),
-      bedsPlanned: plan.bedsPlanned,
-      gender: plan.gender,
-      hasExtraBed: false,
-      assignedTentCode: plan.tentCode, // Preserve the assignment
-    }));
-    
-    return {
-      ...group,
-      vipTentConfigs: migratedConfigs,
-    };
-  }
-  
-  return group;
-};
+const generateId = () => Math.random().toString(36).substring(2, 11);
+
+const mapDbRowToGroup = (row: any): GroupRecord => ({
+  id: row.id,
+  groupName: row.name,
+  reservedBy: row.contact_name || '',
+  contactPhone: row.contact_phone || undefined,
+  groupType: 'לינה' as GroupType,
+  startDate: row.arrival_date,
+  endDate: row.departure_date,
+  pax: row.total_pax,
+  staffCount: row.staff_count,
+  participantCount: row.participant_count,
+  vipPeoplePerTent: row.vip_people_per_tent || 3,
+  remainingStaff: row.remaining_staff ?? row.staff_count,
+  remainingParticipants: row.remaining_participants ?? row.participant_count,
+  notes: row.notes || undefined,
+  status: (row.status as GroupStatus) || 'PLANNED',
+  mealsPlan: (row.meal_plan as MealPlanItem[]) || [],
+  scheduleItems: (row.schedule_items as ScheduleItem[]) || [],
+  vipTentConfigs: (row.vip_tent_configs as VIPTentConfig[]) || [],
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 export const useAdminGroups = () => {
   const [groups, setGroups] = useState<GroupRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load groups from localStorage on mount
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     try {
-      const stored = localStorage.getItem(ADMIN_GROUPS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as GroupRecord[];
-        // Migrate old groups without groupType and with legacy vipTentPlans
-        const migrated = parsed.map(g => {
-          let updated = {
-            ...g,
-            groupType: g.groupType || 'לינה' as GroupType,
-          };
-          // Migrate vipTentPlans to vipTentConfigs
-          updated = migrateVIPTentPlans(updated);
-          return updated;
-        });
-        setGroups(migrated);
-      }
+      setIsLoading(true);
+      const { data, error } = await supabase.from('groups').select('*').order('arrival_date', { ascending: true });
+      if (error) throw error;
+      setGroups((data || []).map(mapDbRowToGroup));
     } catch (error) {
       console.error('Error loading admin groups:', error);
-    }
-    setIsLoading(false);
-  }, []);
-
-  // Save groups to localStorage
-  const saveGroups = useCallback((newGroups: GroupRecord[]) => {
-    setGroups(newGroups);
-    try {
-      localStorage.setItem(ADMIN_GROUPS_STORAGE_KEY, JSON.stringify(newGroups));
-    } catch (error) {
-      console.error('Error saving admin groups:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Add a new group
-  const addGroup = useCallback((group: Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    const channel = supabase.channel('groups-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, () => loadData())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [loadData]);
+
+  const addGroup = useCallback(async (group: Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const id = generateId();
+    const { error } = await supabase.from('groups').insert({
+      id,
+      name: group.groupName,
+      arrival_date: group.startDate,
+      departure_date: group.endDate,
+      total_pax: group.pax,
+      staff_count: group.staffCount || 0,
+      participant_count: group.participantCount || (group.pax - (group.staffCount || 0)),
+      vip_people_per_tent: group.vipPeoplePerTent || 3,
+      remaining_staff: group.remainingStaff ?? group.staffCount,
+      remaining_participants: group.remainingParticipants ?? group.participantCount,
+      contact_name: group.reservedBy || null,
+      contact_phone: group.contactPhone || null,
+      notes: group.notes || null,
+      status: group.status || 'PLANNED',
+      meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || [])),
+      schedule_items: JSON.parse(JSON.stringify(group.scheduleItems || [])),
+      vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || [])),
+    });
+    if (error) throw error;
     const now = new Date().toISOString();
-    const newGroup: GroupRecord = {
-      ...group,
-      groupType: group.groupType || 'לינה',
-      id: Math.random().toString(36).substring(2, 11),
-      createdAt: now,
-      updatedAt: now,
-    };
-    saveGroups([...groups, newGroup]);
+    const newGroup: GroupRecord = { ...group, groupType: group.groupType || 'לינה', id, createdAt: now, updatedAt: now };
+    setGroups(prev => [...prev, newGroup]);
     return newGroup;
-  }, [groups, saveGroups]);
+  }, []);
 
-  // Update an existing group
-  const updateGroup = useCallback((id: string, updates: Partial<Omit<GroupRecord, 'id' | 'createdAt'>>) => {
-    const updatedGroups = groups.map(group => 
-      group.id === id 
-        ? { ...group, ...updates, updatedAt: new Date().toISOString() }
-        : group
-    );
-    saveGroups(updatedGroups);
-  }, [groups, saveGroups]);
+  const updateGroup = useCallback(async (id: string, updates: Partial<Omit<GroupRecord, 'id' | 'createdAt'>>) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.groupName !== undefined) dbUpdates.name = updates.groupName;
+    if (updates.startDate !== undefined) dbUpdates.arrival_date = updates.startDate;
+    if (updates.endDate !== undefined) dbUpdates.departure_date = updates.endDate;
+    if (updates.pax !== undefined) dbUpdates.total_pax = updates.pax;
+    if (updates.staffCount !== undefined) dbUpdates.staff_count = updates.staffCount;
+    if (updates.participantCount !== undefined) dbUpdates.participant_count = updates.participantCount;
+    if (updates.vipPeoplePerTent !== undefined) dbUpdates.vip_people_per_tent = updates.vipPeoplePerTent;
+    if (updates.remainingStaff !== undefined) dbUpdates.remaining_staff = updates.remainingStaff;
+    if (updates.remainingParticipants !== undefined) dbUpdates.remaining_participants = updates.remainingParticipants;
+    if (updates.reservedBy !== undefined) dbUpdates.contact_name = updates.reservedBy || null;
+    if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone || null;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.mealsPlan !== undefined) dbUpdates.meal_plan = JSON.parse(JSON.stringify(updates.mealsPlan));
+    if (updates.scheduleItems !== undefined) dbUpdates.schedule_items = JSON.parse(JSON.stringify(updates.scheduleItems));
+    if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = JSON.parse(JSON.stringify(updates.vipTentConfigs));
 
-  // Delete a group
-  const deleteGroup = useCallback((id: string) => {
-    saveGroups(groups.filter(group => group.id !== id));
-  }, [groups, saveGroups]);
+    const { error } = await supabase.from('groups').update(dbUpdates).eq('id', id);
+    if (error) throw error;
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates, updatedAt: new Date().toISOString() } : g));
+  }, []);
 
-  // Get a single group by ID
-  const getGroup = useCallback((id: string) => {
-    return groups.find(group => group.id === id);
-  }, [groups]);
+  const deleteGroup = useCallback(async (id: string) => {
+    const { error } = await supabase.from('groups').delete().eq('id', id);
+    if (error) throw error;
+    setGroups(prev => prev.filter(g => g.id !== id));
+  }, []);
 
-  // Get day-use groups for a specific date
+  const getGroup = useCallback((id: string) => groups.find(g => g.id === id), [groups]);
+
   const getDayUseGroupsForDate = useCallback((date: string) => {
-    return groups.filter(group => {
-      if (group.groupType !== 'יום ללא לינה') return false;
+    return groups.filter(g => {
+      if (g.groupType !== 'יום ללא לינה') return false;
       const targetDate = parseISO(date);
-      const start = parseISO(group.startDate);
-      const end = parseISO(group.endDate);
-      return isSameDay(targetDate, start) || 
-             isSameDay(targetDate, end) || 
-             isWithinInterval(targetDate, { start, end });
+      const start = parseISO(g.startDate);
+      const end = parseISO(g.endDate);
+      return isSameDay(targetDate, start) || isSameDay(targetDate, end) || isWithinInterval(targetDate, { start, end });
     });
   }, [groups]);
 
-  // Add linked space reservation ID
-  const addLinkedSpaceReservation = useCallback((groupId: string, reservationId: string) => {
+  const addLinkedSpaceReservation = useCallback(async (groupId: string, reservationId: string) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
-    
     const linkedIds = group.linkedSpaceReservationIds || [];
     if (!linkedIds.includes(reservationId)) {
-      updateGroup(groupId, {
-        linkedSpaceReservationIds: [...linkedIds, reservationId],
-      });
+      await updateGroup(groupId, { linkedSpaceReservationIds: [...linkedIds, reservationId] });
     }
   }, [groups, updateGroup]);
 
-  // Add linked kitchen slot ID
-  const addLinkedKitchenSlot = useCallback((groupId: string, slotId: string) => {
+  const addLinkedKitchenSlot = useCallback(async (groupId: string, slotId: string) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
-    
     const linkedIds = group.linkedKitchenSlotIds || [];
     if (!linkedIds.includes(slotId)) {
-      updateGroup(groupId, {
-        linkedKitchenSlotIds: [...linkedIds, slotId],
-      });
+      await updateGroup(groupId, { linkedKitchenSlotIds: [...linkedIds, slotId] });
     }
   }, [groups, updateGroup]);
 
-  // Archive a group (set isArchived = true)
-  const archiveGroup = useCallback((id: string) => {
-    updateGroup(id, { isArchived: true });
-  }, [updateGroup]);
+  const archiveGroup = useCallback(async (id: string) => { await updateGroup(id, { isArchived: true }); }, [updateGroup]);
+  const restoreGroup = useCallback(async (id: string) => { await updateGroup(id, { isArchived: false }); }, [updateGroup]);
 
-  // Restore a group from archive (set isArchived = false)
-  const restoreGroup = useCallback((id: string) => {
-    updateGroup(id, { isArchived: false });
-  }, [updateGroup]);
-
-  // Get active (non-archived) groups
   const activeGroups = groups.filter(g => !g.isArchived);
-
-  // Get archived groups
   const archivedGroups = groups.filter(g => g.isArchived);
 
   return {
-    groups,
-    activeGroups,
-    archivedGroups,
-    isLoading,
-    addGroup,
-    updateGroup,
-    deleteGroup,
-    getGroup,
-    getDayUseGroupsForDate,
-    addLinkedSpaceReservation,
-    addLinkedKitchenSlot,
-    archiveGroup,
-    restoreGroup,
+    groups, activeGroups, archivedGroups, isLoading,
+    addGroup, updateGroup, deleteGroup, getGroup,
+    getDayUseGroupsForDate, addLinkedSpaceReservation, addLinkedKitchenSlot, archiveGroup, restoreGroup,
   };
 };

@@ -1,11 +1,11 @@
+// @refresh reset - Force full refresh when this file changes
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   IncomeEntry,
   ExpenseEntry,
   OutsourcedEntry,
-  ADMIN_INCOME_STORAGE_KEY,
-  ADMIN_EXPENSES_STORAGE_KEY,
-  ADMIN_OUTSOURCED_STORAGE_KEY,
+  ExpenseCategory,
 } from '@/types/adminFinance';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -16,123 +16,156 @@ export const useAdminFinance = () => {
   const [outsourced, setOutsourced] = useState<OutsourcedEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  // Load all data from database
+  const loadData = useCallback(async () => {
     try {
-      const storedIncome = localStorage.getItem(ADMIN_INCOME_STORAGE_KEY);
-      if (storedIncome) setIncome(JSON.parse(storedIncome));
+      setIsLoading(true);
+      
+      const [incomeRes, expensesRes, outsourcedRes] = await Promise.all([
+        supabase.from('income').select('*'),
+        supabase.from('expenses').select('*'),
+        supabase.from('outsourced').select('*'),
+      ]);
 
-      const storedExpenses = localStorage.getItem(ADMIN_EXPENSES_STORAGE_KEY);
-      if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
+      if (incomeRes.data) {
+        setIncome(incomeRes.data.map(row => ({
+          id: row.id,
+          date: row.date,
+          source: row.group_name, // Map group_name to source
+          amount: Number(row.amount),
+          notes: row.description || undefined,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        })));
+      }
 
-      const storedOutsourced = localStorage.getItem(ADMIN_OUTSOURCED_STORAGE_KEY);
-      if (storedOutsourced) setOutsourced(JSON.parse(storedOutsourced));
+      if (expensesRes.data) {
+        setExpenses(expensesRes.data.map(row => ({
+          id: row.id,
+          date: row.date,
+          amount: Number(row.amount),
+          category: row.category as ExpenseCategory,
+          notes: row.description || undefined,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        })));
+      }
+
+      if (outsourcedRes.data) {
+        setOutsourced(outsourcedRes.data.map(row => ({
+          id: row.id,
+          date: row.date,
+          name: row.worker_name,
+          role: row.role,
+          hours: Number(row.hours),
+          hourlyRate: Number(row.hourly_rate),
+          total: Number(row.hours) * Number(row.hourly_rate),
+          notes: row.notes || undefined,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        })));
+      }
     } catch (error) {
       console.error('Error loading admin finance data:', error);
-    }
-    setIsLoading(false);
-  }, []);
-
-  // Save income to localStorage
-  const saveIncome = useCallback((newIncome: IncomeEntry[]) => {
-    setIncome(newIncome);
-    try {
-      localStorage.setItem(ADMIN_INCOME_STORAGE_KEY, JSON.stringify(newIncome));
-    } catch (error) {
-      console.error('Error saving income:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Save expenses to localStorage
-  const saveExpenses = useCallback((newExpenses: ExpenseEntry[]) => {
-    setExpenses(newExpenses);
-    try {
-      localStorage.setItem(ADMIN_EXPENSES_STORAGE_KEY, JSON.stringify(newExpenses));
-    } catch (error) {
-      console.error('Error saving expenses:', error);
-    }
-  }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  // Save outsourced to localStorage
-  const saveOutsourced = useCallback((newOutsourced: OutsourcedEntry[]) => {
-    setOutsourced(newOutsourced);
-    try {
-      localStorage.setItem(ADMIN_OUTSOURCED_STORAGE_KEY, JSON.stringify(newOutsourced));
-    } catch (error) {
-      console.error('Error saving outsourced:', error);
-    }
-  }, []);
+  useEffect(() => {
+    const channels = [
+      supabase.channel('income-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'income' }, () => loadData()),
+      supabase.channel('expenses-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => loadData()),
+      supabase.channel('outsourced-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'outsourced' }, () => loadData()),
+    ];
+    channels.forEach(c => c.subscribe());
+    return () => { channels.forEach(c => supabase.removeChannel(c)); };
+  }, [loadData]);
 
-  // Income CRUD
-  const addIncome = useCallback((entry: Omit<IncomeEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newEntry: IncomeEntry = { ...entry, id: generateId(), createdAt: now, updatedAt: now };
-    saveIncome([...income, newEntry]);
-    return newEntry;
-  }, [income, saveIncome]);
-
-  const updateIncome = useCallback((id: string, updates: Partial<Omit<IncomeEntry, 'id' | 'createdAt'>>) => {
-    const updated = income.map(e => e.id === id ? { ...e, ...updates, updatedAt: new Date().toISOString() } : e);
-    saveIncome(updated);
-  }, [income, saveIncome]);
-
-  const deleteIncome = useCallback((id: string) => {
-    saveIncome(income.filter(e => e.id !== id));
-  }, [income, saveIncome]);
-
-  // Expenses CRUD
-  const addExpense = useCallback((entry: Omit<ExpenseEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newEntry: ExpenseEntry = { ...entry, id: generateId(), createdAt: now, updatedAt: now };
-    saveExpenses([...expenses, newEntry]);
-    return newEntry;
-  }, [expenses, saveExpenses]);
-
-  const updateExpense = useCallback((id: string, updates: Partial<Omit<ExpenseEntry, 'id' | 'createdAt'>>) => {
-    const updated = expenses.map(e => e.id === id ? { ...e, ...updates, updatedAt: new Date().toISOString() } : e);
-    saveExpenses(updated);
-  }, [expenses, saveExpenses]);
-
-  const deleteExpense = useCallback((id: string) => {
-    saveExpenses(expenses.filter(e => e.id !== id));
-  }, [expenses, saveExpenses]);
-
-  // Outsourced CRUD
-  const addOutsourced = useCallback((entry: Omit<OutsourcedEntry, 'id' | 'createdAt' | 'updatedAt' | 'total'>) => {
-    const now = new Date().toISOString();
-    const total = entry.hours && entry.hourlyRate ? entry.hours * entry.hourlyRate : undefined;
-    const newEntry: OutsourcedEntry = { ...entry, id: generateId(), total, createdAt: now, updatedAt: now };
-    saveOutsourced([...outsourced, newEntry]);
-    return newEntry;
-  }, [outsourced, saveOutsourced]);
-
-  const updateOutsourced = useCallback((id: string, updates: Partial<Omit<OutsourcedEntry, 'id' | 'createdAt' | 'total'>>) => {
-    const updated = outsourced.map(e => {
-      if (e.id !== id) return e;
-      const merged = { ...e, ...updates, updatedAt: new Date().toISOString() };
-      merged.total = merged.hours && merged.hourlyRate ? merged.hours * merged.hourlyRate : undefined;
-      return merged;
+  const addIncome = useCallback(async (entry: Omit<IncomeEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const id = generateId();
+    const { error } = await supabase.from('income').insert({
+      id, group_name: entry.source, date: entry.date, amount: entry.amount, description: entry.notes || null,
     });
-    saveOutsourced(updated);
-  }, [outsourced, saveOutsourced]);
+    if (error) throw error;
+    const now = new Date().toISOString();
+    return { ...entry, id, createdAt: now, updatedAt: now } as IncomeEntry;
+  }, []);
 
-  const deleteOutsourced = useCallback((id: string) => {
-    saveOutsourced(outsourced.filter(e => e.id !== id));
-  }, [outsourced, saveOutsourced]);
+  const updateIncome = useCallback(async (id: string, updates: Partial<Omit<IncomeEntry, 'id' | 'createdAt'>>) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.source !== undefined) dbUpdates.group_name = updates.source;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+    if (updates.notes !== undefined) dbUpdates.description = updates.notes || null;
+    const { error } = await supabase.from('income').update(dbUpdates).eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  const deleteIncome = useCallback(async (id: string) => {
+    const { error } = await supabase.from('income').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  const addExpense = useCallback(async (entry: Omit<ExpenseEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const id = generateId();
+    const { error } = await supabase.from('expenses').insert({
+      id, date: entry.date, amount: entry.amount, category: entry.category, description: entry.notes || null,
+    });
+    if (error) throw error;
+    const now = new Date().toISOString();
+    return { ...entry, id, createdAt: now, updatedAt: now } as ExpenseEntry;
+  }, []);
+
+  const updateExpense = useCallback(async (id: string, updates: Partial<Omit<ExpenseEntry, 'id' | 'createdAt'>>) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.notes !== undefined) dbUpdates.description = updates.notes || null;
+    const { error } = await supabase.from('expenses').update(dbUpdates).eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  const deleteExpense = useCallback(async (id: string) => {
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  const addOutsourced = useCallback(async (entry: Omit<OutsourcedEntry, 'id' | 'createdAt' | 'updatedAt' | 'total'>) => {
+    const id = generateId();
+    const { error } = await supabase.from('outsourced').insert({
+      id, date: entry.date, worker_name: entry.name, role: entry.role,
+      hours: entry.hours || 0, hourly_rate: entry.hourlyRate || 0, notes: entry.notes || null,
+    });
+    if (error) throw error;
+    const now = new Date().toISOString();
+    return { ...entry, id, total: (entry.hours || 0) * (entry.hourlyRate || 0), createdAt: now, updatedAt: now } as OutsourcedEntry;
+  }, []);
+
+  const updateOutsourced = useCallback(async (id: string, updates: Partial<Omit<OutsourcedEntry, 'id' | 'createdAt' | 'total'>>) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.name !== undefined) dbUpdates.worker_name = updates.name;
+    if (updates.role !== undefined) dbUpdates.role = updates.role;
+    if (updates.hours !== undefined) dbUpdates.hours = updates.hours;
+    if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    const { error } = await supabase.from('outsourced').update(dbUpdates).eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  const deleteOutsourced = useCallback(async (id: string) => {
+    const { error } = await supabase.from('outsourced').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
 
   return {
-    income,
-    expenses,
-    outsourced,
-    isLoading,
-    addIncome,
-    updateIncome,
-    deleteIncome,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    addOutsourced,
-    updateOutsourced,
-    deleteOutsourced,
+    income, expenses, outsourced, isLoading,
+    addIncome, updateIncome, deleteIncome,
+    addExpense, updateExpense, deleteExpense,
+    addOutsourced, updateOutsourced, deleteOutsourced,
   };
 };
