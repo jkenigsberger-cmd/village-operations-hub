@@ -555,7 +555,7 @@ const AdminGroupEdit = () => {
     setIsCheckingCapacity(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.groupName.trim()) {
       toast.error('נא להזין שם קבוצה');
       return;
@@ -610,15 +610,15 @@ const AdminGroupEdit = () => {
     let savedGroup: GroupRecord | undefined;
     
     if (isNew) {
-      savedGroup = addGroup(dataToSave);
+      savedGroup = await addGroup(dataToSave);
     } else if (id) {
-      updateGroup(id, dataToSave);
+      await updateGroup(id, dataToSave);
       savedGroup = { ...dataToSave, id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     }
 
     // Sync group data to Kitchen and Spaces modules
     if (savedGroup) {
-      const syncResult = syncGroupToModules(savedGroup);
+      const syncResult = await syncGroupToModules(savedGroup);
       
       if (syncResult.conflicts.length > 0) {
         // Show warning for each conflict
@@ -700,8 +700,8 @@ const AdminGroupEdit = () => {
   };
 
   // Handle meal booking
-  const handleMealBooking = (data: { mealType: MealType; date: string; time: string; location: 'DINING_HALL' | 'OUTSIDE'; pax: number }) => {
-    const slotId = addTimeSlot(
+  const handleMealBooking = async (data: { mealType: MealType; date: string; time: string; location: 'DINING_HALL' | 'OUTSIDE'; pax: number }) => {
+    const slotId = await addTimeSlot(
       data.date,
       data.mealType,
       data.time,
@@ -715,7 +715,7 @@ const AdminGroupEdit = () => {
       toast.success('הארוחה נוספה בהצלחה');
       setMealModalOpen(false);
       if (!isNew && id) {
-        addLinkedKitchenSlot(id, slotId);
+        await addLinkedKitchenSlot(id, slotId);
       }
     } else {
       toast.error('שגיאה בהוספת הארוחה');
