@@ -1,21 +1,22 @@
 // @refresh reset - Force full refresh when this file changes to avoid HMR hook queue issues
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from './useAdminGroups';
-import { AllocationRecord, CapacityCheckResult, ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
+import { AllocationRecord, CapacityCheckResult } from '@/types/groupAllocation';
 import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
 import { NeighborhoodId, TentGender } from '@/types/village';
 import { parseISO, isBefore } from 'date-fns';
 import { 
   dateRangesOverlapForOccupancy, 
   TOTAL_VIP_BEDS,
-  getAvailableBedsForRange,
-  loadAllocations as loadAllocationsFromStorage
 } from '@/lib/occupancyCalculator';
 
 // VIP tent IDs (80-89)
 const VIP_TENT_CODES = ['80', '81', '82', '83', '84', '85', '86', '87', '88', '89'];
 const VIP_BEDS_PER_TENT = 3;
+
+const generateId = () => Math.random().toString(36).substring(2, 11);
 
 export const useGroupAllocation = () => {
   const { state, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds } = useVillage();
@@ -23,28 +24,54 @@ export const useGroupAllocation = () => {
   const [allocations, setAllocations] = useState<AllocationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load allocations from localStorage
-  useEffect(() => {
+  // Load allocations from database
+  const loadData = useCallback(async () => {
     try {
-      const stored = localStorage.getItem(ALLOCATIONS_STORAGE_KEY);
-      if (stored) {
-        setAllocations(JSON.parse(stored));
-      }
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('allocations')
+        .select('*');
+
+      if (error) throw error;
+
+      const loadedAllocations: AllocationRecord[] = (data || []).map(row => ({
+        id: row.id,
+        groupId: row.group_id,
+        allocationType: row.allocation_type as AllocationRecord['allocationType'],
+        resourceId: row.resource_id,
+        resourceLabel: row.resource_label,
+        bedsAssigned: row.beds_assigned,
+        dateRangeStart: row.date_range_start,
+        dateRangeEnd: row.date_range_end,
+        createdAt: row.created_at,
+      }));
+
+      setAllocations(loadedAllocations);
     } catch (error) {
       console.error('Error loading allocations:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  // Save allocations to localStorage
-  const saveAllocations = useCallback((newAllocations: AllocationRecord[]) => {
-    setAllocations(newAllocations);
-    try {
-      localStorage.setItem(ALLOCATIONS_STORAGE_KEY, JSON.stringify(newAllocations));
-    } catch (error) {
-      console.error('Error saving allocations:', error);
-    }
-  }, []);
+  // Initial load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Set up realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('allocations-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadData]);
 
   // Helper: check if date ranges overlap using hotel rule (departure excluded)
   const dateRangesOverlap = useCallback((start1: string, end1: string, start2: string, end2: string): boolean => {
@@ -219,7 +246,7 @@ export const useGroupAllocation = () => {
   }, [groups, dateRangesOverlap]);
 
   // Add an allocation
-  const addAllocation = useCallback((
+  const addAllocation = useCallback(async (
     groupId: string,
     allocationType: AllocationRecord['allocationType'],
     resourceId: string,
@@ -227,7 +254,7 @@ export const useGroupAllocation = () => {
     bedsAssigned: number,
     dateRangeStart: string,
     dateRangeEnd: string
-  ): boolean => {
+  ): Promise<boolean> => {
     const group = groups.find(g => g.id === groupId);
     if (!group) return false;
 
@@ -239,8 +266,26 @@ export const useGroupAllocation = () => {
       return false; // Would go below 0
     }
 
+    const id = generateId();
+    const { error } = await supabase.from('allocations').insert({
+      id,
+      group_id: groupId,
+      allocation_type: allocationType,
+      resource_id: resourceId,
+      resource_label: resourceLabel,
+      beds_assigned: bedsAssigned,
+      date_range_start: dateRangeStart,
+      date_range_end: dateRangeEnd,
+    });
+
+    if (error) {
+      console.error('Error adding allocation:', error);
+      return false;
+    }
+
+    // Optimistic update
     const newAllocation: AllocationRecord = {
-      id: Math.random().toString(36).substring(2, 11),
+      id,
       groupId,
       allocationType,
       resourceId,
@@ -250,45 +295,50 @@ export const useGroupAllocation = () => {
       dateRangeEnd,
       createdAt: new Date().toISOString(),
     };
-
-    // Save allocation
-    saveAllocations([...allocations, newAllocation]);
+    setAllocations(prev => [...prev, newAllocation]);
 
     // Update group remaining counts
     if (isVIP) {
-      updateGroup(groupId, {
+      await updateGroup(groupId, {
         remainingStaff: (group.remainingStaff || 0) - bedsAssigned,
       });
     } else {
-      updateGroup(groupId, {
+      await updateGroup(groupId, {
         remainingParticipants: (group.remainingParticipants || 0) - bedsAssigned,
       });
     }
 
     return true;
-  }, [groups, allocations, saveAllocations, updateGroup]);
+  }, [groups, updateGroup]);
 
   // Remove an allocation
-  const removeAllocation = useCallback((allocationId: string) => {
+  const removeAllocation = useCallback(async (allocationId: string) => {
     const allocation = allocations.find(a => a.id === allocationId);
     if (!allocation) return;
+
+    const { error } = await supabase.from('allocations').delete().eq('id', allocationId);
+    if (error) {
+      console.error('Error removing allocation:', error);
+      return;
+    }
 
     const group = groups.find(g => g.id === allocation.groupId);
     if (group) {
       // Restore remaining counts
       if (allocation.allocationType === 'VIP_TENT') {
-        updateGroup(allocation.groupId, {
+        await updateGroup(allocation.groupId, {
           remainingStaff: (group.remainingStaff || 0) + allocation.bedsAssigned,
         });
       } else {
-        updateGroup(allocation.groupId, {
+        await updateGroup(allocation.groupId, {
           remainingParticipants: (group.remainingParticipants || 0) + allocation.bedsAssigned,
         });
       }
     }
 
-    saveAllocations(allocations.filter(a => a.id !== allocationId));
-  }, [allocations, groups, saveAllocations, updateGroup]);
+    // Optimistic update
+    setAllocations(prev => prev.filter(a => a.id !== allocationId));
+  }, [allocations, groups, updateGroup]);
 
   // Get allocations for a group
   const getGroupAllocations = useCallback((groupId: string) => {
@@ -431,7 +481,7 @@ export const useGroupAllocation = () => {
       
       return { tentCode, available: true };
     });
-  }, [allocations, groups, state, dateRangesOverlap]);
+  }, [allocations, groups, state, dateRangesOverlap, findTentIdByCode]);
 
   // Get unassigned VIP configs for a group (configs without assignedTentCode)
   const getUnassignedVIPConfigs = useCallback((groupId: string): VIPTentConfig[] => {
@@ -441,11 +491,11 @@ export const useGroupAllocation = () => {
   }, [groups]);
 
   // Assign a VIP config to a specific tent code
-  const assignVIPConfig = useCallback((
+  const assignVIPConfig = useCallback(async (
     groupId: string, 
     configId: string, 
     tentCode: string
-  ): boolean => {
+  ): Promise<boolean> => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !group.vipTentConfigs) return false;
     
@@ -476,7 +526,7 @@ export const useGroupAllocation = () => {
     // Decrement remainingStaff (VIP uses staff count, not participants)
     const newRemainingStaff = currentRemainingStaff - bedsBeingAssigned;
 
-    updateGroup(groupId, { 
+    await updateGroup(groupId, { 
       vipTentConfigs: updatedConfigs,
       remainingStaff: newRemainingStaff,
     });
@@ -502,7 +552,7 @@ export const useGroupAllocation = () => {
   }, [groups, updateGroup, getAvailableVIPTents, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds, findTentIdByCode, state]);
 
   // Unassign a VIP config from its tent code
-  const unassignVIPConfig = useCallback((groupId: string, configId: string): boolean => {
+  const unassignVIPConfig = useCallback(async (groupId: string, configId: string): Promise<boolean> => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !group.vipTentConfigs) return false;
 
@@ -524,7 +574,7 @@ export const useGroupAllocation = () => {
     const currentRemainingStaff = group.remainingStaff ?? 0;
     const newRemainingStaff = currentRemainingStaff + bedsBeingFreed;
 
-    updateGroup(groupId, { 
+    await updateGroup(groupId, { 
       vipTentConfigs: updatedConfigs,
       remainingStaff: newRemainingStaff,
     });
