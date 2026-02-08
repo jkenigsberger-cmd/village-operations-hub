@@ -1185,6 +1185,7 @@ const {
         onSectionChange={setActiveSection}
         maintenanceCount={totalMaintenanceCount}
         housekeepingCount={totalHousekeepingItems}
+        allocationsCount={pendingAllocationGroups.length}
       />
     </div>
   );

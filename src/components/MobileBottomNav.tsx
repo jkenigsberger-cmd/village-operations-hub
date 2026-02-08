@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, CalendarDays, Tent, Sparkles, Wrench, ChefHat } from 'lucide-react';
+import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type MenuSection = 'overview' | 'calendar' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
@@ -9,11 +9,13 @@ interface MobileBottomNavProps {
   onSectionChange: (section: MenuSection) => void;
   maintenanceCount?: number;
   housekeepingCount?: number;
+  allocationsCount?: number;
 }
 
 const navItems: { key: MenuSection; label: string; icon: React.ElementType }[] = [
   { key: 'overview', label: 'סקירה', icon: Home },
   { key: 'calendar', label: 'יומן', icon: CalendarDays },
+  { key: 'allocations', label: 'שיבוצים', icon: ClipboardList },
   { key: 'neighborhoods', label: 'שכונות', icon: Tent },
   { key: 'housekeeping', label: 'ניקיון', icon: Sparkles },
   { key: 'maintenance', label: 'תחזוקה', icon: Wrench },
@@ -24,6 +26,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onSectionChange,
   maintenanceCount = 0,
   housekeepingCount = 0,
+  allocationsCount = 0,
 }) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t-2 border-border md:hidden bottom-nav">
@@ -33,6 +36,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           const isActive = activeSection === item.key;
           const count = item.key === 'maintenance' ? maintenanceCount 
                       : item.key === 'housekeeping' ? housekeepingCount 
+                      : item.key === 'allocations' ? allocationsCount
                       : 0;
           
           return (
