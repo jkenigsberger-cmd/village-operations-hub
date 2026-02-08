@@ -37,7 +37,7 @@ export const useSupabaseGroups = () => {
         notes: g.notes || undefined,
         scheduleItems: (g.schedule_items as unknown as GroupRecord['scheduleItems']) || [],
         status: (g.status as GroupRecord['status']) || 'PLANNED',
-        groupType: 'לינה' as GroupType, // Default, can be extended
+        groupType: (g.group_type as GroupType) || 'לינה',
         staffCount: g.staff_count || undefined,
         participantCount: g.participant_count || undefined,
         vipPeoplePerTent: g.vip_people_per_tent || 3,
@@ -97,6 +97,7 @@ export const useSupabaseGroups = () => {
       remaining_participants: group.remainingParticipants || group.participantCount || 0,
       notes: group.notes || null,
       status: group.status || 'confirmed',
+      group_type: group.groupType || 'לינה',
       meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || {})),
       schedule_items: JSON.parse(JSON.stringify(group.scheduleItems || [])),
       vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || []))
@@ -134,6 +135,7 @@ export const useSupabaseGroups = () => {
     if (updates.mealsPlan !== undefined) dbUpdates.meal_plan = updates.mealsPlan;
     if (updates.scheduleItems !== undefined) dbUpdates.schedule_items = updates.scheduleItems;
     if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = updates.vipTentConfigs;
+    if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
     if (updates.isArchived !== undefined) dbUpdates.status = updates.isArchived ? 'archived' : 'confirmed';
 
     const { error: updateError } = await supabase.from('groups').update(dbUpdates).eq('id', id);

@@ -11,7 +11,7 @@ const mapDbRowToGroup = (row: any): GroupRecord => ({
   groupName: row.name,
   reservedBy: row.contact_name || '',
   contactPhone: row.contact_phone || undefined,
-  groupType: 'לינה' as GroupType,
+  groupType: (row.group_type as GroupType) || 'לינה',
   startDate: row.arrival_date,
   endDate: row.departure_date,
   pax: row.total_pax,
@@ -72,6 +72,7 @@ export const useAdminGroups = () => {
       contact_phone: group.contactPhone || null,
       notes: group.notes || null,
       status: group.status || 'PLANNED',
+      group_type: group.groupType || 'לינה',
       meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || [])),
       schedule_items: JSON.parse(JSON.stringify(group.scheduleItems || [])),
       vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || [])),
@@ -98,6 +99,7 @@ export const useAdminGroups = () => {
     if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone || null;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
     if (updates.mealsPlan !== undefined) dbUpdates.meal_plan = JSON.parse(JSON.stringify(updates.mealsPlan));
     if (updates.scheduleItems !== undefined) dbUpdates.schedule_items = JSON.parse(JSON.stringify(updates.scheduleItems));
     if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = JSON.parse(JSON.stringify(updates.vipTentConfigs));
