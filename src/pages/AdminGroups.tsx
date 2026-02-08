@@ -123,11 +123,16 @@ const AdminGroups = () => {
   };
 
   // Confirm permanent delete
-  const confirmPermanentDelete = () => {
+  const confirmPermanentDelete = async () => {
     if (selectedGroup) {
-      cascadeDeleteGroupRecords(selectedGroup.id, selectedGroup.groupName);
-      deleteGroup(selectedGroup.id);
-      toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
+      try {
+        await cascadeDeleteGroupRecords(selectedGroup.id, selectedGroup.groupName);
+        await deleteGroup(selectedGroup.id);
+        toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
+      } catch (error) {
+        console.error('Error deleting group:', error);
+        toast.error('שגיאה במחיקת הקבוצה');
+      }
     }
     setConfirmDeleteDialogOpen(false);
     setSelectedGroup(null);

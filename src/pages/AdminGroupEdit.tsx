@@ -1690,13 +1690,18 @@ const AdminGroupEdit = () => {
             <AlertDialogCancel>ביטול</AlertDialogCancel>
             <Button
               variant="destructive"
-              onClick={() => {
+              onClick={async () => {
                 if (id) {
-                  cascadeDeleteGroupRecords(id, formData.groupName);
-                  deleteGroup(id);
-                  toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
-                  setConfirmDeleteDialogOpen(false);
-                  navigate('/admin/groups');
+                  try {
+                    await cascadeDeleteGroupRecords(id, formData.groupName);
+                    await deleteGroup(id);
+                    toast.success('הקבוצה וכל המידע המשויך נמחקו לצמיתות');
+                    setConfirmDeleteDialogOpen(false);
+                    navigate('/admin/groups');
+                  } catch (error) {
+                    console.error('Error deleting group:', error);
+                    toast.error('שגיאה במחיקת הקבוצה');
+                  }
                 }
               }}
               className="gap-2"

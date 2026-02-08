@@ -59,9 +59,9 @@ const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6',
 
 const Index = () => {
   const navigate = useNavigate();
-  const { groups } = useAdminGroups();
+  const { groups, archivedGroups } = useAdminGroups();
   const { allocations } = useGroupAllocation();
-  const { 
+  const {
     state, 
     isLoading, 
     getNeighborhoodSummary, 
@@ -172,7 +172,21 @@ const Index = () => {
     );
   }
 
-  const todaySummary = getTodaySummary();
+  // Get archived group names for filtering
+  const archivedGroupNames = useMemo(() => 
+    new Set(archivedGroups.map(g => g.groupName)), 
+    [archivedGroups]
+  );
+
+  const rawTodaySummary = getTodaySummary();
+  
+  // Filter out archived groups from today summary
+  const todaySummary = useMemo(() => ({
+    ...rawTodaySummary,
+    checkIns: rawTodaySummary.checkIns.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+    checkOuts: rawTodaySummary.checkOuts.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+    tentsToCleaning: rawTodaySummary.tentsToCleaning.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+  }), [rawTodaySummary, archivedGroupNames]);
 
   // Get all facilities organized by type
   const allFacilities = Object.values(state.facilities);
