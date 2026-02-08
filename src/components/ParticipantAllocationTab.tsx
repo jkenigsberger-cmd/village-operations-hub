@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GroupRecord } from '@/types/adminGroups';
 import { useVillage } from '@/context/VillageContext';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
@@ -6,13 +6,13 @@ import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { NeighborhoodId } from '@/types/village';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Home, Lock, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ResponsiveModal } from '@/components/ResponsiveModal';
 
 interface ParticipantAllocationTabProps {
   group: GroupRecord;
@@ -20,6 +20,11 @@ interface ParticipantAllocationTabProps {
 }
 
 const NEIGHBORHOOD_IDS: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7'];
+
+interface NeighborhoodAvailability {
+  available: boolean;
+  conflictingGroup?: string;
+}
 
 export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> = ({ group, onUpdate }) => {
   const { state } = useVillage();
@@ -29,8 +34,8 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<NeighborhoodId | null>(null);
   const [bedsToAssign, setBedsToAssign] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
-
-  if (!state) return null;
+  const [neighborhoodAvailability, setNeighborhoodAvailability] = useState<Record<string, NeighborhoodAvailability>>({});
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(true);
 
   const remainingParticipants = group.remainingParticipants ?? group.participantCount ?? (group.pax - (group.staffCount || 0));
 
@@ -39,13 +44,41 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     a => a.groupId === group.id && a.allocationType === 'NEIGHBORHOOD'
   );
 
-  const handleNeighborhoodClick = (nId: NeighborhoodId) => {
+  // Load availability for all neighborhoods
+  const loadAvailability = useCallback(async () => {
+    if (!state) return;
+    
+    setIsCheckingAvailability(true);
+    const availability: Record<string, NeighborhoodAvailability> = {};
+    
+    for (const nId of NEIGHBORHOOD_IDS) {
+      try {
+        const result = await isNeighborhoodAvailableForGroup(nId, group.id, group.startDate, group.endDate);
+        availability[nId] = result;
+      } catch (error) {
+        availability[nId] = { available: false, conflictingGroup: 'שגיאה בבדיקה' };
+      }
+    }
+    
+    setNeighborhoodAvailability(availability);
+    setIsCheckingAvailability(false);
+  }, [state, group.id, group.startDate, group.endDate, isNeighborhoodAvailableForGroup]);
+
+  // Load availability on mount and when allocations change
+  useEffect(() => {
+    loadAvailability();
+  }, [loadAvailability, allocations]);
+
+  // Early return AFTER hooks
+  if (!state) return null;
+
+  const handleNeighborhoodClick = async (nId: NeighborhoodId) => {
     const neighborhood = state.neighborhoods[nId];
     if (!neighborhood) return;
 
-    const availability = isNeighborhoodAvailableForGroup(nId, group.id, group.startDate, group.endDate);
-    if (!availability.available) {
-      toast.error(`שכונה נעולה ל: ${availability.conflictingGroup}`);
+    const availability = neighborhoodAvailability[nId];
+    if (!availability?.available) {
+      toast.error(`השכונה תפוסה לקבוצה אחרת בתאריכים האלה: ${availability?.conflictingGroup || ''}`);
       return;
     }
 
@@ -67,7 +100,7 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     setModalOpen(true);
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (!selectedNeighborhood || bedsToAssign <= 0) return;
 
     const neighborhood = state.neighborhoods[selectedNeighborhood];
@@ -79,8 +112,8 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
       return;
     }
 
-    // Add allocation
-    const success = addAllocation(
+    // Add allocation (this now also creates neighborhood_reservation)
+    const success = await addAllocation(
       group.id,
       'NEIGHBORHOOD',
       selectedNeighborhood,
@@ -94,9 +127,11 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
       toast.success(`${neighborhood.displayName} שובצה עם ${bedsToAssign} מיטות`);
       setModalOpen(false);
       setSelectedNeighborhood(null);
+      // Reload availability after allocation
+      loadAvailability();
       onUpdate();
     } else {
-      toast.error('שגיאה בשיבוץ השכונה');
+      toast.error('השכונה תפוסה לקבוצה אחרת בתאריכים האלה');
     }
   };
 
@@ -132,7 +167,7 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
           const neighborhood = state.neighborhoods[nId];
           if (!neighborhood) return null;
 
-          const availability = isNeighborhoodAvailableForGroup(nId, group.id, group.startDate, group.endDate);
+          const availability = neighborhoodAvailability[nId] || { available: false };
           const capacity = neighborhood.tentIds.reduce((sum, tentId) => {
             const tent = state.tents[tentId];
             return sum + (tent?.beds.length || 0);
@@ -184,7 +219,7 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
                       <Button 
                         size="sm"
                         onClick={() => handleNeighborhoodClick(nId)}
-                        disabled={remainingParticipants <= 0}
+                        disabled={remainingParticipants <= 0 || isCheckingAvailability}
                       >
                         שבץ שכונה
                       </Button>
@@ -198,56 +233,52 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
       </div>
 
       {/* Assignment Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              שיבוץ {selectedNeighborhood && state.neighborhoods[selectedNeighborhood]?.displayName}
-            </DialogTitle>
-          </DialogHeader>
+      <ResponsiveModal 
+        open={modalOpen} 
+        onOpenChange={setModalOpen}
+        title={`שיבוץ ${selectedNeighborhood && state.neighborhoods[selectedNeighborhood]?.displayName}`}
+      >
+        <div className="space-y-4 py-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">קיבולת השכונה:</span>
+            <span className="font-medium">
+              {selectedNeighborhood && state.neighborhoods[selectedNeighborhood]?.tentIds.reduce((sum, tentId) => {
+                const tent = state.tents[tentId];
+                return sum + (tent?.beds.length || 0);
+              }, 0)} מיטות
+            </span>
+          </div>
           
-          <div className="space-y-4 py-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">קיבולת השכונה:</span>
-              <span className="font-medium">
-                {selectedNeighborhood && state.neighborhoods[selectedNeighborhood]?.tentIds.reduce((sum, tentId) => {
-                  const tent = state.tents[tentId];
-                  return sum + (tent?.beds.length || 0);
-                }, 0)} מיטות
-              </span>
-            </div>
-            
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">חניכים נשאר:</span>
-              <span className="font-medium">{remainingParticipants}</span>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="beds">כמות מיטות לשיבוץ:</Label>
-              <Input
-                id="beds"
-                type="number"
-                min={1}
-                max={remainingParticipants}
-                value={bedsToAssign}
-                onChange={(e) => setBedsToAssign(Math.max(1, parseInt(e.target.value) || 0))}
-              />
-            </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">חניכים נשאר:</span>
+            <span className="font-medium">{remainingParticipants}</span>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
-              ביטול
-            </Button>
-            <Button 
-              onClick={handleAssign}
-              disabled={bedsToAssign <= 0 || bedsToAssign > remainingParticipants}
-            >
-              שבץ ✓
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-2">
+            <Label htmlFor="beds">כמות מיטות לשיבוץ:</Label>
+            <Input
+              id="beds"
+              type="number"
+              min={1}
+              max={remainingParticipants}
+              value={bedsToAssign}
+              onChange={(e) => setBedsToAssign(Math.max(1, parseInt(e.target.value) || 0))}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" onClick={() => setModalOpen(false)}>
+            ביטול
+          </Button>
+          <Button 
+            onClick={handleAssign}
+            disabled={bedsToAssign <= 0 || bedsToAssign > remainingParticipants}
+          >
+            שבץ ✓
+          </Button>
+        </div>
+      </ResponsiveModal>
     </div>
   );
 };

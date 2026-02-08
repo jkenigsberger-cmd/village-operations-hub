@@ -239,7 +239,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.groupName.trim()) {
       toast.error('שם הקבוצה נדרש');
       return;
@@ -259,7 +259,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
 
     // Check exclusive neighborhood rule if linked to a group
     if (selectedGroupId && mode === 'FULL') {
-      const availability = isNeighborhoodAvailableForGroup(
+      const availability = await isNeighborhoodAvailableForGroup(
         neighborhoodId,
         selectedGroupId,
         form.checkInDate,
