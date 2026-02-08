@@ -161,6 +161,24 @@ const Index = () => {
     return { checkIns, checkOuts };
   }, [state, selectedDate, getTentSummary]);
 
+  // Get archived group names for filtering - MUST be before any early return
+  const archivedGroupNames = useMemo(() => 
+    new Set(archivedGroups.map(g => g.groupName)), 
+    [archivedGroups]
+  );
+
+  // Filter out archived groups from today summary - MUST be before any early return
+  const todaySummary = useMemo(() => {
+    if (!state) return { checkIns: [], checkOuts: [], tentsToCleaning: [] };
+    const rawTodaySummary = getTodaySummary();
+    return {
+      ...rawTodaySummary,
+      checkIns: rawTodaySummary.checkIns.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+      checkOuts: rawTodaySummary.checkOuts.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+      tentsToCleaning: rawTodaySummary.tentsToCleaning.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+    };
+  }, [state, getTodaySummary, archivedGroupNames]);
+
   if (isLoading || !state) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -171,22 +189,6 @@ const Index = () => {
       </div>
     );
   }
-
-  // Get archived group names for filtering
-  const archivedGroupNames = useMemo(() => 
-    new Set(archivedGroups.map(g => g.groupName)), 
-    [archivedGroups]
-  );
-
-  const rawTodaySummary = getTodaySummary();
-  
-  // Filter out archived groups from today summary
-  const todaySummary = useMemo(() => ({
-    ...rawTodaySummary,
-    checkIns: rawTodaySummary.checkIns.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
-    checkOuts: rawTodaySummary.checkOuts.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
-    tentsToCleaning: rawTodaySummary.tentsToCleaning.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
-  }), [rawTodaySummary, archivedGroupNames]);
 
   // Get all facilities organized by type
   const allFacilities = Object.values(state.facilities);
