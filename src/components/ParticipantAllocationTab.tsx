@@ -4,13 +4,14 @@ import { useVillage } from '@/context/VillageContext';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { NeighborhoodId } from '@/types/village';
+import { AllocationRecord } from '@/types/groupAllocation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Home, Lock, Check } from 'lucide-react';
+import { Home, Lock, Check, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResponsiveModal } from '@/components/ResponsiveModal';
 
@@ -28,7 +29,7 @@ interface NeighborhoodAvailability {
 
 export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> = ({ group, onUpdate }) => {
   const { state } = useVillage();
-  const { isNeighborhoodAvailableForGroup, addAllocation, allocations } = useGroupAllocation();
+  const { isNeighborhoodAvailableForGroup, addAllocation, removeAllocation, allocations } = useGroupAllocation();
   const { updateGroup } = useAdminGroups();
   
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<NeighborhoodId | null>(null);
@@ -36,6 +37,10 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
   const [modalOpen, setModalOpen] = useState(false);
   const [neighborhoodAvailability, setNeighborhoodAvailability] = useState<Record<string, NeighborhoodAvailability>>({});
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(true);
+  
+  // Remove confirmation state
+  const [allocationToRemove, setAllocationToRemove] = useState<AllocationRecord | null>(null);
+  const [removeModalOpen, setRemoveModalOpen] = useState(false);
 
   const remainingParticipants = group.remainingParticipants ?? group.participantCount ?? (group.pax - (group.staffCount || 0));
 
@@ -135,6 +140,17 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     }
   };
 
+  const handleRemoveAllocation = async () => {
+    if (!allocationToRemove) return;
+    
+    await removeAllocation(allocationToRemove.id);
+    toast.success(`${allocationToRemove.resourceLabel} שוחררה`);
+    setRemoveModalOpen(false);
+    setAllocationToRemove(null);
+    loadAvailability();
+    onUpdate();
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -142,20 +158,37 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
         שכונות זמינות לחניכים
       </h3>
 
-      {/* Already allocated neighborhoods */}
+      {/* Already allocated neighborhoods - Now with remove buttons */}
       {groupAllocations.length > 0 && (
         <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-200 dark:border-green-800 mb-4">
-          <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">
+          <h4 className="font-medium text-green-700 dark:text-green-300 mb-3">
             שכונות שובצו ({groupAllocations.length})
           </h4>
-          <div className="flex flex-wrap gap-2 text-sm">
+          <div className="space-y-2">
             {groupAllocations.map(alloc => (
-              <span 
+              <div 
                 key={alloc.id} 
-                className="px-3 py-1 bg-green-200/50 dark:bg-green-800/30 rounded-full"
+                className="flex items-center justify-between px-4 py-3 bg-green-200/50 dark:bg-green-800/30 rounded-lg border border-green-300 dark:border-green-700"
               >
-                {alloc.resourceLabel} • {alloc.bedsAssigned} מיטות
-              </span>
+                <div className="flex items-center gap-3">
+                  <Home className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">{alloc.resourceLabel}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {alloc.bedsAssigned} מיטות
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    setAllocationToRemove(alloc);
+                    setRemoveModalOpen(true);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             ))}
           </div>
         </div>
@@ -276,6 +309,32 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
             disabled={bedsToAssign <= 0 || bedsToAssign > remainingParticipants}
           >
             שבץ ✓
+          </Button>
+        </div>
+      </ResponsiveModal>
+
+      {/* Remove Confirmation Modal */}
+      <ResponsiveModal 
+        open={removeModalOpen} 
+        onOpenChange={setRemoveModalOpen}
+        title="שחרור שכונה"
+        className="max-w-sm"
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-center">
+            האם לשחרר את <strong>{allocationToRemove?.resourceLabel}</strong>?
+          </p>
+          <p className="text-sm text-muted-foreground text-center">
+            {allocationToRemove?.bedsAssigned} מיטות יחזרו לרשימת החניכים הממתינים לשיבוץ
+          </p>
+        </div>
+
+        <div className="flex gap-3 mt-4">
+          <Button variant="outline" className="flex-1" onClick={() => setRemoveModalOpen(false)}>
+            ביטול
+          </Button>
+          <Button variant="destructive" className="flex-1" onClick={handleRemoveAllocation}>
+            שחרר
           </Button>
         </div>
       </ResponsiveModal>

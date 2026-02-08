@@ -6,7 +6,7 @@ import { VIPTentSlot } from './VIPTentSlot';
 import { ResponsiveModal } from '@/components/ResponsiveModal';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { BedDouble } from 'lucide-react';
+import { BedDouble, Trash2 } from 'lucide-react';
 
 interface VIPAllocationTabProps {
   group: GroupRecord;
@@ -14,11 +14,15 @@ interface VIPAllocationTabProps {
 }
 
 export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpdate }) => {
-  const { getUnassignedVIPConfigs, getAvailableVIPTents, assignVIPConfig } = useGroupAllocation();
+  const { getUnassignedVIPConfigs, getAvailableVIPTents, assignVIPConfig, unassignVIPConfig } = useGroupAllocation();
   
   const [selectedConfig, setSelectedConfig] = useState<VIPTentConfig | null>(null);
   const [selectedTentCode, setSelectedTentCode] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  
+  // Remove confirmation state
+  const [configToRemove, setConfigToRemove] = useState<VIPTentConfig | null>(null);
+  const [removeModalOpen, setRemoveModalOpen] = useState(false);
 
   const unassignedConfigs = getUnassignedVIPConfigs(group.id);
   const vipTentsAvailability = getAvailableVIPTents(group.startDate, group.endDate, group.id);
@@ -53,6 +57,20 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
     }
   };
 
+  const handleRemoveConfig = async () => {
+    if (!configToRemove) return;
+    
+    const success = await unassignVIPConfig(group.id, configToRemove.id);
+    if (success) {
+      toast.success(`אוהל VIP ${configToRemove.assignedTentCode} שוחרר`);
+      setRemoveModalOpen(false);
+      setConfigToRemove(null);
+      onUpdate();
+    } else {
+      toast.error('שגיאה בשחרור האוהל');
+    }
+  };
+
   const totalBeds = selectedConfig 
     ? selectedConfig.bedsPlanned + (selectedConfig.hasExtraBed ? 1 : 0) 
     : 0;
@@ -62,6 +80,10 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
     : selectedConfig?.gender === 'male' 
       ? '♂️ זכר' 
       : 'לא הוגדר';
+
+  const getGenderLabel = (gender?: 'male' | 'female') => {
+    return gender === 'female' ? '♀️' : gender === 'male' ? '♂️' : '';
+  };
 
   return (
     <div className="space-y-6">
@@ -98,21 +120,41 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
         )}
       </div>
 
-      {/* Assigned Configs Summary */}
+      {/* Assigned Configs Summary - Now with remove buttons */}
       {assignedConfigs.length > 0 && (
         <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-200 dark:border-green-800">
-          <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">
+          <h4 className="font-medium text-green-700 dark:text-green-300 mb-3">
             תצורות שובצו ({assignedConfigs.length})
           </h4>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {assignedConfigs.map(config => (
-              <span 
-                key={config.id} 
-                className="px-3 py-1 bg-green-200/50 dark:bg-green-800/30 rounded-full"
-              >
-                VIP {config.assignedTentCode} • {config.bedsPlanned + (config.hasExtraBed ? 1 : 0)} מיטות
-              </span>
-            ))}
+          <div className="flex flex-wrap gap-3">
+            {assignedConfigs.map(config => {
+              const beds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
+              return (
+                <div 
+                  key={config.id} 
+                  className="flex items-center gap-2 px-3 py-2 bg-green-200/50 dark:bg-green-800/30 rounded-lg border border-green-300 dark:border-green-700"
+                >
+                  <span className="font-medium">
+                    VIP {config.assignedTentCode}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {beds} מיטות {getGenderLabel(config.gender)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfigToRemove(config);
+                      setRemoveModalOpen(true);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -183,6 +225,32 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
           </Button>
           <Button className="flex-1" onClick={handleConfirmAssignment}>
             שבץ ✓
+          </Button>
+        </div>
+      </ResponsiveModal>
+
+      {/* Remove Confirmation Modal */}
+      <ResponsiveModal 
+        open={removeModalOpen} 
+        onOpenChange={setRemoveModalOpen}
+        title="שחרור אוהל VIP"
+        className="max-w-sm"
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-center">
+            האם לשחרר את אוהל <strong>VIP {configToRemove?.assignedTentCode}</strong>?
+          </p>
+          <p className="text-sm text-muted-foreground text-center">
+            התצורה תחזור לרשימת הממתינים לשיבוץ
+          </p>
+        </div>
+
+        <div className="flex gap-3 mt-4">
+          <Button variant="outline" className="flex-1" onClick={() => setRemoveModalOpen(false)}>
+            ביטול
+          </Button>
+          <Button variant="destructive" className="flex-1" onClick={handleRemoveConfig}>
+            שחרר
           </Button>
         </div>
       </ResponsiveModal>
