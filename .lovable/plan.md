@@ -1,51 +1,65 @@
 
 
-# Filter Day-Use Groups from Allocation
+# Fix Day-Use Group Detection - Add Missing Database Column
 
-## Problem
-Day-use groups (`יום ללא לינה`) don't sleep in the complex, so they shouldn't require allocation. While the notification system already correctly excludes them, the allocation page itself (`/allocation/{groupId}`) doesn't prevent navigation to a day-use group's allocation view.
+## Root Cause Identified
+
+The `groups` table in the database is **missing the `group_type` column**. The `useAdminGroups` hook hardcodes every group to `'לינה'` (lodging):
+
+```typescript
+// useAdminGroups.ts line 14
+groupType: 'לינה' as GroupType,  // Always hardcoded!
+```
+
+This means day-use groups (`יום ללא לינה`) are never properly identified because the type is never saved to or read from the database.
 
 ## Solution
-Add a simple check in `GroupAllocation.tsx` to detect day-use groups and show an appropriate message (or redirect back), instead of displaying the allocation interface.
 
-## Changes Required
+### 1. Add `group_type` Column to Database
 
-### File: `src/pages/GroupAllocation.tsx`
+Add a new column to the `groups` table:
+- Column name: `group_type`
+- Type: `text`
+- Default: `'לינה'` (so existing groups remain as lodging groups)
+- Not nullable
 
-Add a check after finding the group:
+### 2. Update `useAdminGroups.ts`
 
-```tsx
-// After line 21: const group = groups.find(g => g.id === id);
+Modify the hook to read and write the `group_type` field:
 
-// Day-use groups don't need allocation
-if (group && group.groupType === 'יום ללא לינה') {
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="max-w-md w-full">
-        <CardContent className="pt-6 text-center">
-          <Sun className="w-12 h-12 mx-auto mb-4 text-amber-500" />
-          <h2 className="text-xl font-bold mb-2">פעילות יום</h2>
-          <p className="text-muted-foreground mb-6">
-            קבוצות יום ללא לינה אינן דורשות שיבוץ מיטות כיוון שאינן לנות במתחם
-          </p>
-          <Button onClick={() => navigate('/')}>
-            חזור לדשבורד
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+**In `mapDbRowToGroup` function:**
+```typescript
+// Change from:
+groupType: 'לינה' as GroupType,
+
+// To:
+groupType: (row.group_type as GroupType) || 'לינה',
+```
+
+**In `addGroup` function - add to insert object:**
+```typescript
+group_type: group.groupType || 'לינה',
+```
+
+**In `updateGroup` function - add mapping:**
+```typescript
+if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
 ```
 
 ## Summary
-| File | Change |
-|------|--------|
-| `src/pages/GroupAllocation.tsx` | Add early return for day-use groups showing message that they don't need allocation |
+
+| Change | Details |
+|--------|---------|
+| Database migration | Add `group_type TEXT DEFAULT 'לינה' NOT NULL` to `groups` table |
+| `src/hooks/useAdminGroups.ts` | Read `group_type` from DB, write it on insert/update |
+
+## What This Fixes
+- Day-use groups will be properly saved with `groupType = 'יום ללא לינה'`
+- The allocation page check `group.groupType === 'יום ללא לינה'` will work correctly
+- Existing groups default to `'לינה'` (no data migration needed)
 
 ## What Stays the Same
-- All allocation logic unchanged
-- Sleeping groups continue to work normally
-- Notification system already correct (excludes day-use)
-- No database changes needed
+- All existing allocation logic unchanged
+- Group edit form already has the UI for selecting group type
+- Filtering logic in various components already checks `groupType`
 
