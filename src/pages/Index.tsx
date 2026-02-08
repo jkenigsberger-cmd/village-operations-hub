@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
 import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
@@ -16,6 +17,11 @@ import { PendingAllocationCard } from '@/components/PendingAllocationCard';
 import { MobileBottomNav, MenuSection } from '@/components/MobileBottomNav';
 import { GENDER_LEGEND } from '@/lib/tentColors';
 import { HE } from '@/lib/translations';
+import { 
+  computeAllocationStatus, 
+  groupNeedsAllocation, 
+  getSleepingGroups 
+} from '@/lib/allocationStatus';
 import { 
   Calendar,
   Bath, 
@@ -54,7 +60,8 @@ const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6',
 const Index = () => {
   const navigate = useNavigate();
   const { groups } = useAdminGroups();
-const { 
+  const { allocations } = useGroupAllocation();
+  const { 
     state, 
     isLoading, 
     getNeighborhoodSummary, 
@@ -81,35 +88,26 @@ const {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTentId, setSelectedTentId] = useState<string | null>(null);
 
-  // Filter groups pending allocation
-  const pendingAllocationGroups = useMemo(() => {
-    return groups.filter(g => {
-      // Exclude day-use and archived groups
-      if (g.groupType === 'יום ללא לינה') return false;
-      if (g.isArchived) return false;
-      
-      // Include if status is pending or has remaining counts
-      const hasPendingStatus = g.assignmentStatus === 'pending_allocation' || 
-                               g.assignmentStatus === 'pending_capacity_issue';
-      const hasRemainingStaff = (g.remainingStaff ?? g.staffCount ?? 0) > 0;
-      const hasRemainingParticipants = (g.remainingParticipants ?? g.participantCount ?? (g.pax - (g.staffCount || 0))) > 0;
-      
-      return hasPendingStatus || hasRemainingStaff || hasRemainingParticipants;
-    });
-  }, [groups]);
+  // GOAL 2: Get ALL sleeping groups for allocations view
+  const sleepingGroups = useMemo(() => getSleepingGroups(groups), [groups]);
 
-  // Filter allocations for TODAY only (for overview section)
+  // GOAL 2: Groups that need allocation (for notifications)
+  const groupsNeedingAllocation = useMemo(() => {
+    return groups.filter(g => groupNeedsAllocation(g, allocations));
+  }, [groups, allocations]);
+
+  // Filter allocations for TODAY only (for overview section - notifications)
   const todayAllocations = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    return pendingAllocationGroups.filter(g => {
+    return groupsNeedingAllocation.filter(g => {
       const start = g.startDate;
       const end = g.endDate;
       // Include if today is within the group's date range
       return start <= todayStr && end >= todayStr;
     });
-  }, [pendingAllocationGroups]);
+  }, [groupsNeedingAllocation]);
 
-  // Pending Allocations Section Component - for overview (TODAY only)
+  // Pending Allocations Section Component - for overview (TODAY only, notifications)
   const PendingAllocationsSection = () => {
     if (todayAllocations.length === 0) return null;
     
@@ -123,18 +121,18 @@ const {
               {todayAllocations.length}
             </span>
           </h2>
-          {pendingAllocationGroups.length > todayAllocations.length && (
+          {groupsNeedingAllocation.length > todayAllocations.length && (
             <button 
               onClick={() => setActiveSection('allocations')}
               className="text-primary hover:underline font-semibold flex items-center gap-1"
             >
-              {HE.pages.allAllocations} ({pendingAllocationGroups.length}) ←
+              {HE.pages.allAllocations} ({sleepingGroups.length}) ←
             </button>
           )}
         </div>
         <div className="space-y-3">
           {todayAllocations.map(group => (
-            <PendingAllocationCard key={group.id} group={group} />
+            <PendingAllocationCard key={group.id} group={group} allocations={allocations} />
           ))}
         </div>
       </section>
@@ -218,7 +216,7 @@ const {
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: HE.nav.overview, icon: Home },
     { key: 'calendar', label: HE.nav.calendar, icon: CalendarDays },
-    { key: 'allocations', label: HE.nav.allocations, icon: ClipboardList, count: pendingAllocationGroups.length > 0 ? pendingAllocationGroups.length : undefined },
+    { key: 'allocations', label: HE.nav.allocations, icon: ClipboardList, count: groupsNeedingAllocation.length > 0 ? groupsNeedingAllocation.length : undefined },
     { key: 'neighborhoods', label: HE.nav.neighborhoods, icon: Tent },
     { key: 'facilities', label: HE.nav.facilities, icon: Flame },
     { key: 'bathrooms', label: HE.nav.bathrooms, icon: ShowerHead, count: facilitiesNeedingAttention.length },
@@ -510,27 +508,30 @@ const {
           <MasterCalendar />
         )}
 
-        {/* Allocations Section - ALL pending allocations */}
+        {/* Allocations Section - ALL sleeping groups (GOAL 2) */}
         {activeSection === 'allocations' && (
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <ClipboardList className="w-8 h-8" />
               {HE.pages.allAllocations}
-              {pendingAllocationGroups.length > 0 && (
+              <span className="px-3 py-1 text-sm rounded-full bg-muted text-muted-foreground">
+                {sleepingGroups.length}
+              </span>
+              {groupsNeedingAllocation.length > 0 && (
                 <span className="px-3 py-1 text-sm rounded-full bg-amber-500 text-white">
-                  {pendingAllocationGroups.length}
+                  {groupsNeedingAllocation.length} דורשים שיבוץ
                 </span>
               )}
             </h2>
-            {pendingAllocationGroups.length === 0 ? (
-              <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
-                <p className="text-xl font-medium">{HE.messages.noAllocations}</p>
+            {sleepingGroups.length === 0 ? (
+              <div className="tile p-8 text-center bg-muted/20 border-muted">
+                <Tent className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-xl font-medium">אין קבוצות לינה</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingAllocationGroups.map(group => (
-                  <PendingAllocationCard key={group.id} group={group} />
+                {sleepingGroups.map(group => (
+                  <PendingAllocationCard key={group.id} group={group} allocations={allocations} />
                 ))}
               </div>
             )}
@@ -1185,7 +1186,7 @@ const {
         onSectionChange={setActiveSection}
         maintenanceCount={totalMaintenanceCount}
         housekeepingCount={totalHousekeepingItems}
-        allocationsCount={pendingAllocationGroups.length}
+        allocationsCount={groupsNeedingAllocation.length}
       />
     </div>
   );

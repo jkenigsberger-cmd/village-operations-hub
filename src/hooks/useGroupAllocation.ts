@@ -5,12 +5,13 @@ import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from './useAdminGroups';
 import { AllocationRecord, CapacityCheckResult } from '@/types/groupAllocation';
 import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
-import { NeighborhoodId, TentGender } from '@/types/village';
+import { NeighborhoodId, TentGender, NeighborhoodReservation } from '@/types/village';
 import { parseISO, isBefore } from 'date-fns';
 import { 
   dateRangesOverlapForOccupancy, 
   TOTAL_VIP_BEDS,
 } from '@/lib/occupancyCalculator';
+import { computeAllocationStatus, groupNeedsAllocation } from '@/lib/allocationStatus';
 
 // VIP tent IDs (80-89)
 const VIP_TENT_CODES = ['80', '81', '82', '83', '84', '85', '86', '87', '88', '89'];
@@ -19,7 +20,14 @@ const VIP_BEDS_PER_TENT = 3;
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
 export const useGroupAllocation = () => {
-  const { state, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds } = useVillage();
+  const { 
+    state, 
+    updateTentGroupName, 
+    updateTentDates, 
+    updateTentGender, 
+    setTentReservedBeds,
+    checkNeighborhoodAvailability 
+  } = useVillage();
   const { groups, updateGroup } = useAdminGroups();
   const [allocations, setAllocations] = useState<AllocationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -266,6 +274,60 @@ export const useGroupAllocation = () => {
       return false; // Would go below 0
     }
 
+    // GOAL 3: For NEIGHBORHOOD allocations, check and create neighborhood_reservations
+    if (allocationType === 'NEIGHBORHOOD') {
+      // Check if neighborhood is already booked by another group for overlapping dates
+      const neighborhoodId = resourceId as NeighborhoodId;
+      
+      // Check existing neighborhood_reservations for conflicts
+      const { data: existingReservations, error: checkError } = await supabase
+        .from('neighborhood_reservations')
+        .select('*')
+        .eq('neighborhood_id', neighborhoodId);
+      
+      if (checkError) {
+        console.error('Error checking neighborhood reservations:', checkError);
+        return false;
+      }
+
+      // Check for overlapping reservations from other groups
+      const conflictingReservation = (existingReservations || []).find(res => {
+        // Skip reservations for this group
+        if (res.group_name === group.groupName) return false;
+        
+        // Check date overlap using hotel rule
+        return dateRangesOverlapForOccupancy(
+          dateRangeStart, 
+          dateRangeEnd, 
+          res.check_in_date, 
+          res.check_out_date
+        );
+      });
+
+      if (conflictingReservation) {
+        console.error('Neighborhood already booked:', conflictingReservation.group_name);
+        return false; // Conflict - neighborhood booked by another group
+      }
+
+      // Create neighborhood_reservation record
+      const reservationId = generateId();
+      const { error: reservationError } = await supabase.from('neighborhood_reservations').insert({
+        id: reservationId,
+        neighborhood_id: neighborhoodId,
+        group_name: group.groupName,
+        check_in_date: dateRangeStart,
+        check_out_date: dateRangeEnd,
+        reservation_type: 'FULL_NEIGHBORHOOD',
+        total_beds: bedsAssigned,
+        notes: `Auto-created from allocation for group ${group.groupName}`
+      });
+
+      if (reservationError) {
+        console.error('Error creating neighborhood reservation:', reservationError);
+        return false;
+      }
+    }
+
     const id = generateId();
     const { error } = await supabase.from('allocations').insert({
       id,
@@ -323,6 +385,25 @@ export const useGroupAllocation = () => {
     }
 
     const group = groups.find(g => g.id === allocation.groupId);
+    
+    // GOAL 3: For NEIGHBORHOOD allocations, also remove the neighborhood_reservation
+    if (allocation.allocationType === 'NEIGHBORHOOD' && group) {
+      // Find and delete the corresponding neighborhood_reservation
+      const { data: reservations } = await supabase
+        .from('neighborhood_reservations')
+        .select('id')
+        .eq('neighborhood_id', allocation.resourceId)
+        .eq('group_name', group.groupName)
+        .eq('check_in_date', allocation.dateRangeStart)
+        .eq('check_out_date', allocation.dateRangeEnd);
+      
+      if (reservations && reservations.length > 0) {
+        for (const res of reservations) {
+          await supabase.from('neighborhood_reservations').delete().eq('id', res.id);
+        }
+      }
+    }
+    
     if (group) {
       // Restore remaining counts
       if (allocation.allocationType === 'VIP_TENT') {
@@ -346,13 +427,33 @@ export const useGroupAllocation = () => {
   }, [allocations]);
 
   // Check if a neighborhood is available for a group (exclusive rule)
-  const isNeighborhoodAvailableForGroup = useCallback((
+  // Also checks neighborhood_reservations table for conflicts
+  const isNeighborhoodAvailableForGroup = useCallback(async (
     neighborhoodId: NeighborhoodId,
     groupId: string,
     startDate: string,
     endDate: string
-  ): { available: boolean; conflictingGroup?: string } => {
+  ): Promise<{ available: boolean; conflictingGroup?: string }> => {
     if (!state) return { available: false };
+
+    const group = groups.find(g => g.id === groupId);
+    const groupName = group?.groupName || '';
+
+    // GOAL 3: Check neighborhood_reservations for conflicts
+    const { data: existingReservations } = await supabase
+      .from('neighborhood_reservations')
+      .select('*')
+      .eq('neighborhood_id', neighborhoodId);
+
+    for (const res of existingReservations || []) {
+      // Skip reservations for this group
+      if (res.group_name === groupName) continue;
+      
+      // Check date overlap using hotel rule
+      if (dateRangesOverlapForOccupancy(startDate, endDate, res.check_in_date, res.check_out_date)) {
+        return { available: false, conflictingGroup: res.group_name };
+      }
+    }
 
     // Check allocations
     for (const alloc of allocations) {
