@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Calendar, Users, Lightbulb, CheckCircle, Crown, Home } from 'lucide-react';
+import { ArrowRight, Calendar, Users, Lightbulb, CheckCircle, Crown, Home, Sun } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -19,6 +19,26 @@ const GroupAllocation: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const group = groups.find(g => g.id === id);
+
+  // Day-use groups don't need allocation
+  if (group && group.groupType === 'יום ללא לינה') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <Sun className="w-12 h-12 mx-auto mb-4 text-amber-500" />
+            <h2 className="text-xl font-bold mb-2">פעילות יום</h2>
+            <p className="text-muted-foreground mb-6">
+              קבוצות יום ללא לינה אינן דורשות שיבוץ מיטות כיוון שאינן לנות במתחם
+            </p>
+            <Button onClick={() => navigate('/')}>
+              חזור לדשבורד
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Force re-render when group data changes
   const handleUpdate = () => {
