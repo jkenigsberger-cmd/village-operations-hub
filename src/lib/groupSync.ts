@@ -67,9 +67,17 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
     // STEP 1: Remove old synced kitchen slots for this group
     // ============================================
     
-    // Note: The kitchen_time_slots table doesn't have source/groupId columns yet
-    // For now, we'll create new slots without removing old ones
-    // This should be improved with a migration to add these columns
+    const { error: deleteKitchenError } = await supabase
+      .from('kitchen_time_slots')
+      .delete()
+      .eq('source', 'groupSync')
+      .eq('group_id', group.id);
+
+    if (deleteKitchenError) {
+      console.error('[GROUP SYNC] Error removing old kitchen slots:', deleteKitchenError);
+    } else {
+      console.log(`[GROUP SYNC] Removed old kitchen slots for group ${group.id}`);
+    }
     
     // ============================================
     // STEP 2: Create kitchen slots from mealsPlan
@@ -87,6 +95,8 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
           total_pax: meal.pax,
           special_diets: JSON.parse(JSON.stringify(convertSpecialDiets(meal))),
           groups: JSON.parse(JSON.stringify([{ name: group.groupName, pax: meal.pax }])),
+          source: 'groupSync',
+          group_id: group.id,
         }));
 
       if (slotsToInsert.length > 0) {
@@ -225,8 +235,18 @@ export const removeSyncedRecordsForGroup = async (groupId: string): Promise<void
       console.log(`[GROUP SYNC] Removed space bookings for group ${groupId}`);
     }
 
-    // Note: Kitchen slots don't have groupId column yet
-    // This should be improved with a migration
+    // Remove kitchen slots for this group
+    const { error: kitchenError } = await supabase
+      .from('kitchen_time_slots')
+      .delete()
+      .eq('source', 'groupSync')
+      .eq('group_id', groupId);
+
+    if (kitchenError) {
+      console.error('[GROUP SYNC] Error removing kitchen slots:', kitchenError);
+    } else {
+      console.log(`[GROUP SYNC] Removed kitchen slots for group ${groupId}`);
+    }
   } catch (error) {
     console.error('[GROUP SYNC] Error removing synced records:', error);
   }
