@@ -20,6 +20,7 @@ import {
   TentGender
 } from '@/types/village';
 import { useSupabaseVillage } from '@/hooks/useSupabaseVillage';
+import { timeRangesOverlapWithGap } from '@/lib/timeUtils';
 
 interface VillageContextType {
   state: VillageState | null;
@@ -388,7 +389,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addActivityReservation = useCallback((reservation: Omit<ActivityReservation, 'id' | 'createdAt'>): boolean => {
     if (!state) return false;
 
-    // Check for overlapping reservations
+    // Check for overlapping reservations with 15-minute gap requirement
     const existingReservations = Object.values(state.activityReservations).filter(
       r => r.spaceId === reservation.spaceId && r.date === reservation.date
     );
@@ -397,13 +398,9 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newEnd = reservation.endTime;
 
     for (const existing of existingReservations) {
-      // Check if times overlap
-      if (
-        (newStart >= existing.startTime && newStart < existing.endTime) ||
-        (newEnd > existing.startTime && newEnd <= existing.endTime) ||
-        (newStart <= existing.startTime && newEnd >= existing.endTime)
-      ) {
-        return false; // Overlap detected
+      // Check if times overlap (including 15-minute gap requirement)
+      if (timeRangesOverlapWithGap(newStart, newEnd, existing.startTime, existing.endTime, 15)) {
+        return false; // Overlap detected - need 15 minute gap
       }
     }
 
