@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { VIPAllocationTab } from '@/components/VIPAllocationTab';
 import { ParticipantAllocationTab } from '@/components/ParticipantAllocationTab';
+import { DistributionPreferenceDisplay } from '@/components/DistributionPreferenceDisplay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -171,6 +172,12 @@ const GroupAllocation: React.FC = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Distribution Preference Display */}
+        <DistributionPreferenceDisplay
+          preference={group.distributionPreference || null}
+          participantCount={participantCount}
+        />
 
         {/* Allocation Tabs */}
         <Tabs defaultValue="vip" className="w-full">

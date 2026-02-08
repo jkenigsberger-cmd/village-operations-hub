@@ -18,11 +18,13 @@ import {
   SCHEDULE_CATEGORY_LABELS,
   SPACE_ID_MAP 
 } from '@/types/adminGroups';
+import { DistributionPreference } from '@/types/distributionPreference';
 import { MealType, MEAL_LABELS } from '@/types/kitchen';
 import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { VIPTentPlanner } from '@/components/VIPTentPlanner';
 import { NumericInput } from '@/components/NumericInput';
+import { SleepingTentDistributionSection } from '@/components/SleepingTentDistributionSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -425,6 +427,7 @@ const AdminGroupEdit = () => {
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
   const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
   const [mealsPlan, setMealsPlan] = useState<MealPlanItem[]>([]);
+  const [distributionPreference, setDistributionPreference] = useState<DistributionPreference | null>(null);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -480,6 +483,7 @@ const AdminGroupEdit = () => {
         // Load VIP tent configs into local state
         setVipTentConfigs(existing.vipTentConfigs || []);
         setMealsPlan(existing.mealsPlan || []);
+        setDistributionPreference(existing.distributionPreference || null);
       }
     }
   }, [isNew, id, getGroup]);
@@ -597,11 +601,12 @@ const AdminGroupEdit = () => {
     const staffCount = formData.staffCount || 0;
     const participantCount = formData.pax - staffCount;
 
-    // Include vipTentConfigs, mealsPlan, and assignmentStatus in the data to save
+    // Include vipTentConfigs, mealsPlan, distributionPreference, and assignmentStatus in the data to save
     const dataToSave = {
       ...formData,
       vipTentConfigs,
       mealsPlan,
+      distributionPreference: isDayUseGroup ? undefined : distributionPreference, // Only for lodging groups
       assignmentStatus: isDayUseGroup ? undefined : assignmentStatus, // Only for lodging groups
       remainingStaff: isNew ? staffCount : formData.remainingStaff,
       remainingParticipants: isNew ? participantCount : formData.remainingParticipants,
@@ -1016,6 +1021,16 @@ const AdminGroupEdit = () => {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Sleeping Tent Distribution Preference - lodging groups only */}
+            {!isDayUse && (
+              <SleepingTentDistributionSection
+                participantCount={formData.participantCount || 0}
+                preference={distributionPreference}
+                onChange={setDistributionPreference}
+                disabled={!formData.startDate}
+              />
             )}
 
             <div className="space-y-2">

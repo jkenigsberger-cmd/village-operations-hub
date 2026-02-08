@@ -2,6 +2,8 @@
 // ADMIN GROUPS DATA TYPES - Group Reservations Management
 // ============================================================
 
+import { DistributionPreference } from './distributionPreference';
+
 export type GroupStatus = 'PLANNED' | 'ON_SITE' | 'COMPLETED';
 export type GroupType = 'לינה' | 'יום ללא לינה';
 export type AssignmentStatus = 'pending_allocation' | 'partially_allocated' | 'fully_allocated' | 'pending_capacity_issue';
@@ -83,6 +85,8 @@ export interface GroupRecord {
   isArchived?: boolean; // If true, group is archived and hidden by default
   // Assignment tracking
   assignmentStatus?: AssignmentStatus; // Tracks allocation workflow status
+  // Sleeping tent distribution preference (planning only, not actual allocation)
+  distributionPreference?: DistributionPreference;
   createdAt: string;
   updatedAt: string;
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { GroupRecord, GroupType, VIPTentConfig } from '@/types/adminGroups';
+import { DistributionPreference } from '@/types/distributionPreference';
 import { parseISO, isWithinInterval, isSameDay } from 'date-fns';
 
 // Helper to generate random IDs
@@ -45,6 +46,7 @@ export const useSupabaseGroups = () => {
         remainingStaff: g.remaining_staff || undefined,
         remainingParticipants: g.remaining_participants || undefined,
         mealsPlan: (g.meal_plan as unknown as GroupRecord['mealsPlan']) || undefined,
+        distributionPreference: (g.distribution_preference as unknown as DistributionPreference) || undefined,
         isArchived: g.status === 'archived',
         createdAt: g.created_at,
         updatedAt: g.updated_at
@@ -100,7 +102,8 @@ export const useSupabaseGroups = () => {
       group_type: group.groupType || 'לינה',
       meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || {})),
       schedule_items: JSON.parse(JSON.stringify(group.scheduleItems || [])),
-      vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || []))
+      vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || [])),
+      distribution_preference: group.distributionPreference ? JSON.parse(JSON.stringify(group.distributionPreference)) : null
     });
 
     if (insertError) throw insertError;
@@ -136,6 +139,7 @@ export const useSupabaseGroups = () => {
     if (updates.scheduleItems !== undefined) dbUpdates.schedule_items = updates.scheduleItems;
     if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = updates.vipTentConfigs;
     if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
+    if (updates.distributionPreference !== undefined) dbUpdates.distribution_preference = updates.distributionPreference;
     if (updates.isArchived !== undefined) dbUpdates.status = updates.isArchived ? 'archived' : 'confirmed';
 
     const { error: updateError } = await supabase.from('groups').update(dbUpdates).eq('id', id);
