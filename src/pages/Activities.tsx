@@ -24,6 +24,7 @@ import {
   Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getReservationSpan, isHourInReservation, isReservationStartHour } from '@/lib/timeUtils';
 
 // Generate consistent color for group names
 const getGroupColor = (groupName: string): string => {
@@ -133,25 +134,21 @@ const Activities = () => {
     setSelectedSpaceId(activitySpaces[0].id);
   }
 
-  // Get reservation for a specific hour slot
+  // Get reservation for a specific hour slot (using minute-based comparison)
   const getReservationForHour = (hour: string): ActivityReservation | null => {
-    return spaceReservations.find(r => {
-      const start = r.startTime;
-      const end = r.endTime;
-      return hour >= start && hour < end;
-    }) || null;
+    return spaceReservations.find(r => 
+      isHourInReservation(hour, r.startTime, r.endTime)
+    ) || null;
   };
 
-  // Check if this is the start of a reservation block
+  // Check if this hour is the start row of a reservation block
   const isReservationStart = (hour: string): boolean => {
-    return spaceReservations.some(r => r.startTime === hour);
+    return spaceReservations.some(r => isReservationStartHour(hour, r.startTime));
   };
 
-  // Get reservation span (how many hours)
-  const getReservationSpan = (reservation: ActivityReservation): number => {
-    const startHour = parseInt(reservation.startTime.split(':')[0]);
-    const endHour = parseInt(reservation.endTime.split(':')[0]);
-    return endHour - startHour;
+  // Get reservation span (how many hour rows to span)
+  const getReservationSpanForRow = (reservation: ActivityReservation): number => {
+    return getReservationSpan(reservation.startTime, reservation.endTime);
   };
 
   const handleHourClick = (hour: string) => {
@@ -365,7 +362,7 @@ const Activities = () => {
                       {HOURS.map((hour, index) => {
                         const reservation = getReservationForHour(hour);
                         const isStart = reservation && isReservationStart(hour);
-                        const span = reservation ? getReservationSpan(reservation) : 1;
+                        const span = reservation ? getReservationSpanForRow(reservation) : 1;
                         const groupColor = reservation ? getGroupColor(reservation.groupName) : '';
                         
                         // Skip rendering if this hour is part of a reservation but not the start

@@ -7,9 +7,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { GroupRecord, MealPlanItem, ScheduleItem, SPACE_ID_MAP } from '@/types/adminGroups';
 import { MealType, SpecialDiets } from '@/types/kitchen';
+import { timeRangesOverlapWithGap } from '@/lib/timeUtils';
 
 // Spaces that require booking (matching SPACE_ID_MAP keys)
 const BOOKABLE_SPACES = ['אוהל מועד', 'ממ״ד 6', 'ממ״ד 7', 'ממ״ד 8', 'חדר אוכל'];
+
+// Gap required between reservations (in minutes)
+const RESERVATION_GAP_MINUTES = 15;
 
 export interface SyncResult {
   success: boolean;
@@ -39,18 +43,6 @@ const convertSpecialDiets = (meal: MealPlanItem): SpecialDiets => ({
   allergies: meal.specialDiets?.allergies || 0,
   notes: meal.specialDiets?.allergiesNotes || '',
 });
-
-/**
- * Check if two time ranges overlap
- */
-const timeRangesOverlap = (
-  start1: string,
-  end1: string,
-  start2: string,
-  end2: string
-): boolean => {
-  return start1 < end2 && start2 < end1;
-};
 
 /**
  * IDEMPOTENT SYNC: Syncs group meals and schedule items to Kitchen and Spaces
@@ -154,12 +146,12 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
           // Skip our own group's reservations
           if (res.source === 'groupSync' && res.group_id === group.id) return;
           
-          // Check if same space, same date, overlapping time
+          // Check if same space, same date, overlapping time (with 15-minute gap requirement)
           if (res.space_id === spaceId && res.date === item.date) {
             const resEnd = res.end_time || '23:59';
             const itemEnd = item.endTime || '23:59';
             
-            if (timeRangesOverlap(item.startTime, itemEnd, res.start_time, resEnd)) {
+            if (timeRangesOverlapWithGap(item.startTime, itemEnd, res.start_time, resEnd, RESERVATION_GAP_MINUTES)) {
               hasConflict = true;
               conflictingGroup = res.group_name || 'קבוצה אחרת';
             }
