@@ -33,11 +33,17 @@ import {
 
 const Today = () => {
   const { state, isLoading, getTodaySummary, getTentSummary } = useVillage();
-  const { getDayUseGroupsForDate } = useAdminGroups();
+  const { getDayUseGroupsForDate, archivedGroups } = useAdminGroups();
   const { getTimeSlotsForDate } = useKitchenData();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // Get summary for selected date
+  // Get archived group names to filter them out
+  const archivedGroupNames = useMemo(() => 
+    new Set(archivedGroups.map(g => g.groupName)), 
+    [archivedGroups]
+  );
+
+  // Get summary for selected date (filtered to exclude archived groups)
   const summaryForDate = useMemo(() => {
     if (!state) return { checkIns: [], checkOuts: [] };
 
@@ -49,6 +55,11 @@ const Today = () => {
       const summary = getTentSummary(tent.id);
       if (!summary) continue;
 
+      // Skip tents belonging to archived groups
+      if (summary.groupName && archivedGroupNames.has(summary.groupName)) {
+        continue;
+      }
+
       if (tent.checkInDate === dateStr) {
         checkIns.push(summary);
       }
@@ -59,7 +70,7 @@ const Today = () => {
     }
 
     return { checkIns, checkOuts };
-  }, [state, selectedDate, getTentSummary]);
+  }, [state, selectedDate, getTentSummary, archivedGroupNames]);
 
   // Get day-use groups for selected date
   const dayUseGroups = useMemo(() => {

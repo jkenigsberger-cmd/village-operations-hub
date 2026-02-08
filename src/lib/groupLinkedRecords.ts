@@ -2,127 +2,220 @@
 // GROUP LINKED RECORDS UTILITY
 // Checks if a group has any linked data that prevents deletion
 // Provides cascade delete for permanent group removal
+// Uses Supabase for all data operations
 // ============================================================
 
-import { ALLOCATIONS_STORAGE_KEY } from '@/types/groupAllocation';
-import { removeSyncedRecordsForGroup } from '@/lib/groupSync';
-
-const VILLAGE_STORAGE_KEY = 'aharonson_farm_village_state';
-const KITCHEN_STORAGE_KEY = 'aharonson_farm_kitchen_state';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LinkedRecordsSummary {
   hasLinkedRecords: boolean;
   allocations: number; // VIP/neighborhood/tent allocations
   tentBookings: number; // Tents with matching groupName
   spaceBookings: number; // Activity reservations linked to group
+  neighborhoodBookings: number; // Neighborhood reservations linked to group
   kitchenSlots: number; // Kitchen time slots linked to group
   total: number;
 }
 
 /**
- * Checks all storage collections for records linked to a groupId
- * Returns true if ANY linked data exists (safe delete is NOT possible)
+ * Checks all Supabase tables for records linked to a groupId
+ * Returns true if ANY linked data exists
  */
-export const hasLinkedRecords = (groupId: string, groupName: string): boolean => {
-  const summary = getLinkedRecordsSummary(groupId, groupName);
+export const hasLinkedRecords = async (groupId: string, groupName: string): Promise<boolean> => {
+  const summary = await getLinkedRecordsSummary(groupId, groupName);
   return summary.hasLinkedRecords;
 };
 
 /**
- * Returns a detailed summary of all linked records for a group
+ * Returns a detailed summary of all linked records for a group (async - fetches from Supabase)
  */
-export const getLinkedRecordsSummary = (groupId: string, groupName: string): LinkedRecordsSummary => {
+export const getLinkedRecordsSummary = async (groupId: string, groupName: string): Promise<LinkedRecordsSummary> => {
   let allocations = 0;
   let tentBookings = 0;
   let spaceBookings = 0;
+  let neighborhoodBookings = 0;
   let kitchenSlots = 0;
 
-  // 1. Check allocations (VIP_TENT, NEIGHBORHOOD, TENT)
   try {
-    const allocationsData = localStorage.getItem(ALLOCATIONS_STORAGE_KEY);
-    if (allocationsData) {
-      const allocs = JSON.parse(allocationsData) as { groupId: string }[];
-      allocations = allocs.filter(a => a.groupId === groupId).length;
-    }
-  } catch (e) {
-    console.error('Error checking allocations:', e);
-  }
-
-  // 2. Check village state for tent bookings and activity reservations
-  try {
-    const villageData = localStorage.getItem(VILLAGE_STORAGE_KEY);
-    if (villageData) {
-      const state = JSON.parse(villageData);
+    // Fetch all counts in parallel
+    const [
+      allocationsRes,
+      tentsRes,
+      activityRes,
+      neighborhoodRes,
+      kitchenRes
+    ] = await Promise.all([
+      // 1. Count allocations for this group
+      supabase.from('allocations').select('id', { count: 'exact', head: true }).eq('group_id', groupId),
       
-      // Check tents for matching groupName
-      if (state.tents) {
-        Object.values(state.tents).forEach((tent: any) => {
-          if (tent.groupName === groupName && (tent.checkInDate || tent.checkOutDate)) {
-            tentBookings++;
-          }
-        });
-      }
+      // 2. Count tents with this group name
+      supabase.from('tents').select('id', { count: 'exact', head: true }).eq('group_name', groupName),
+      
+      // 3. Count activity reservations for this group
+      supabase.from('activity_reservations').select('id', { count: 'exact', head: true }).or(`group_id.eq.${groupId},group_name.eq.${groupName}`),
+      
+      // 4. Count neighborhood reservations for this group
+      supabase.from('neighborhood_reservations').select('id', { count: 'exact', head: true }).eq('group_name', groupName),
+      
+      // 5. Count kitchen time slots containing this group
+      supabase.from('kitchen_time_slots').select('id, groups')
+    ]);
 
-      // Check activity reservations linked to this group
-      if (state.activityReservations) {
-        Object.values(state.activityReservations).forEach((res: any) => {
-          if (res.groupId === groupId || res.reservedBy === groupName) {
-            spaceBookings++;
-          }
-        });
-      }
+    allocations = allocationsRes.count || 0;
+    tentBookings = tentsRes.count || 0;
+    spaceBookings = activityRes.count || 0;
+    neighborhoodBookings = neighborhoodRes.count || 0;
 
-      // Check neighborhood reservations linked to this group
-      if (state.neighborhoodReservations) {
-        Object.values(state.neighborhoodReservations).forEach((res: any) => {
-          if (res.groupId === groupId || res.groupName === groupName) {
-            spaceBookings++;
-          }
-        });
-      }
+    // Count kitchen slots that have this group in the JSON array
+    if (kitchenRes.data) {
+      kitchenSlots = kitchenRes.data.filter(slot => {
+        if (!slot.groups || !Array.isArray(slot.groups)) return false;
+        return (slot.groups as { name: string }[]).some(g => g.name === groupName);
+      }).length;
     }
+
   } catch (e) {
-    console.error('Error checking village state:', e);
+    console.error('Error checking linked records:', e);
   }
 
-  // 3. Check kitchen time slots
-  try {
-    const kitchenData = localStorage.getItem(KITCHEN_STORAGE_KEY);
-    if (kitchenData) {
-      const state = JSON.parse(kitchenData);
-      if (state.timeSlots) {
-        Object.values(state.timeSlots).forEach((slot: any) => {
-          // Check if slot has groups array with matching group name
-          if (slot.groups && Array.isArray(slot.groups)) {
-            const hasMatchingGroup = slot.groups.some((g: any) => g.name === groupName);
-            if (hasMatchingGroup) {
-              kitchenSlots++;
-            }
-          }
-        });
-      }
-    }
-  } catch (e) {
-    console.error('Error checking kitchen state:', e);
-  }
-
-  const total = allocations + tentBookings + spaceBookings + kitchenSlots;
+  const total = allocations + tentBookings + spaceBookings + neighborhoodBookings + kitchenSlots;
 
   return {
     hasLinkedRecords: total > 0,
     allocations,
     tentBookings,
     spaceBookings,
+    neighborhoodBookings,
     kitchenSlots,
     total,
   };
 };
 
 /**
- * Returns a human-readable description of linked records in Hebrew
+ * Synchronous version for UI display (returns cached/empty data)
+ * For accurate counts, use getLinkedRecordsSummary instead
  */
 export const getLinkedRecordsDescription = (groupId: string, groupName: string): string => {
-  const summary = getLinkedRecordsSummary(groupId, groupName);
+  // This is a sync wrapper - returns empty string
+  // The actual check happens in the modal where we can be async
+  // For now, return a generic message if we're in an edit context
+  return '';
+};
+
+/**
+ * CASCADE DELETE - Permanently removes ALL linked records for a group
+ * Tables cleaned:
+ * 1. allocations - VIP/neighborhood/tent allocations
+ * 2. neighborhood_reservations - neighborhood reservations
+ * 3. activity_reservations - space bookings
+ * 4. kitchen_time_slots - removes group from meals (doesn't delete the meal)
+ * 5. tents - clears group name, dates, and gender from tents
+ */
+export const cascadeDeleteGroupRecords = async (groupId: string, groupName: string): Promise<void> => {
+  console.log(`[CASCADE DELETE] Starting for group: ${groupName} (${groupId})`);
+
+  try {
+    // Run all delete/update operations in parallel where possible
+    const results = await Promise.allSettled([
+      // 1. Delete allocations
+      (async () => {
+        const { error, count } = await supabase
+          .from('allocations')
+          .delete()
+          .eq('group_id', groupId);
+        if (error) throw error;
+        console.log(`[CASCADE DELETE] Removed ${count || 0} allocations`);
+      })(),
+
+      // 2. Delete neighborhood reservations
+      (async () => {
+        const { error, count } = await supabase
+          .from('neighborhood_reservations')
+          .delete()
+          .eq('group_name', groupName);
+        if (error) throw error;
+        console.log(`[CASCADE DELETE] Removed ${count || 0} neighborhood reservations`);
+      })(),
+
+      // 3. Delete activity reservations (by group_id OR group_name)
+      (async () => {
+        const { error, count } = await supabase
+          .from('activity_reservations')
+          .delete()
+          .or(`group_id.eq.${groupId},group_name.eq.${groupName}`);
+        if (error) throw error;
+        console.log(`[CASCADE DELETE] Removed ${count || 0} activity reservations`);
+      })(),
+
+      // 4. Clear tents - set group_name, dates, gender to null
+      (async () => {
+        const { error, count } = await supabase
+          .from('tents')
+          .update({
+            group_name: null,
+            check_in_date: null,
+            check_out_date: null,
+            gender: 'MIXED'
+          })
+          .eq('group_name', groupName);
+        if (error) throw error;
+        console.log(`[CASCADE DELETE] Cleared ${count || 0} tents`);
+      })(),
+
+      // 5. Update kitchen time slots - remove group from JSON array
+      (async () => {
+        // First fetch all slots that might contain this group
+        const { data: slots, error: fetchError } = await supabase
+          .from('kitchen_time_slots')
+          .select('id, groups');
+        
+        if (fetchError) throw fetchError;
+        
+        if (!slots) return;
+
+        // Filter and update slots that have this group
+        let updatedCount = 0;
+        for (const slot of slots) {
+          if (!slot.groups || !Array.isArray(slot.groups)) continue;
+          
+          const groupsArray = slot.groups as { name: string }[];
+          const hasGroup = groupsArray.some(g => g.name === groupName);
+          
+          if (hasGroup) {
+            const filteredGroups = groupsArray.filter(g => g.name !== groupName);
+            const { error: updateError } = await supabase
+              .from('kitchen_time_slots')
+              .update({ groups: filteredGroups })
+              .eq('id', slot.id);
+            
+            if (updateError) throw updateError;
+            updatedCount++;
+          }
+        }
+        console.log(`[CASCADE DELETE] Removed group from ${updatedCount} kitchen slots`);
+      })()
+    ]);
+
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`[CASCADE DELETE] Operation ${index} failed:`, result.reason);
+      }
+    });
+
+    console.log(`[CASCADE DELETE] Completed for group: ${groupName}`);
+
+  } catch (e) {
+    console.error('[CASCADE DELETE] Error:', e);
+    throw e;
+  }
+};
+
+/**
+ * Get async description of linked records for display in UI
+ */
+export const getLinkedRecordsDescriptionAsync = async (groupId: string, groupName: string): Promise<string> => {
+  const summary = await getLinkedRecordsSummary(groupId, groupName);
   
   if (!summary.hasLinkedRecords) {
     return '';
@@ -139,141 +232,12 @@ export const getLinkedRecordsDescription = (groupId: string, groupName: string):
   if (summary.spaceBookings > 0) {
     parts.push(`${summary.spaceBookings} הזמנות מרחב`);
   }
+  if (summary.neighborhoodBookings > 0) {
+    parts.push(`${summary.neighborhoodBookings} הזמנות שכונה`);
+  }
   if (summary.kitchenSlots > 0) {
     parts.push(`${summary.kitchenSlots} ארוחות`);
   }
 
   return parts.join(', ');
-};
-
-/**
- * CASCADE DELETE - Permanently removes a group and ALL linked records
- * Collections cleaned:
- * 1. aharonson_allocations - VIP/neighborhood/tent allocations
- * 2. aharonson_farm_village_state.tents - tent bookings
- * 3. aharonson_farm_village_state.activityReservations - space bookings  
- * 4. aharonson_farm_village_state.neighborhoodReservations - neighborhood reservations
- * 5. aharonson_farm_kitchen_state.timeSlots - kitchen meal slots (removes group from slot)
- */
-export const cascadeDeleteGroupRecords = (groupId: string, groupName: string): void => {
-  console.log(`[CASCADE DELETE] Starting for group: ${groupName} (${groupId})`);
-
-  // 1. Clean allocations
-  try {
-    const allocationsData = localStorage.getItem(ALLOCATIONS_STORAGE_KEY);
-    if (allocationsData) {
-      const allocs = JSON.parse(allocationsData) as { groupId: string }[];
-      const filtered = allocs.filter(a => a.groupId !== groupId);
-      localStorage.setItem(ALLOCATIONS_STORAGE_KEY, JSON.stringify(filtered));
-      console.log(`[CASCADE DELETE] Removed ${allocs.length - filtered.length} allocations`);
-    }
-  } catch (e) {
-    console.error('Error cleaning allocations:', e);
-  }
-
-  // 2. Clean village state
-  try {
-    const villageData = localStorage.getItem(VILLAGE_STORAGE_KEY);
-    if (villageData) {
-      const state = JSON.parse(villageData);
-      let modified = false;
-
-      // Clean tents - clear booking info for matching groupName
-      if (state.tents) {
-        Object.keys(state.tents).forEach(tentId => {
-          const tent = state.tents[tentId];
-          if (tent.groupName === groupName) {
-            // Clear booking-related fields
-            state.tents[tentId] = {
-              ...tent,
-              groupName: undefined,
-              groupId: undefined,
-              checkInDate: undefined,
-              checkOutDate: undefined,
-              reservedBy: undefined,
-              phone: undefined,
-              notes: '',
-              // Keep physical tent properties
-            };
-            modified = true;
-            console.log(`[CASCADE DELETE] Cleared tent: ${tentId}`);
-          }
-        });
-      }
-
-      // Clean activity reservations
-      if (state.activityReservations) {
-        const originalCount = Object.keys(state.activityReservations).length;
-        const filtered: Record<string, any> = {};
-        Object.entries(state.activityReservations).forEach(([key, res]: [string, any]) => {
-          if (res.groupId !== groupId && res.reservedBy !== groupName) {
-            filtered[key] = res;
-          }
-        });
-        state.activityReservations = filtered;
-        const removed = originalCount - Object.keys(filtered).length;
-        if (removed > 0) {
-          modified = true;
-          console.log(`[CASCADE DELETE] Removed ${removed} activity reservations`);
-        }
-      }
-
-      // Clean neighborhood reservations
-      if (state.neighborhoodReservations) {
-        const originalCount = Object.keys(state.neighborhoodReservations).length;
-        const filtered: Record<string, any> = {};
-        Object.entries(state.neighborhoodReservations).forEach(([key, res]: [string, any]) => {
-          if (res.groupId !== groupId && res.groupName !== groupName) {
-            filtered[key] = res;
-          }
-        });
-        state.neighborhoodReservations = filtered;
-        const removed = originalCount - Object.keys(filtered).length;
-        if (removed > 0) {
-          modified = true;
-          console.log(`[CASCADE DELETE] Removed ${removed} neighborhood reservations`);
-        }
-      }
-
-      if (modified) {
-        localStorage.setItem(VILLAGE_STORAGE_KEY, JSON.stringify(state));
-      }
-    }
-  } catch (e) {
-    console.error('Error cleaning village state:', e);
-  }
-
-  // 3. Clean kitchen time slots - remove group from slots
-  try {
-    const kitchenData = localStorage.getItem(KITCHEN_STORAGE_KEY);
-    if (kitchenData) {
-      const state = JSON.parse(kitchenData);
-      let modified = false;
-
-      if (state.timeSlots) {
-        Object.keys(state.timeSlots).forEach(slotId => {
-          const slot = state.timeSlots[slotId];
-          if (slot.groups && Array.isArray(slot.groups)) {
-            const originalLength = slot.groups.length;
-            slot.groups = slot.groups.filter((g: any) => g.name !== groupName);
-            if (slot.groups.length < originalLength) {
-              modified = true;
-              console.log(`[CASCADE DELETE] Removed group from kitchen slot: ${slotId}`);
-            }
-          }
-        });
-      }
-
-      if (modified) {
-        localStorage.setItem(KITCHEN_STORAGE_KEY, JSON.stringify(state));
-      }
-    }
-  } catch (e) {
-    console.error('Error cleaning kitchen state:', e);
-  }
-
-  // 4. Remove synced records (source='groupSync')
-  removeSyncedRecordsForGroup(groupId);
-
-  console.log(`[CASCADE DELETE] Completed for group: ${groupName}`);
 };

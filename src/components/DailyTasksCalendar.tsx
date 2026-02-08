@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
+import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { DailyTask, DailyTaskType, DailyTaskStatus } from '@/types/village';
 import { format, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -57,6 +58,7 @@ const statusConfig: Record<DailyTaskStatus, { label: string; color: string }> = 
 
 export const DailyTasksCalendar: React.FC = () => {
   const { getDailyTasks, addDailyTask, updateDailyTaskStatus, removeDailyTask, getTodaySummary } = useVillage();
+  const { archivedGroups } = useAdminGroups();
   
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -68,9 +70,23 @@ export const DailyTasksCalendar: React.FC = () => {
     status: 'PENDING',
   });
 
+  // Get archived group names to filter them out
+  const archivedGroupNames = useMemo(() => 
+    new Set(archivedGroups.map(g => g.groupName)), 
+    [archivedGroups]
+  );
+
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   const tasks = getDailyTasks(dateStr);
-  const todaySummary = getTodaySummary();
+  const rawTodaySummary = getTodaySummary();
+
+  // Filter out archived groups from today summary
+  const todaySummary = useMemo(() => ({
+    ...rawTodaySummary,
+    checkIns: rawTodaySummary.checkIns.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+    checkOuts: rawTodaySummary.checkOuts.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+    tentsToCleaning: rawTodaySummary.tentsToCleaning.filter(t => !t.groupName || !archivedGroupNames.has(t.groupName)),
+  }), [rawTodaySummary, archivedGroupNames]);
 
   // Auto-generated tasks from check-ins/check-outs/cleaning
   const autoTasks = useMemo(() => {

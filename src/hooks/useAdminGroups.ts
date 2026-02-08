@@ -119,6 +119,8 @@ export const useAdminGroups = () => {
 
   const getDayUseGroupsForDate = useCallback((date: string) => {
     return groups.filter(g => {
+      // Exclude archived groups
+      if (g.isArchived) return false;
       if (g.groupType !== 'יום ללא לינה') return false;
       const targetDate = parseISO(date);
       const start = parseISO(g.startDate);
