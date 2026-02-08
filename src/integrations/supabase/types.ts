@@ -445,6 +445,7 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           departure_date: string
+          distribution_preference: Json | null
           group_type: string
           id: string
           meal_plan: Json | null
@@ -469,6 +470,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           departure_date: string
+          distribution_preference?: Json | null
           group_type?: string
           id: string
           meal_plan?: Json | null
@@ -493,6 +495,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           departure_date?: string
+          distribution_preference?: Json | null
           group_type?: string
           id?: string
           meal_plan?: Json | null
