@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import { Home, Lock, Check, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResponsiveModal } from '@/components/ResponsiveModal';
+import { DistributionRequirementsPanel } from '@/components/DistributionRequirementsPanel';
+import { DistributionPreference } from '@/types/distributionPreference';
 
 interface ParticipantAllocationTabProps {
   group: GroupRecord;
@@ -153,6 +155,12 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
 
   return (
     <div className="space-y-4">
+      {/* Distribution Requirements Panel - Read-only info from group reservation */}
+      <DistributionRequirementsPanel
+        preference={group.distributionPreference as DistributionPreference | null}
+        participantCount={remainingParticipants}
+      />
+
       <h3 className="text-lg font-semibold flex items-center gap-2">
         <Home className="w-5 h-5" />
         שכונות זמינות לחניכים
