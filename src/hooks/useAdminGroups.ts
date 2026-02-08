@@ -119,6 +119,21 @@ export const useAdminGroups = () => {
           supabase.from('activity_reservations').update({ group_name: newName }).eq('group_name', oldName),
           supabase.from('tents').update({ group_name: newName }).eq('group_name', oldName),
         ]);
+        
+        // Update group name in kitchen time slots (groups is a JSON array)
+        const { data: kitchenSlots } = await supabase.from('kitchen_time_slots').select('id, groups');
+        if (kitchenSlots) {
+          for (const slot of kitchenSlots) {
+            if (!slot.groups || !Array.isArray(slot.groups)) continue;
+            const hasGroup = (slot.groups as { name: string; pax: number }[]).some(g => g.name === oldName);
+            if (hasGroup) {
+              const updatedGroups = (slot.groups as { name: string; pax: number }[]).map(g => 
+                g.name === oldName ? { ...g, name: newName } : g
+              );
+              await supabase.from('kitchen_time_slots').update({ groups: updatedGroups }).eq('id', slot.id);
+            }
+          }
+        }
       }
     }
 
