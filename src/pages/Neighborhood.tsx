@@ -213,29 +213,30 @@ const Neighborhood = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b-2 border-border sticky top-0 z-10">
-        <div className="container py-6">
+        <div className="container py-3 md:py-6">
           <BreadcrumbNav items={[{ label: neighborhood.displayName }]} />
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">{neighborhood.displayName}</h1>
+              <h1 className="text-2xl md:text-4xl font-bold">{neighborhood.displayName}</h1>
               {neighborhood.description && (
-                <p className="text-muted-foreground text-lg mt-1">{neighborhood.description}</p>
+                <p className="text-muted-foreground text-sm md:text-lg mt-1 hidden sm:block">{neighborhood.description}</p>
               )}
             </div>
             
             {/* Stats */}
-            <div className="flex gap-4 text-lg flex-wrap">
-              <span className="px-4 py-2 bg-muted rounded-xl">
+            <div className="flex gap-2 md:gap-4 text-sm md:text-lg flex-wrap">
+              <span className="px-3 md:px-4 py-1.5 md:py-2 bg-muted rounded-xl">
                 <strong>{tentSummaries.length}</strong> אוהלים
               </span>
-              <span className="px-4 py-2 bg-primary/10 rounded-xl">
+              <span className="px-3 md:px-4 py-1.5 md:py-2 bg-primary/10 rounded-xl">
                 <strong>
                   {tentSummaries.reduce((acc, t) => acc + t.summary.occupiedBeds + t.summary.reservedBeds, 0)}
                 </strong> / {tentSummaries.reduce((acc, t) => acc + t.summary.totalBeds, 0)} מיטות
               </span>
-              <Button onClick={() => setShowReservationModal(true)} className="flex items-center gap-2">
+              <Button onClick={() => setShowReservationModal(true)} className="flex items-center gap-2" size="sm">
                 <Plus className="w-4 h-4" />
-                הזמנה חדשה
+                <span className="hidden sm:inline">הזמנה חדשה</span>
+                <span className="sm:hidden">+</span>
               </Button>
             </div>
           </div>
@@ -282,15 +283,15 @@ const Neighborhood = () => {
             />
           </div>
 
-          {/* Filter buttons */}
-          <div className="flex flex-wrap gap-2">
-            <Filter className="w-6 h-6 text-muted-foreground self-center mr-2" />
+          {/* Filter buttons - scrollable on mobile */}
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+            <Filter className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground self-center mr-2 flex-shrink-0" />
               {filters.map((filter) => (
               <button
                 key={filter.key}
                 onClick={() => setActiveFilter(filter.key)}
                 className={cn(
-                  'px-4 py-2 rounded-xl font-semibold transition-all',
+                  'px-3 md:px-4 py-2 md:py-2 rounded-xl font-medium text-sm md:font-semibold transition-all whitespace-nowrap min-h-[44px] touch-target',
                   activeFilter === filter.key
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -386,8 +387,8 @@ const Neighborhood = () => {
             ))}
           </div>
         ) : (
-          // Regular grid view
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          // Regular grid view - responsive columns
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
             {filteredTents.map(({ tent, summary }) => (
               <div 
                 key={summary.tentId} 

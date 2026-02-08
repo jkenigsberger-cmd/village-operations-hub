@@ -148,6 +148,7 @@
     @apply bg-background text-foreground font-nunito;
     font-size: 18px;
     line-height: 1.6;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   h1 {
@@ -172,9 +173,23 @@
 }
 
 @layer components {
+  /* Touch target utilities for mobile accessibility */
+  .touch-target {
+    @apply min-h-[48px] min-w-[48px];
+  }
+  
+  .mobile-button {
+    @apply py-4 px-6 text-lg min-h-[56px];
+  }
+  
+  /* Bottom navigation safe area */
+  .bottom-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+  
   /* Large clickable tiles */
   .tile {
-    @apply p-6 rounded-xl border-2 border-border bg-card shadow-sm 
+    @apply p-4 md:p-6 rounded-xl border-2 border-border bg-card shadow-sm 
            hover:shadow-md hover:border-primary/30 transition-all duration-200
            cursor-pointer active:scale-[0.98];
   }

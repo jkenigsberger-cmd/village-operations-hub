@@ -13,6 +13,7 @@ import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { PendingAllocationCard } from '@/components/PendingAllocationCard';
+import { MobileBottomNav, MenuSection } from '@/components/MobileBottomNav';
 import { GENDER_LEGEND } from '@/lib/tentColors';
 import { HE } from '@/lib/translations';
 import { 
@@ -48,7 +49,7 @@ import { he } from 'date-fns/locale';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
 
-type MenuSection = 'overview' | 'calendar' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
+// MenuSection type is now imported from MobileBottomNav
 
 const Index = () => {
   const navigate = useNavigate();
@@ -250,41 +251,49 @@ const {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {/* Header - Compact on mobile */}
       <header className="bg-card border-b-2 border-border sticky top-0 z-10">
-        <div className="container py-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Tent className="w-10 h-10 text-primary" />
+        <div className="container py-3 md:py-6">
+          <div className="flex items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
+              <Tent className="w-8 h-8 md:w-10 md:h-10 text-primary" />
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                <h1 className="text-2xl md:text-4xl font-bold text-foreground">
                   חוות אהרונסון
                 </h1>
-                <p className="text-muted-foreground text-lg">
+                <p className="text-muted-foreground text-sm md:text-lg hidden sm:block">
                   Glow Glamping & Ha-Dor Ha-Ba
                 </p>
               </div>
             </div>
             
             {/* Global Search & Settings */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <GlobalSearch />
               <Button 
                 variant="outline" 
+                size="icon"
                 onClick={() => navigate('/settings')}
-                className="flex items-center gap-2"
+                className="md:hidden"
               >
                 <Settings className="w-5 h-5" />
-                <span className="hidden sm:inline">{HE.nav.settings}</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/settings')}
+                className="hidden md:flex items-center gap-2"
+              >
+                <Settings className="w-5 h-5" />
+                <span>{HE.nav.settings}</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation Menu */}
-      <nav className="bg-card border-b border-border">
+      {/* Navigation Menu - Hidden on mobile, use bottom nav instead */}
+      <nav className="bg-card border-b border-border hidden md:block">
         <div className="container">
           <div className="flex overflow-x-auto gap-1 py-2">
             {menuItems.map((item) => (
@@ -310,13 +319,13 @@ const {
         </div>
       </nav>
 
-      <main className="container py-8">
+      <main className="container py-4 md:py-8">
         {/* Overview Section */}
         {activeSection === 'overview' && (
           <>
-            <section className="mb-10">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <CalendarDays className="w-8 h-8" />
+            <section className="mb-6 md:mb-10">
+              <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2 md:gap-3">
+                <CalendarDays className="w-6 h-6 md:w-8 md:h-8" />
                 {HE.pages.todayOverview}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1168,6 +1177,14 @@ const {
         open={!!selectedTentId}
         onOpenChange={(open) => !open && setSelectedTentId(null)}
         tent={selectedTentId ? state.tents[selectedTentId] : null}
+      />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        maintenanceCount={totalMaintenanceCount}
+        housekeepingCount={totalHousekeepingItems}
       />
     </div>
   );

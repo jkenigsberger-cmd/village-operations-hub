@@ -60,7 +60,7 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
     <Link 
       to={to}
       className={cn(
-        'tile flex flex-col gap-3 animate-slide-up transition-all',
+        'tile flex flex-col gap-2 md:gap-3 animate-slide-up transition-all min-h-[100px]',
         getGenderStyles(summary.gender, hasReservation),
         summary.isVIP && !hasReservation && 'border-vip/50 bg-gradient-to-br from-card to-vip/10',
         summary.cleaningStatus === 'NEEDS_CLEANING' && 'border-status-dirty'
@@ -68,10 +68,10 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1">
-          <h4 className="text-xl font-bold">{summary.code}</h4>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-lg md:text-xl font-bold">{summary.code}</h4>
           {summary.groupName && (
-            <p className="text-muted-foreground font-medium mt-1 truncate">
+            <p className="text-muted-foreground text-sm md:font-medium mt-0.5 md:mt-1 truncate">
               {summary.groupName}
             </p>
           )}
@@ -106,8 +106,8 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
       </div>
 
       {/* Occupancy */}
-      <div className="flex items-center gap-3">
-        <Users className="w-5 h-5 text-muted-foreground" />
+      <div className="flex items-center gap-2 md:gap-3">
+        <Users className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
         <div className="flex-1">
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div 
@@ -116,7 +116,7 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
             />
           </div>
         </div>
-        <span className="font-semibold text-base">
+        <span className="font-semibold text-sm md:text-base">
           {usedBeds}/{summary.totalBeds}
         </span>
       </div>
