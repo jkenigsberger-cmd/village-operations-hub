@@ -54,25 +54,26 @@ const GroupAllocation: React.FC = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b-2 border-border sticky top-0 z-10">
-        <div className="container py-4">
-          <div className="flex items-center gap-4">
+        <div className="container py-3 md:py-4">
+          <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => navigate('/')}
+              className="shrink-0"
             >
               <ArrowRight className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">שיבוץ לקבוצה: {group.groupName}</h1>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold truncate">{group.groupName}</h1>
+              <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm text-muted-foreground mt-0.5">
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   {format(parseISO(group.startDate), 'd MMM', { locale: he })} - {format(parseISO(group.endDate), 'd MMM', { locale: he })}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {group.pax} אנשים
+                  <Users className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  {group.pax}
                 </span>
               </div>
             </div>
@@ -80,28 +81,28 @@ const GroupAllocation: React.FC = () => {
         </div>
       </header>
 
-      <main className="container py-6">
+      <main className="container py-4 md:py-6">
         {/* Summary Counters */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
           <Card className={remainingStaff === 0 ? 'border-green-400' : ''}>
-            <CardContent className="p-6 text-center">
-              <div className="text-4xl font-bold text-primary mb-1">
+            <CardContent className="p-4 md:p-6 text-center">
+              <div className="text-3xl md:text-4xl font-bold text-primary mb-0.5 md:mb-1">
                 {remainingStaff}
               </div>
-              <div className="text-muted-foreground">צוות נשאר לשיבוץ</div>
-              <div className="text-sm text-muted-foreground mt-1">
+              <div className="text-sm md:text-base text-muted-foreground">צוות</div>
+              <div className="text-xs md:text-sm text-muted-foreground">
                 מתוך {staffCount}
               </div>
             </CardContent>
           </Card>
           
           <Card className={remainingParticipants === 0 ? 'border-green-400' : ''}>
-            <CardContent className="p-6 text-center">
-              <div className="text-4xl font-bold text-primary mb-1">
+            <CardContent className="p-4 md:p-6 text-center">
+              <div className="text-3xl md:text-4xl font-bold text-primary mb-0.5 md:mb-1">
                 {remainingParticipants}
               </div>
-              <div className="text-muted-foreground">חניכים נשאר לשיבוץ</div>
-              <div className="text-sm text-muted-foreground mt-1">
+              <div className="text-sm md:text-base text-muted-foreground">חניכים</div>
+              <div className="text-xs md:text-sm text-muted-foreground">
                 מתוך {participantCount}
               </div>
             </CardContent>
@@ -153,19 +154,19 @@ const GroupAllocation: React.FC = () => {
 
         {/* Allocation Tabs */}
         <Tabs defaultValue="vip" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="vip" className="flex items-center gap-2">
-              <Crown className="w-4 h-4" />
-              שיבוץ VIP (צוות)
+          <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-6 h-auto">
+            <TabsTrigger value="vip" className="flex items-center gap-1.5 md:gap-2 py-3 md:py-2 text-sm md:text-base">
+              <Crown className="w-4 h-4 shrink-0" />
+              <span className="truncate">VIP צוות</span>
               {remainingStaff > 0 && (
-                <Badge variant="secondary" className="mr-1">{remainingStaff}</Badge>
+                <Badge variant="secondary" className="mr-0.5 md:mr-1 text-xs">{remainingStaff}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="participants" className="flex items-center gap-2">
-              <Home className="w-4 h-4" />
-              שיבוץ חניכים (רגיל)
+            <TabsTrigger value="participants" className="flex items-center gap-1.5 md:gap-2 py-3 md:py-2 text-sm md:text-base">
+              <Home className="w-4 h-4 shrink-0" />
+              <span className="truncate">חניכים</span>
               {remainingParticipants > 0 && (
-                <Badge variant="secondary" className="mr-1">{remainingParticipants}</Badge>
+                <Badge variant="secondary" className="mr-0.5 md:mr-1 text-xs">{remainingParticipants}</Badge>
               )}
             </TabsTrigger>
           </TabsList>
