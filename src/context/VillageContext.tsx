@@ -1,5 +1,5 @@
 // @refresh reset - Force full refresh when this file changes to avoid HMR hook queue issues
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback } from 'react';
 import { 
   VillageState, 
   Tent, 
@@ -19,7 +19,7 @@ import {
   NeighborhoodId,
   TentGender
 } from '@/types/village';
-import { useVillageData } from '@/hooks/useVillageData';
+import { useSupabaseVillage } from '@/hooks/useSupabaseVillage';
 
 interface VillageContextType {
   state: VillageState | null;
@@ -132,40 +132,33 @@ export const useVillage = () => {
 const getToday = () => new Date().toISOString().split('T')[0];
 
 export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { state, isLoading, saveState, exportState, importState, resetToDefault } = useVillageData();
+  const { 
+    state, 
+    isLoading, 
+    updateTent,
+    updateBed,
+    updateFacility,
+    updateActivitySpace,
+    addActivityReservation: addActivityReservationDb,
+    removeActivityReservation: removeActivityReservationDb,
+    addFacilityReservation: addFacilityReservationDb,
+    removeFacilityReservation: removeFacilityReservationDb,
+    addNeighborhoodReservation: addNeighborhoodReservationDb,
+    removeNeighborhoodReservation: removeNeighborhoodReservationDb,
+    addDailyTask: addDailyTaskDb,
+    updateDailyTask: updateDailyTaskDb,
+    removeDailyTask: removeDailyTaskDb,
+  } = useSupabaseVillage();
 
   // ============================================================
   // BED OPERATIONS
   // ============================================================
 
-  const updateBedStatus = (bedId: string, status: BedStatus) => {
-    if (!state) return;
-    
-    const bed = state.beds[bedId];
-    if (!bed) return;
+  const updateBedStatus = useCallback((bedId: string, status: BedStatus) => {
+    updateBed(bedId, { status }).catch(console.error);
+  }, [updateBed]);
 
-    const updatedBeds = {
-      ...state.beds,
-      [bedId]: { ...bed, status },
-    };
-
-    // Also update the bed in the tent's beds array
-    const tent = state.tents[bed.tentId];
-    if (tent) {
-      const updatedTentBeds = tent.beds.map(b => 
-        b.id === bedId ? { ...b, status } : b
-      );
-      const updatedTents = {
-        ...state.tents,
-        [bed.tentId]: { ...tent, beds: updatedTentBeds, lastUpdated: new Date().toISOString() },
-      };
-      saveState({ ...state, beds: updatedBeds, tents: updatedTents });
-    } else {
-      saveState({ ...state, beds: updatedBeds });
-    }
-  };
-
-  const cycleBedStatus = (bedId: string) => {
+  const cycleBedStatus = useCallback((bedId: string) => {
     if (!state) return;
     const bed = state.beds[bedId];
     if (!bed) return;
@@ -175,422 +168,183 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
     updateBedStatus(bedId, nextStatus);
-  };
+  }, [state, updateBedStatus]);
 
-  const updateBedGuestName = (bedId: string, guestName: string) => {
-    if (!state) return;
+  const updateBedGuestName = useCallback((bedId: string, guestName: string) => {
+    updateBed(bedId, { guestName }).catch(console.error);
+  }, [updateBed]);
 
-    saveState((prev) => {
-      const bed = prev.beds[bedId];
-      if (!bed) return prev;
-
-      const updatedBeds = {
-        ...prev.beds,
-        [bedId]: { ...bed, guestName },
-      };
-
-      const tent = prev.tents[bed.tentId];
-      if (!tent) {
-        return { ...prev, beds: updatedBeds };
-      }
-
-      const updatedTentBeds = tent.beds.map((b) => (b.id === bedId ? { ...b, guestName } : b));
-      const updatedTents = {
-        ...prev.tents,
-        [bed.tentId]: { ...tent, beds: updatedTentBeds, lastUpdated: new Date().toISOString() },
-      };
-
-      return { ...prev, beds: updatedBeds, tents: updatedTents };
-    });
-  };
-
-  const clearBedGuest = (bedId: string) => {
+  const clearBedGuest = useCallback((bedId: string) => {
     updateBedGuestName(bedId, '');
-  };
+  }, [updateBedGuestName]);
 
   // ============================================================
   // TENT OPERATIONS
   // ============================================================
 
-  const updateTentCleaningStatus = (tentId: string, cleaningStatus: CleaningStatus, assignedTo?: string) => {
+  const updateTentCleaningStatus = useCallback((tentId: string, cleaningStatus: CleaningStatus, assignedTo?: string) => {
+    const updates: Partial<Tent> = { cleaningStatus };
+    if (assignedTo !== undefined) {
+      updates.cleaningAssignedTo = assignedTo;
+    }
+    updateTent(tentId, updates).catch(console.error);
+  }, [updateTent]);
+
+  const updateTentGroupName = useCallback((tentId: string, groupName: string) => {
+    updateTent(tentId, { groupName }).catch(console.error);
+  }, [updateTent]);
+
+  const updateTentDates = useCallback((tentId: string, checkInDate?: string | null, checkOutDate?: string | null) => {
     if (!state) return;
-
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
-
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: {
-          ...tent,
-          cleaningStatus,
-          cleaningAssignedTo: assignedTo ?? tent.cleaningAssignedTo,
-          lastUpdated: new Date().toISOString(),
-        },
-      };
-
-      return { ...prev, tents: updatedTents };
-    });
-  };
-
-  const updateTentGroupName = (tentId: string, groupName: string) => {
-    if (!state) return;
-
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
-
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { ...tent, groupName, lastUpdated: new Date().toISOString() },
-      };
-
-      return { ...prev, tents: updatedTents };
-    });
-  };
-
-  const updateTentDates = (tentId: string, checkInDate?: string | null, checkOutDate?: string | null) => {
-    if (!state) return;
-
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
-
-      // null = clear, undefined = keep existing
-      const newCheckIn = checkInDate === null ? undefined : (checkInDate ?? tent.checkInDate);
-      const newCheckOut = checkOutDate === null ? undefined : (checkOutDate ?? tent.checkOutDate);
-
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { 
-          ...tent, 
-          checkInDate: newCheckIn, 
-          checkOutDate: newCheckOut,
-          lastUpdated: new Date().toISOString() 
-        },
-      };
-
-      return { ...prev, tents: updatedTents };
-    });
-  };
-
-  const updateTentNotes = (tentId: string, notes: string) => {
-    if (!state) return;
-    
     const tent = state.tents[tentId];
     if (!tent) return;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, notes, lastUpdated: new Date().toISOString() },
-    };
+    const updates: Partial<Tent> = {};
+    // null = clear, undefined = keep existing
+    if (checkInDate !== undefined) {
+      updates.checkInDate = checkInDate === null ? undefined : checkInDate;
+    }
+    if (checkOutDate !== undefined) {
+      updates.checkOutDate = checkOutDate === null ? undefined : checkOutDate;
+    }
+    updateTent(tentId, updates).catch(console.error);
+  }, [state, updateTent]);
 
-    saveState({ ...state, tents: updatedTents });
-  };
+  const updateTentNotes = useCallback((tentId: string, notes: string) => {
+    updateTent(tentId, { notes }).catch(console.error);
+  }, [updateTent]);
 
-  const updateTentPeopleCount = (tentId: string, peopleCount: number | undefined) => {
+  const updateTentPeopleCount = useCallback((tentId: string, peopleCount: number | undefined) => {
     if (!state) return;
-    
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
+    const tent = state.tents[tentId];
+    if (!tent) return;
 
-      // Validate count doesn't exceed beds
-      const validCount = peopleCount !== undefined 
-        ? Math.min(Math.max(0, peopleCount), tent.beds.length)
-        : undefined;
+    // Validate count doesn't exceed beds
+    const validCount = peopleCount !== undefined 
+      ? Math.min(Math.max(0, peopleCount), tent.beds.length)
+      : undefined;
 
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { ...tent, peopleCount: validCount, lastUpdated: new Date().toISOString() },
-      };
+    updateTent(tentId, { peopleCount: validCount }).catch(console.error);
+  }, [state, updateTent]);
 
-      return { ...prev, tents: updatedTents };
-    });
-  };
-
-  const updateTentGender = (tentId: string, gender: TentGender | undefined) => {
-    if (!state) return;
-
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
-
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { ...tent, gender, lastUpdated: new Date().toISOString() },
-      };
-
-      return { ...prev, tents: updatedTents };
-    });
-  };
+  const updateTentGender = useCallback((tentId: string, gender: TentGender | undefined) => {
+    updateTent(tentId, { gender }).catch(console.error);
+  }, [updateTent]);
 
   // Atomically set bed statuses to RESERVED for VIP tent assignments
-  const setTentReservedBeds = (tentId: string, reservedCount: number) => {
+  const setTentReservedBeds = useCallback((tentId: string, reservedCount: number) => {
     if (!state) return;
+    const tent = state.tents[tentId];
+    if (!tent) return;
 
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
-
-      const updatedBeds = { ...prev.beds };
-      const updatedTentBeds = tent.beds.map((bed, index) => {
-        const shouldBeReserved = index < reservedCount;
-        let newStatus = bed.status;
-
-        if (shouldBeReserved) {
-          // Only mark as RESERVED if currently FREE
-          if (bed.status === 'FREE') {
-            newStatus = 'RESERVED';
-          }
-        } else {
-          // Clear RESERVED status if no guest name and was RESERVED
-          if (bed.status === 'RESERVED' && !bed.guestName) {
-            newStatus = 'FREE';
-          }
+    // Update each bed based on whether it should be reserved
+    tent.beds.forEach((bed, index) => {
+      const shouldBeReserved = index < reservedCount;
+      
+      if (shouldBeReserved) {
+        if (bed.status === 'FREE') {
+          updateBed(bed.id, { status: 'RESERVED' }).catch(console.error);
         }
-
-        const updatedBed = { ...bed, status: newStatus };
-        updatedBeds[bed.id] = updatedBed;
-        return updatedBed;
-      });
-
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { ...tent, beds: updatedTentBeds, lastUpdated: new Date().toISOString() },
-      };
-
-      return { ...prev, beds: updatedBeds, tents: updatedTents };
+      } else {
+        if (bed.status === 'RESERVED' && !bed.guestName) {
+          updateBed(bed.id, { status: 'FREE' }).catch(console.error);
+        }
+      }
     });
-  };
+  }, [state, updateBed]);
 
-  const updateTentPrivateBathroom = (tentId: string, hasPrivateBathroom: boolean) => {
+  const updateTentPrivateBathroom = useCallback((tentId: string, hasPrivateBathroom: boolean) => {
+    updateTent(tentId, { hasPrivateBathroom }).catch(console.error);
+  }, [updateTent]);
+
+  const updateTentPrivateShower = useCallback((tentId: string, hasPrivateShower: boolean) => {
+    updateTent(tentId, { hasPrivateShower }).catch(console.error);
+  }, [updateTent]);
+
+  const clearAllBeds = useCallback((tentId: string) => {
     if (!state) return;
-    
     const tent = state.tents[tentId];
     if (!tent) return;
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, hasPrivateBathroom, lastUpdated: new Date().toISOString() },
-    };
-
-    saveState({ ...state, tents: updatedTents });
-  };
-
-  const updateTentPrivateShower = (tentId: string, hasPrivateShower: boolean) => {
-    if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
-
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, hasPrivateShower, lastUpdated: new Date().toISOString() },
-    };
-
-    saveState({ ...state, tents: updatedTents });
-  };
-
-  const clearAllBeds = (tentId: string) => {
-    if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
-
-    const updatedBeds = { ...state.beds };
-    const updatedTentBeds = tent.beds.map(b => {
-      const clearedBed = { ...b, status: 'FREE' as BedStatus, guestName: '' };
-      updatedBeds[b.id] = clearedBed;
-      return clearedBed;
+    // Clear all beds
+    tent.beds.forEach(b => {
+      updateBed(b.id, { status: 'FREE', guestName: '' }).catch(console.error);
     });
+    // Clear tent group info
+    updateTent(tentId, { groupName: '' }).catch(console.error);
+  }, [state, updateBed, updateTent]);
 
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, beds: updatedTentBeds, groupName: '', lastUpdated: new Date().toISOString() },
-    };
+  const updateTentCleaningAssignment = useCallback((tentId: string, assignedTo: string) => {
+    updateTent(tentId, { cleaningAssignedTo: assignedTo }).catch(console.error);
+  }, [updateTent]);
 
-    saveState({ ...state, beds: updatedBeds, tents: updatedTents });
-  };
-
-  const updateTentCleaningAssignment = (tentId: string, assignedTo: string) => {
-    if (!state) return;
-    
-    const tent = state.tents[tentId];
-    if (!tent) return;
-
-    const updatedTents = {
-      ...state.tents,
-      [tentId]: { ...tent, cleaningAssignedTo: assignedTo, lastUpdated: new Date().toISOString() },
-    };
-
-    saveState({ ...state, tents: updatedTents });
-  };
-
-  const reportTentFacilityIssue = (
+  const reportTentFacilityIssue = useCallback((
     tentId: string,
     facilityType: 'bathroom' | 'shower',
     status: WorkingStatus,
     notes: string,
     image?: string
   ) => {
-    if (!state) return;
+    const updates = facilityType === 'bathroom'
+      ? { bathroomWorkingStatus: status, bathroomMaintenanceNotes: notes, bathroomMaintenanceImage: image }
+      : { showerWorkingStatus: status, showerMaintenanceNotes: notes, showerMaintenanceImage: image };
 
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
+    updateTent(tentId, updates).catch(console.error);
+  }, [updateTent]);
 
-      const updates =
-        facilityType === 'bathroom'
-          ? { bathroomWorkingStatus: status, bathroomMaintenanceNotes: notes, bathroomMaintenanceImage: image }
-          : { showerWorkingStatus: status, showerMaintenanceNotes: notes, showerMaintenanceImage: image };
+  const resolveTentFacilityIssue = useCallback((tentId: string, facilityType: 'bathroom' | 'shower') => {
+    const updates = facilityType === 'bathroom' 
+      ? { bathroomWorkingStatus: 'WORKING' as WorkingStatus, bathroomMaintenanceNotes: undefined, bathroomMaintenanceImage: undefined }
+      : { showerWorkingStatus: 'WORKING' as WorkingStatus, showerMaintenanceNotes: undefined, showerMaintenanceImage: undefined };
 
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { ...tent, ...updates, lastUpdated: new Date().toISOString() },
-      };
-
-      return { ...prev, tents: updatedTents };
-    });
-  };
-
-  const resolveTentFacilityIssue = (tentId: string, facilityType: 'bathroom' | 'shower') => {
-    saveState((prev) => {
-      const tent = prev.tents[tentId];
-      if (!tent) return prev;
-
-      const updates = facilityType === 'bathroom' 
-        ? { bathroomWorkingStatus: 'WORKING' as WorkingStatus, bathroomMaintenanceNotes: undefined, bathroomMaintenanceImage: undefined }
-        : { showerWorkingStatus: 'WORKING' as WorkingStatus, showerMaintenanceNotes: undefined, showerMaintenanceImage: undefined };
-
-      const updatedTents = {
-        ...prev.tents,
-        [tentId]: { ...tent, ...updates, lastUpdated: new Date().toISOString() },
-      };
-
-      return { ...prev, tents: updatedTents };
-    });
-  };
+    updateTent(tentId, updates).catch(console.error);
+  }, [updateTent]);
 
   // ============================================================
   // FACILITY OPERATIONS
   // ============================================================
 
-  const updateFacilityCleaningStatus = (facilityId: string, cleaningStatus: CleaningStatus) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
+  const updateFacilityCleaningStatus = useCallback((facilityId: string, cleaningStatus: CleaningStatus) => {
+    updateFacility(facilityId, { cleaningStatus }).catch(console.error);
+  }, [updateFacility]);
 
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { ...facility, cleaningStatus, lastUpdated: new Date().toISOString() },
-    };
+  const updateFacilityWorkingStatus = useCallback((facilityId: string, workingStatus: WorkingStatus) => {
+    updateFacility(facilityId, { workingStatus }).catch(console.error);
+  }, [updateFacility]);
 
-    saveState({ ...state, facilities: updatedFacilities });
-  };
+  const updateFacilityNotes = useCallback((facilityId: string, notes: string) => {
+    updateFacility(facilityId, { notes }).catch(console.error);
+  }, [updateFacility]);
 
-  const updateFacilityWorkingStatus = (facilityId: string, workingStatus: WorkingStatus) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
+  const updateFacilityMaintenanceImage = useCallback((facilityId: string, maintenanceImage: string | undefined) => {
+    updateFacility(facilityId, { maintenanceImage }).catch(console.error);
+  }, [updateFacility]);
 
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { ...facility, workingStatus, lastUpdated: new Date().toISOString() },
-    };
+  const updateFacilityMaintenanceNotes = useCallback((facilityId: string, maintenanceNotes: string | undefined) => {
+    updateFacility(facilityId, { maintenanceNotes }).catch(console.error);
+  }, [updateFacility]);
 
-    saveState({ ...state, facilities: updatedFacilities });
-  };
+  const reportFacilityIssue = useCallback((facilityId: string, status: WorkingStatus, notes: string, image?: string) => {
+    updateFacility(facilityId, { 
+      workingStatus: status,
+      maintenanceNotes: notes,
+      maintenanceImage: image,
+    }).catch(console.error);
+  }, [updateFacility]);
 
-  const updateFacilityNotes = (facilityId: string, notes: string) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
-
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { ...facility, notes, lastUpdated: new Date().toISOString() },
-    };
-
-    saveState({ ...state, facilities: updatedFacilities });
-  };
-
-  const updateFacilityMaintenanceImage = (facilityId: string, maintenanceImage: string | undefined) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
-
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { ...facility, maintenanceImage, lastUpdated: new Date().toISOString() },
-    };
-
-    saveState({ ...state, facilities: updatedFacilities });
-  };
-
-  const updateFacilityMaintenanceNotes = (facilityId: string, maintenanceNotes: string | undefined) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
-
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { ...facility, maintenanceNotes, lastUpdated: new Date().toISOString() },
-    };
-
-    saveState({ ...state, facilities: updatedFacilities });
-  };
-
-  const reportFacilityIssue = (facilityId: string, status: WorkingStatus, notes: string, image?: string) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
-
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { 
-        ...facility, 
-        workingStatus: status,
-        maintenanceNotes: notes,
-        maintenanceImage: image,
-        lastUpdated: new Date().toISOString() 
-      },
-    };
-
-    saveState({ ...state, facilities: updatedFacilities });
-  };
-
-  const resolveFacilityIssue = (facilityId: string) => {
-    if (!state) return;
-    
-    const facility = state.facilities[facilityId];
-    if (!facility) return;
-
-    const updatedFacilities = {
-      ...state.facilities,
-      [facilityId]: { 
-        ...facility, 
-        workingStatus: 'WORKING' as WorkingStatus,
-        maintenanceNotes: undefined,
-        maintenanceImage: undefined,
-        lastUpdated: new Date().toISOString() 
-      },
-    };
-
-    saveState({ ...state, facilities: updatedFacilities });
-  };
+  const resolveFacilityIssue = useCallback((facilityId: string) => {
+    updateFacility(facilityId, { 
+      workingStatus: 'WORKING',
+      maintenanceNotes: undefined,
+      maintenanceImage: undefined,
+    }).catch(console.error);
+  }, [updateFacility]);
 
   // ============================================================
   // FACILITY RESERVATION OPERATIONS
   // ============================================================
 
-  const addFacilityReservation = (reservation: Omit<FacilityReservation, 'id' | 'createdAt'>): boolean => {
+  const addFacilityReservation = useCallback((reservation: Omit<FacilityReservation, 'id' | 'createdAt'>): boolean => {
     if (!state) return false;
 
     // Check for overlapping reservations
@@ -612,42 +366,26 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     }
 
-    const newReservation: FacilityReservation = {
-      ...reservation,
-      id: Math.random().toString(36).substring(2, 11),
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedReservations = {
-      ...state.facilityReservations,
-      [newReservation.id]: newReservation,
-    };
-
-    saveState({ ...state, facilityReservations: updatedReservations });
+    addFacilityReservationDb(reservation).catch(console.error);
     return true;
-  };
+  }, [state, addFacilityReservationDb]);
 
-  const removeFacilityReservation = (reservationId: string) => {
-    if (!state) return;
+  const removeFacilityReservation = useCallback((reservationId: string) => {
+    removeFacilityReservationDb(reservationId).catch(console.error);
+  }, [removeFacilityReservationDb]);
 
-    const updatedReservations = { ...(state.facilityReservations || {}) };
-    delete updatedReservations[reservationId];
-
-    saveState({ ...state, facilityReservations: updatedReservations });
-  };
-
-  const getFacilityReservations = (facilityId: string): FacilityReservation[] => {
+  const getFacilityReservations = useCallback((facilityId: string): FacilityReservation[] => {
     if (!state) return [];
     return Object.values(state.facilityReservations || {}).filter(
       r => r.facilityId === facilityId
     );
-  };
+  }, [state]);
 
   // ============================================================
   // ACTIVITY OPERATIONS
   // ============================================================
 
-  const addActivityReservation = (reservation: Omit<ActivityReservation, 'id' | 'createdAt'>): boolean => {
+  const addActivityReservation = useCallback((reservation: Omit<ActivityReservation, 'id' | 'createdAt'>): boolean => {
     if (!state) return false;
 
     // Check for overlapping reservations
@@ -669,108 +407,51 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     }
 
-    const newReservation: ActivityReservation = {
-      ...reservation,
-      id: Math.random().toString(36).substring(2, 11),
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedReservations = {
-      ...state.activityReservations,
-      [newReservation.id]: newReservation,
-    };
-
-    saveState({ ...state, activityReservations: updatedReservations });
+    addActivityReservationDb(reservation).catch(console.error);
     return true;
-  };
+  }, [state, addActivityReservationDb]);
 
-  const removeActivityReservation = (reservationId: string) => {
+  const removeActivityReservation = useCallback((reservationId: string) => {
+    removeActivityReservationDb(reservationId).catch(console.error);
+  }, [removeActivityReservationDb]);
+
+  const updateActivitySpaceStatus = useCallback((spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus, cleaningNotes?: string) => {
     if (!state) return;
-
-    const updatedReservations = { ...state.activityReservations };
-    delete updatedReservations[reservationId];
-
-    saveState({ ...state, activityReservations: updatedReservations });
-  };
-
-  const updateActivitySpaceStatus = (spaceId: string, cleaningStatus?: CleaningStatus, workingStatus?: WorkingStatus, cleaningNotes?: string) => {
-    if (!state) return;
-
     const space = state.activitySpaces[spaceId];
     if (!space) return;
 
-    saveState({
-      ...state,
-      activitySpaces: {
-        ...state.activitySpaces,
-        [spaceId]: {
-          ...space,
-          ...(cleaningStatus !== undefined && { cleaningStatus }),
-          ...(workingStatus !== undefined && { workingStatus }),
-          // Clear cleaning notes when marking as clean, otherwise set if provided
-          cleaningNotes: cleaningStatus === 'CLEAN' ? undefined : (cleaningNotes !== undefined ? cleaningNotes : space.cleaningNotes),
-        },
-      },
-    });
-  };
+    const updates: Partial<{cleaningStatus: CleaningStatus; workingStatus: WorkingStatus; cleaningNotes: string | undefined}> = {};
+    if (cleaningStatus !== undefined) updates.cleaningStatus = cleaningStatus;
+    if (workingStatus !== undefined) updates.workingStatus = workingStatus;
+    // Clear cleaning notes when marking as clean, otherwise set if provided
+    if (cleaningStatus === 'CLEAN') {
+      updates.cleaningNotes = undefined;
+    } else if (cleaningNotes !== undefined) {
+      updates.cleaningNotes = cleaningNotes;
+    }
 
-  const updateActivitySpaceNotes = (spaceId: string, notes: string) => {
-    if (!state) return;
+    updateActivitySpace(spaceId, updates).catch(console.error);
+  }, [state, updateActivitySpace]);
 
-    const space = state.activitySpaces[spaceId];
-    if (!space) return;
+  const updateActivitySpaceNotes = useCallback((spaceId: string, notes: string) => {
+    updateActivitySpace(spaceId, { notes }).catch(console.error);
+  }, [updateActivitySpace]);
 
-    saveState({
-      ...state,
-      activitySpaces: {
-        ...state.activitySpaces,
-        [spaceId]: {
-          ...space,
-          notes,
-        },
-      },
-    });
-  };
+  const reportActivitySpaceIssue = useCallback((spaceId: string, status: WorkingStatus, notes: string, image?: string) => {
+    updateActivitySpace(spaceId, {
+      workingStatus: status,
+      maintenanceNotes: notes,
+      maintenanceImage: image,
+    }).catch(console.error);
+  }, [updateActivitySpace]);
 
-  const reportActivitySpaceIssue = (spaceId: string, status: WorkingStatus, notes: string, image?: string) => {
-    if (!state) return;
-
-    const space = state.activitySpaces[spaceId];
-    if (!space) return;
-
-    saveState({
-      ...state,
-      activitySpaces: {
-        ...state.activitySpaces,
-        [spaceId]: {
-          ...space,
-          workingStatus: status,
-          maintenanceNotes: notes,
-          maintenanceImage: image,
-        },
-      },
-    });
-  };
-
-const resolveActivitySpaceIssue = (spaceId: string) => {
-    saveState((prev) => {
-      const space = prev.activitySpaces[spaceId];
-      if (!space) return prev;
-
-      return {
-        ...prev,
-        activitySpaces: {
-          ...prev.activitySpaces,
-          [spaceId]: {
-            ...space,
-            workingStatus: 'WORKING',
-            maintenanceNotes: undefined,
-            maintenanceImage: undefined,
-          },
-        },
-      };
-    });
-  };
+  const resolveActivitySpaceIssue = useCallback((spaceId: string) => {
+    updateActivitySpace(spaceId, {
+      workingStatus: 'WORKING',
+      maintenanceNotes: undefined,
+      maintenanceImage: undefined,
+    }).catch(console.error);
+  }, [updateActivitySpace]);
 
   // ============================================================
   // NEIGHBORHOOD BULK OPERATIONS
@@ -782,7 +463,7 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
     return start1 < end2 && start2 < end1;
   };
 
-  const checkNeighborhoodAvailability = (
+  const checkNeighborhoodAvailability = useCallback((
     neighborhoodId: NeighborhoodId, 
     checkIn: string, 
     checkOut: string
@@ -830,9 +511,9 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
     }
 
     return { available: true };
-  };
+  }, [state]);
 
-  const reserveNeighborhood = (reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>): { success: boolean; error?: string } => {
+  const reserveNeighborhood = useCallback((reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>): { success: boolean; error?: string } => {
     if (!state) return { success: false, error: 'Estado no disponible' };
 
     const neighborhood = state.neighborhoods[reservation.neighborhoodId];
@@ -858,26 +539,21 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
       };
     }
 
-    const newReservation: NeighborhoodReservation = {
+    // Add reservation to DB
+    addNeighborhoodReservationDb({
       ...reservation,
-      id: Math.random().toString(36).substring(2, 11),
-      createdAt: new Date().toISOString(),
       reservationType: reservation.reservationType || 'FULL_NEIGHBORHOOD',
-    };
-
-    // Update all tents in the neighborhood
-    const updatedTents = { ...state.tents };
-    const updatedBeds = { ...state.beds };
+    }).catch(console.error);
 
     // Assign genders based on distribution
     const genderDistribution = reservation.genderDistribution;
     let femaleCount = genderDistribution?.female || 0;
     let maleCount = genderDistribution?.male || 0;
     let mixedCount = genderDistribution?.mixed || 0;
-    let tentIndex = 0;
 
+    // Update all tents in the neighborhood
     for (const tentId of neighborhood.tentIds) {
-      const tent = updatedTents[tentId];
+      const tent = state.tents[tentId];
       if (!tent) continue;
 
       // Determine gender for this tent based on distribution
@@ -895,36 +571,24 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
         }
       }
 
-      // Set group name, check-in and check-out dates
-      updatedTents[tentId] = {
-        ...tent,
+      // Update tent
+      updateTent(tentId, {
         groupName: reservation.groupName,
         checkInDate: reservation.checkInDate,
         checkOutDate: reservation.checkOutDate,
         gender: assignedGender || tent.gender,
-        lastUpdated: new Date().toISOString(),
-      };
+      }).catch(console.error);
 
       // Reserve all beds
-      const updatedTentBeds = tent.beds.map(b => {
-        const reservedBed = { ...b, status: 'RESERVED' as BedStatus };
-        updatedBeds[b.id] = reservedBed;
-        return reservedBed;
+      tent.beds.forEach(b => {
+        updateBed(b.id, { status: 'RESERVED' }).catch(console.error);
       });
-      updatedTents[tentId].beds = updatedTentBeds;
-      tentIndex++;
     }
 
-    const updatedReservations = {
-      ...state.neighborhoodReservations,
-      [newReservation.id]: newReservation,
-    };
-
-    saveState({ ...state, tents: updatedTents, beds: updatedBeds, neighborhoodReservations: updatedReservations });
     return { success: true };
-  };
+  }, [state, checkNeighborhoodAvailability, addNeighborhoodReservationDb, updateTent, updateBed]);
 
-  const checkTentAvailability = (
+  const checkTentAvailability = useCallback((
     tentId: string,
     checkIn: string,
     checkOut: string
@@ -945,9 +609,9 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
     }
 
     return { available: true };
-  };
+  }, [state]);
 
-  const reserveSpecificTents = (params: {
+  const reserveSpecificTents = useCallback((params: {
     neighborhoodId: NeighborhoodId;
     tentIds: string[];
     tentGenders?: Record<string, TentGender>;
@@ -987,8 +651,8 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
       if (tent) totalBeds += tent.beds.length;
     }
 
-    const newReservation: NeighborhoodReservation = {
-      id: Math.random().toString(36).substring(2, 11),
+    // Add reservation to DB
+    addNeighborhoodReservationDb({
       neighborhoodId,
       groupName,
       checkInDate,
@@ -1000,194 +664,119 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
       contactName,
       contactPhone,
       notes,
-      createdAt: new Date().toISOString(),
-    };
+    }).catch(console.error);
 
     // Update selected tents
-    const updatedTents = { ...state.tents };
-    const updatedBeds = { ...state.beds };
-
     for (const tentId of tentIds) {
-      const tent = updatedTents[tentId];
+      const tent = state.tents[tentId];
       if (!tent) continue;
 
       // Get assigned gender for this tent
       const assignedGender = tentGenders?.[tentId] || tent.gender;
 
-      updatedTents[tentId] = {
-        ...tent,
+      updateTent(tentId, {
         groupName,
         checkInDate,
         checkOutDate,
         gender: assignedGender,
-        lastUpdated: new Date().toISOString(),
-      };
+      }).catch(console.error);
 
       // Reserve all beds in selected tents
-      const updatedTentBeds = tent.beds.map(b => {
-        const reservedBed = { ...b, status: 'RESERVED' as BedStatus };
-        updatedBeds[b.id] = reservedBed;
-        return reservedBed;
+      tent.beds.forEach(b => {
+        updateBed(b.id, { status: 'RESERVED' }).catch(console.error);
       });
-      updatedTents[tentId].beds = updatedTentBeds;
     }
 
-    const updatedReservations = {
-      ...state.neighborhoodReservations,
-      [newReservation.id]: newReservation,
-    };
-
-    saveState({ ...state, tents: updatedTents, beds: updatedBeds, neighborhoodReservations: updatedReservations });
     return { success: true };
-  };
+  }, [state, checkTentAvailability, addNeighborhoodReservationDb, updateTent, updateBed]);
 
-  const removeNeighborhoodReservation = (reservationId: string) => {
-    if (!state) return;
+  const removeNeighborhoodReservation = useCallback((reservationId: string) => {
+    removeNeighborhoodReservationDb(reservationId).catch(console.error);
+  }, [removeNeighborhoodReservationDb]);
 
-    const updatedReservations = { ...(state.neighborhoodReservations || {}) };
-    delete updatedReservations[reservationId];
-
-    saveState({ ...state, neighborhoodReservations: updatedReservations });
-  };
-
-  const getNeighborhoodReservations = (neighborhoodId: NeighborhoodId): NeighborhoodReservation[] => {
+  const getNeighborhoodReservations = useCallback((neighborhoodId: NeighborhoodId): NeighborhoodReservation[] => {
     if (!state) return [];
     return Object.values(state.neighborhoodReservations || {}).filter(
       r => r.neighborhoodId === neighborhoodId
     ).sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
-  };
+  }, [state]);
 
-  const markNeighborhoodDirty = (neighborhoodId: NeighborhoodId) => {
+  const markNeighborhoodDirty = useCallback((neighborhoodId: NeighborhoodId) => {
     if (!state) return;
 
     const neighborhood = state.neighborhoods[neighborhoodId];
     if (!neighborhood) return;
 
-    const updatedTents = { ...state.tents };
     for (const tentId of neighborhood.tentIds) {
-      const tent = updatedTents[tentId];
-      if (!tent) continue;
-      updatedTents[tentId] = {
-        ...tent,
-        cleaningStatus: 'NEEDS_CLEANING',
-        lastUpdated: new Date().toISOString(),
-      };
+      updateTent(tentId, { cleaningStatus: 'NEEDS_CLEANING' }).catch(console.error);
     }
+  }, [state, updateTent]);
 
-    saveState({ ...state, tents: updatedTents });
-  };
-
-  const markNeighborhoodClean = (neighborhoodId: NeighborhoodId) => {
+  const markNeighborhoodClean = useCallback((neighborhoodId: NeighborhoodId) => {
     if (!state) return;
 
     const neighborhood = state.neighborhoods[neighborhoodId];
     if (!neighborhood) return;
 
-    const updatedTents = { ...state.tents };
     for (const tentId of neighborhood.tentIds) {
-      const tent = updatedTents[tentId];
-      if (!tent) continue;
-      updatedTents[tentId] = {
-        ...tent,
-        cleaningStatus: 'CLEAN',
-        lastUpdated: new Date().toISOString(),
-      };
+      updateTent(tentId, { cleaningStatus: 'CLEAN' }).catch(console.error);
     }
+  }, [state, updateTent]);
 
-    saveState({ ...state, tents: updatedTents });
-  };
-
-  const clearNeighborhoodBeds = (neighborhoodId: NeighborhoodId) => {
+  const clearNeighborhoodBeds = useCallback((neighborhoodId: NeighborhoodId) => {
     if (!state) return;
 
     const neighborhood = state.neighborhoods[neighborhoodId];
     if (!neighborhood) return;
 
-    const updatedTents = { ...state.tents };
-    const updatedBeds = { ...state.beds };
-
     for (const tentId of neighborhood.tentIds) {
-      const tent = updatedTents[tentId];
+      const tent = state.tents[tentId];
       if (!tent) continue;
 
-      const clearedTentBeds = tent.beds.map(b => {
-        const clearedBed = { ...b, status: 'FREE' as BedStatus, guestName: '' };
-        updatedBeds[b.id] = clearedBed;
-        return clearedBed;
+      // Clear all beds
+      tent.beds.forEach(b => {
+        updateBed(b.id, { status: 'FREE', guestName: '' }).catch(console.error);
       });
 
-      updatedTents[tentId] = {
-        ...tent,
-        beds: clearedTentBeds,
+      // Clear tent group info
+      updateTent(tentId, { 
         groupName: '',
         checkInDate: undefined,
         checkOutDate: undefined,
-        lastUpdated: new Date().toISOString(),
-      };
+      }).catch(console.error);
     }
-
-    saveState({ ...state, tents: updatedTents, beds: updatedBeds });
-  };
+  }, [state, updateTent, updateBed]);
 
   // ============================================================
   // DAILY TASK OPERATIONS
   // ============================================================
 
-  const addDailyTask = (task: Omit<DailyTask, 'id' | 'createdAt'>) => {
-    if (!state) return;
+  const addDailyTask = useCallback((task: Omit<DailyTask, 'id' | 'createdAt'>) => {
+    addDailyTaskDb(task).catch(console.error);
+  }, [addDailyTaskDb]);
 
-    const newTask: DailyTask = {
-      ...task,
-      id: Math.random().toString(36).substring(2, 11),
-      createdAt: new Date().toISOString(),
-    };
+  const updateDailyTaskStatus = useCallback((taskId: string, status: DailyTaskStatus) => {
+    const updates: Partial<DailyTask> = { status };
+    if (status === 'COMPLETED') {
+      updates.completedAt = new Date().toISOString();
+    }
+    updateDailyTaskDb(taskId, updates).catch(console.error);
+  }, [updateDailyTaskDb]);
 
-    saveState((prev) => {
-      const updatedTasks = {
-        ...(prev.dailyTasks || {}),
-        [newTask.id]: newTask,
-      };
+  const removeDailyTask = useCallback((taskId: string) => {
+    removeDailyTaskDb(taskId).catch(console.error);
+  }, [removeDailyTaskDb]);
 
-      return { ...prev, dailyTasks: updatedTasks };
-    });
-  };
-
-  const updateDailyTaskStatus = (taskId: string, status: DailyTaskStatus) => {
-    if (!state) return;
-
-    const task = state.dailyTasks?.[taskId];
-    if (!task) return;
-
-    const updatedTasks = {
-      ...state.dailyTasks,
-      [taskId]: {
-        ...task,
-        status,
-        completedAt: status === 'COMPLETED' ? new Date().toISOString() : undefined,
-      },
-    };
-
-    saveState({ ...state, dailyTasks: updatedTasks });
-  };
-
-  const removeDailyTask = (taskId: string) => {
-    saveState((prev) => {
-      const updatedTasks = { ...(prev.dailyTasks || {}) };
-      delete updatedTasks[taskId];
-      return { ...prev, dailyTasks: updatedTasks };
-    });
-  };
-
-  const getDailyTasks = (date: string): DailyTask[] => {
+  const getDailyTasks = useCallback((date: string): DailyTask[] => {
     if (!state) return [];
     return Object.values(state.dailyTasks || {}).filter(t => t.date === date);
-  };
+  }, [state]);
 
   // ============================================================
   // SUMMARIES
   // ============================================================
 
-  const getNeighborhoodSummary = (neighborhoodId: NeighborhoodId): NeighborhoodSummary | null => {
+  const getNeighborhoodSummary = useCallback((neighborhoodId: NeighborhoodId): NeighborhoodSummary | null => {
     if (!state) return null;
 
     const neighborhood = state.neighborhoods[neighborhoodId];
@@ -1234,9 +823,9 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
       checkInsToday,
       checkOutsToday,
     };
-  };
+  }, [state]);
 
-  const getTentSummary = (tentId: string): TentSummary | null => {
+  const getTentSummary = useCallback((tentId: string): TentSummary | null => {
     if (!state) return null;
 
     const tent = state.tents[tentId];
@@ -1260,9 +849,9 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
       isAccessible: tent.isAccessible,
       gender: tent.gender,
     };
-  };
+  }, [state]);
 
-  const getTodaySummary = (): TodaySummary => {
+  const getTodaySummary = useCallback((): TodaySummary => {
     if (!state) {
       return { checkIns: [], checkOuts: [], tentsToCleaning: [], facilitiesNeedAttention: [] };
     }
@@ -1339,7 +928,27 @@ const resolveActivitySpaceIssue = (spaceId: string) => {
       tentsToCleaning, 
       facilitiesNeedAttention: [...facilitiesNeedAttention, ...vipFacilityIssues] 
     };
-  };
+  }, [state, getTentSummary]);
+
+  // ============================================================
+  // DATA MANAGEMENT
+  // ============================================================
+
+  const exportState = useCallback(() => {
+    if (!state) return '';
+    return JSON.stringify(state, null, 2);
+  }, [state]);
+
+  const importState = useCallback((_jsonString: string): boolean => {
+    // Import is not supported with Supabase backend - data is in the cloud
+    console.warn('Import is not supported with cloud backend');
+    return false;
+  }, []);
+
+  const resetToDefault = useCallback(() => {
+    // Reset is not supported with Supabase backend - would require clearing all tables
+    console.warn('Reset is not supported with cloud backend');
+  }, []);
 
   const value: VillageContextType = {
     state,
