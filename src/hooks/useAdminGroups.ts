@@ -26,6 +26,7 @@ const mapDbRowToGroup = (row: any): GroupRecord => ({
   mealsPlan: (row.meal_plan as MealPlanItem[]) || [],
   scheduleItems: (row.schedule_items as ScheduleItem[]) || [],
   vipTentConfigs: (row.vip_tent_configs as VIPTentConfig[]) || [],
+  distributionPreference: row.distribution_preference || undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -77,6 +78,9 @@ export const useAdminGroups = () => {
       meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || [])),
       schedule_items: JSON.parse(JSON.stringify(group.scheduleItems || [])),
       vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || [])),
+      distribution_preference: group.distributionPreference 
+        ? JSON.parse(JSON.stringify(group.distributionPreference)) 
+        : null,
     });
     if (error) throw error;
     const now = new Date().toISOString();
@@ -104,6 +108,11 @@ export const useAdminGroups = () => {
     if (updates.mealsPlan !== undefined) dbUpdates.meal_plan = JSON.parse(JSON.stringify(updates.mealsPlan));
     if (updates.scheduleItems !== undefined) dbUpdates.schedule_items = JSON.parse(JSON.stringify(updates.scheduleItems));
     if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = JSON.parse(JSON.stringify(updates.vipTentConfigs));
+    if (updates.distributionPreference !== undefined) {
+      dbUpdates.distribution_preference = updates.distributionPreference 
+        ? JSON.parse(JSON.stringify(updates.distributionPreference)) 
+        : null;
+    }
 
     // If group name is changing, update all linked records
     if (updates.groupName !== undefined) {
