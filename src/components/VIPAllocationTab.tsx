@@ -3,7 +3,7 @@ import { GroupRecord, VIPTentConfig } from '@/types/adminGroups';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { VIPConfigCard } from './VIPConfigCard';
 import { VIPTentSlot } from './VIPTentSlot';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveModal } from '@/components/ResponsiveModal';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { BedDouble } from 'lucide-react';
@@ -37,10 +37,10 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
     setConfirmModalOpen(true);
   };
 
-  const handleConfirmAssignment = () => {
+  const handleConfirmAssignment = async () => {
     if (!selectedConfig || !selectedTentCode) return;
 
-    const success = assignVIPConfig(group.id, selectedConfig.id, selectedTentCode);
+    const success = await assignVIPConfig(group.id, selectedConfig.id, selectedTentCode);
     
     if (success) {
       toast.success(`אוהל VIP ${selectedTentCode} שובץ בהצלחה`);
@@ -128,7 +128,7 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
           )}
         </h3>
         
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {vipTentsAvailability.map(({ tentCode, available, conflictingGroup }) => {
             const isAssignedToCurrentGroup = assignedConfigs.some(
               c => c.assignedTentCode === tentCode
@@ -150,43 +150,42 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
       </div>
 
       {/* Confirm Assignment Modal */}
-      <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>שיבוץ תצורה לאוהל VIP</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-3 py-4">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">תצורה:</span>
-              <span className="font-medium">
-                אוהל {unassignedConfigs.findIndex(c => c.id === selectedConfig?.id) + 1}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">מיטות:</span>
-              <span className="font-medium">{totalBeds}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">מגדר:</span>
-              <span className="font-medium">{genderLabel}</span>
-            </div>
-            <div className="flex justify-between text-lg">
-              <span className="text-muted-foreground">שיבוץ לאוהל:</span>
-              <span className="font-bold text-primary">VIP {selectedTentCode}</span>
-            </div>
+      <ResponsiveModal 
+        open={confirmModalOpen} 
+        onOpenChange={setConfirmModalOpen}
+        title="שיבוץ תצורה לאוהל VIP"
+        className="max-w-sm"
+      >
+        <div className="space-y-4 py-2">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">תצורה:</span>
+            <span className="font-medium">
+              אוהל {unassignedConfigs.findIndex(c => c.id === selectedConfig?.id) + 1}
+            </span>
           </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">מיטות:</span>
+            <span className="font-medium">{totalBeds}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">מגדר:</span>
+            <span className="font-medium">{genderLabel}</span>
+          </div>
+          <div className="flex justify-between items-center text-lg">
+            <span className="text-muted-foreground">שיבוץ לאוהל:</span>
+            <span className="font-bold text-primary">VIP {selectedTentCode}</span>
+          </div>
+        </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setConfirmModalOpen(false)}>
-              ביטול
-            </Button>
-            <Button onClick={handleConfirmAssignment}>
-              שבץ ✓
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <div className="flex gap-3 mt-6">
+          <Button variant="outline" className="flex-1" onClick={() => setConfirmModalOpen(false)}>
+            ביטול
+          </Button>
+          <Button className="flex-1" onClick={handleConfirmAssignment}>
+            שבץ ✓
+          </Button>
+        </div>
+      </ResponsiveModal>
     </div>
   );
 };
