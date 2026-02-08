@@ -1,65 +1,129 @@
 
 
-# Fix Day-Use Group Detection - Add Missing Database Column
+# ניהול מחיקה וארכיון קבוצות - תוכנית מקיפה
 
-## Root Cause Identified
+## שתי הבעיות שזוהו
 
-The `groups` table in the database is **missing the `group_type` column**. The `useAdminGroups` hook hardcodes every group to `'לינה'` (lodging):
+### 1. מחיקת קבוצה לא מנקה נתונים משויכים (הבקשה הקודמת)
+כאשר קבוצה נמחקת לצמיתות, כל השיבוצים, הזמנות המרחבים, הזמנות השכונות והארוחות נשארים במערכת.
 
-```typescript
-// useAdminGroups.ts line 14
-groupType: 'לינה' as GroupType,  // Always hardcoded!
+### 2. קבוצות בארכיון עדיין מוצגות בלוחות זמנים (הבקשה החדשה)
+קבוצה בארכיון עדיין מופיעה ב:
+- לוח שנה ראשי (MasterCalendar) - **נבדק: כבר מסונן!** ✓
+- הזמנות מרחבים (activity_reservations) - **לא מסונן**
+- הזמנות שכונות (neighborhood_reservations) - **לא מסונן**
+- ארוחות במטבח (kitchen_time_slots) - **לא מסונן**
+- אוהלים (tents) - **לא מסונן**
+- סיכום יומי בדשבורד (Check-ins/Check-outs) - **לא מסונן**
+
+---
+
+## הפתרון המוצע
+
+### חלק א: מחיקת נתונים בקסקדה (Cascade Delete)
+
+שכתוב `src/lib/groupLinkedRecords.ts` לשימוש ב-Supabase:
+
+```text
+┌─────────────────────────────────────────────────────┐
+│  cascadeDeleteGroupRecords(groupId, groupName)      │
+│                                                     │
+│  1. DELETE FROM allocations                         │
+│     WHERE group_id = groupId                        │
+│                                                     │
+│  2. DELETE FROM neighborhood_reservations           │
+│     WHERE group_name = groupName                    │
+│                                                     │
+│  3. DELETE FROM activity_reservations               │
+│     WHERE group_id = groupId OR group_name = name   │
+│                                                     │
+│  4. UPDATE kitchen_time_slots                       │
+│     Remove group from 'groups' JSON array           │
+│                                                     │
+│  5. UPDATE tents                                    │
+│     SET group_name = null, check_in_date = null,    │
+│         check_out_date = null, gender = 'MIXED'     │
+│     WHERE group_name = groupName                    │
+└─────────────────────────────────────────────────────┘
 ```
 
-This means day-use groups (`יום ללא לינה`) are never properly identified because the type is never saved to or read from the database.
+### חלק ב: הסתרת נתונים של קבוצות בארכיון
 
-## Solution
+כאשר קבוצה מועברת לארכיון:
+- **הנתונים נשמרים** (ניתן לשחזור ולערוך)
+- **הנתונים לא מוצגים** בתצוגות תפעוליות
 
-### 1. Add `group_type` Column to Database
+יש להוסיף סינון בקבצים הבאים:
 
-Add a new column to the `groups` table:
-- Column name: `group_type`
-- Type: `text`
-- Default: `'לינה'` (so existing groups remain as lodging groups)
-- Not nullable
+| קובץ | סינון נדרש |
+|------|------------|
+| `src/hooks/useSupabaseVillage.ts` | סינון אוהלים לפי `group_name` של קבוצות לא-בארכיון |
+| `src/components/MasterCalendar.tsx` | **כבר מסונן** - `!g.isArchived` |
+| `src/context/VillageContext.tsx` | ב-`getTodaySummary` - סינון check-ins/outs של קבוצות בארכיון |
 
-### 2. Update `useAdminGroups.ts`
+**גישה אלטרנטיבית (פשוטה יותר):**
+במקום לסנן בכל מקום, ניתן לנקות את הנתונים בעת העברה לארכיון - **אבל** המשתמש ביקש שהנתונים יישמרו לעריכה עתידית.
 
-Modify the hook to read and write the `group_type` field:
+---
 
-**In `mapDbRowToGroup` function:**
+## סיכום השינויים
+
+### קובץ 1: `src/lib/groupLinkedRecords.ts`
+שכתוב מלא:
+- הפונקציות יהפכו ל-`async`
+- שימוש ב-Supabase client במקום localStorage
+- `getLinkedRecordsSummary` - שליפת נתונים מ-5 טבלאות
+- `cascadeDeleteGroupRecords` - מחיקה/עדכון ב-5 טבלאות
+
+### קובץ 2: `src/pages/AdminGroupEdit.tsx`
+עדכון הקריאה ל-cascade delete:
 ```typescript
-// Change from:
-groupType: 'לינה' as GroupType,
+// לפני:
+cascadeDeleteGroupRecords(id, formData.groupName);
+deleteGroup(id);
 
-// To:
-groupType: (row.group_type as GroupType) || 'לינה',
+// אחרי:
+await cascadeDeleteGroupRecords(id, formData.groupName);
+await deleteGroup(id);
 ```
 
-**In `addGroup` function - add to insert object:**
-```typescript
-group_type: group.groupType || 'לינה',
-```
+### קובץ 3: `src/pages/AdminGroups.tsx`
+עדכון הקריאה ל-cascade delete בדיוק כמו למעלה.
 
-**In `updateGroup` function - add mapping:**
-```typescript
-if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
-```
+### קובץ 4: `src/context/VillageContext.tsx`
+בפונקציה `getTodaySummary`:
+- הוספת פרמטר `archivedGroupNames: string[]`
+- סינון check-ins/check-outs שה-`groupName` שלהם לא ברשימת הארכיון
 
-## Summary
+### קובץ 5: `src/hooks/useSupabaseVillage.ts`
+בפונקציה שטוענת נתונים:
+- הוספת join או בדיקה נגד `groups` table לקבלת `isArchived`
+- החזרת דגל `isArchived` עם כל reservation/tent לצורך סינון בצד הלקוח
 
-| Change | Details |
-|--------|---------|
-| Database migration | Add `group_type TEXT DEFAULT 'לינה' NOT NULL` to `groups` table |
-| `src/hooks/useAdminGroups.ts` | Read `group_type` from DB, write it on insert/update |
+---
 
-## What This Fixes
-- Day-use groups will be properly saved with `groupType = 'יום ללא לינה'`
-- The allocation page check `group.groupType === 'יום ללא לינה'` will work correctly
-- Existing groups default to `'לינה'` (no data migration needed)
+## מה נשאר ללא שינוי
+- לוגיקת הארכיון עצמה (Archive/Restore)
+- `MasterCalendar` - כבר מסנן קבוצות בארכיון
+- `getSleepingGroups` - כבר מסנן קבוצות בארכיון
+- `groupNeedsAllocation` - כבר מסנן קבוצות בארכיון
 
-## What Stays the Same
-- All existing allocation logic unchanged
-- Group edit form already has the UI for selecting group type
-- Filtering logic in various components already checks `groupType`
+---
+
+## תוצאה צפויה
+
+**מחיקה לצמיתות:**
+1. ✅ כל השיבוצים (VIP + שכונות) נמחקים
+2. ✅ כל הזמנות המרחבים נמחקות
+3. ✅ הזמנות השכונות נמחקות
+4. ✅ הקבוצה מוסרת מארוחות במטבח
+5. ✅ אוהלים משוחררים
+6. ✅ הקבוצה עצמה נמחקת
+
+**העברה לארכיון:**
+1. ✅ כל הנתונים נשמרים לעריכה
+2. ✅ הנתונים לא מופיעים בלוח שנה
+3. ✅ הנתונים לא מופיעים בסיכום יומי
+4. ✅ הנתונים לא מופיעים בהתראות
+5. ✅ ניתן לשחזר מהארכיון ולראות הכל מחדש
 
