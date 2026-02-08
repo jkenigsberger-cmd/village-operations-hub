@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Home, Lock, Check, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResponsiveModal } from '@/components/ResponsiveModal';
+import { DistributionPreferenceDisplay } from '@/components/DistributionPreferenceDisplay';
 
 interface ParticipantAllocationTabProps {
   group: GroupRecord;
@@ -157,6 +158,14 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
         <Home className="w-5 h-5" />
         שכונות זמינות לחניכים
       </h3>
+
+      {/* Distribution Preference Panel */}
+      {group.distributionPreference && (
+        <DistributionPreferenceDisplay
+          preference={group.distributionPreference}
+          participantCount={remainingParticipants}
+        />
+      )}
 
       {/* Already allocated neighborhoods - Now with remove buttons */}
       {groupAllocations.length > 0 && (
