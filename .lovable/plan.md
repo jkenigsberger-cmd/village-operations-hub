@@ -1,16 +1,17 @@
 
 
-# ניקוי הזמנות יתומות ומניעה לעתיד
+# עדכון שם קבוצה גם בארוחות המטבח
 
 ## הבעיה
 
-נמצאו 3 הזמנות שכונה "יתומות" - הקבוצות שלהן נמחקו או שונה שמן:
+נמצאו 2 ארוחות מטבח עם השם הישן "השומר החדש":
 
-| קבוצה | שכונה | סיבה |
-|-------|-------|------|
-| Dugm | N6 | הקבוצה נמחקה |
-| השומר החדש | N1 | שם ישן (עכשיו "השומר") |
-| השומר החדש | N4 | שם ישן (עכשיו "השומר") |
+| תאריך | ארוחה | קבוצה |
+|-------|-------|-------|
+| 09.02.2026 | ערב | השומר החדש |
+| 10.02.2026 | בוקר | השומר החדש |
+
+הסיבה: כשקבוצה משנה שם, הקוד מעדכן את `neighborhood_reservations`, `activity_reservations` ו-`tents`, אבל **לא** את `kitchen_time_slots`.
 
 ---
 
@@ -18,25 +19,43 @@
 
 ### שלב 1: ניקוי מיידי
 
-הרצת SQL למחיקת ההזמנות היתומות:
+עדכון ה-2 ארוחות הקיימות משם ישן לשם חדש:
 
 ```sql
-DELETE FROM neighborhood_reservations 
-WHERE group_name NOT IN (SELECT name FROM groups);
+-- עדכון ידני של הארוחות שנשארו עם השם הישן
 ```
 
 ### שלב 2: מניעה לעתיד
 
-עדכון הקוד כך שמחיקת/עדכון קבוצה יטפלו גם בהזמנות:
+הוספת עדכון `kitchen_time_slots` בפונקציית `updateGroup`:
 
 **בקובץ `src/hooks/useAdminGroups.ts`:**
 
-1. **בפונקציית `deleteGroup`** - הוספת קריאה ל-`cascadeDeleteGroupRecords` שכבר קיימת ב-`src/lib/groupLinkedRecords.ts` לפני מחיקת הקבוצה
+```typescript
+// בתוך הבלוק של שינוי שם קבוצה
+// הוספה אחרי עדכון 3 הטבלאות הקיימות:
 
-2. **בפונקציית `updateGroup`** - אם השם משתנה, עדכון גם בטבלאות:
-   - `neighborhood_reservations.group_name`
-   - `activity_reservations.group_name`
-   - `tents.group_name`
+// עדכון שם קבוצה בארוחות מטבח
+const { data: kitchenSlots } = await supabase
+  .from('kitchen_time_slots')
+  .select('id, groups');
+
+if (kitchenSlots) {
+  for (const slot of kitchenSlots) {
+    if (!slot.groups || !Array.isArray(slot.groups)) continue;
+    const hasGroup = slot.groups.some(g => g.name === oldName);
+    if (hasGroup) {
+      const updatedGroups = slot.groups.map(g => 
+        g.name === oldName ? { ...g, name: newName } : g
+      );
+      await supabase
+        .from('kitchen_time_slots')
+        .update({ groups: updatedGroups })
+        .eq('id', slot.id);
+    }
+  }
+}
+```
 
 ---
 
@@ -44,14 +63,13 @@ WHERE group_name NOT IN (SELECT name FROM groups);
 
 | קובץ | שינוי |
 |------|-------|
-| מסד נתונים | מחיקת 3 הזמנות יתומות |
-| `src/hooks/useAdminGroups.ts` | שילוב cascade delete + עדכון שם בכל הטבלאות |
+| מסד נתונים | עדכון 2 ארוחות מ-"השומר החדש" ל-"השומר" |
+| `src/hooks/useAdminGroups.ts` | הוספת עדכון kitchen_time_slots בשינוי שם |
 
 ---
 
 ## תוצאה
 
-- ✅ "Dugm" ו-"השומר החדש" ייעלמו מהמערכת
-- ✅ מחיקת קבוצה תמחק את כל ההזמנות שלה
-- ✅ שינוי שם קבוצה יעדכן את כל ההזמנות
+- ✅ הארוחות יציגו "השומר" במקום "השומר החדש"
+- ✅ בעתיד - שינוי שם קבוצה יעדכן גם את הארוחות שלה
 
