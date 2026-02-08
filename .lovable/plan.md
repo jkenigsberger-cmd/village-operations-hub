@@ -1,96 +1,144 @@
 
-# סנכרון מרחבים משותפים - תיקון מקור הנתונים
 
-## הבעיה שזוהתה
+# תיקון הצגת הזמנות ובדיקת התנגשויות בלוח השעות
 
-כאשר קבוצה נוצרת ומסונכרנת (דרך `syncGroupToModules`), ההזמנות נשמרות ב-**Supabase** בטבלת `activity_reservations`.
+## הבעיות שזוהו
 
-אבל כאשר נכנסים לדף מתקנים משותפים (Activities), הנתונים נקראים מ-**localStorage** דרך `useVillageData`.
+### 1. הצגת צבע בלוח השעות לא לוגית לשעות
+הפונקציה `getReservationSpan` מחשבת את מספר השעות רק לפי השעה השלמה:
+```typescript
+const getReservationSpan = (reservation: ActivityReservation): number => {
+  const startHour = parseInt(reservation.startTime.split(':')[0]);
+  const endHour = parseInt(reservation.endTime.split(':')[0]);
+  return endHour - startHour;
+};
+```
+**בעיה**: אם הזמנה מ-09:30 עד 10:30, זה מחשב `10 - 9 = 1` שורה, אבל מציג רק בשורת 09:00.
 
-זה אומר שיש שני מקורות נתונים שונים לחלוטין:
-- **groupSync** → כותב ל-Supabase ✓
-- **Activities page** → קורא מ-localStorage ✗
+### 2. אין מניעת התנגשויות עם מרווח 15 דקות
+הבדיקה הנוכחית ב-`VillageContext.addActivityReservation` בודקת חפיפה ישירה, אך לא מוודאת מרווח של 15 דקות בין הזמנות.
 
-לכן ההזמנות שנוצרו מהקבוצה לא מופיעות בלוח הזמנים של הממ״ד.
+### 3. הבדיקה צריכה לחול על כל מקורות ההזמנות
+- הזמנה ישירה מדף Activities ✓ (יש בדיקה)
+- סנכרון קבוצות לינה (`groupSync`) - מזהה התנגשות אבל לא מונע אותה
+- קבוצות יום - משתמשות ב-`groupSync`
 
-## הפתרון
+---
 
-לעדכן את `VillageContext` כך שישתמש ב-`useSupabaseVillage` במקום `useVillageData`.
+## הפתרון המוצע
 
-הקובץ `useSupabaseVillage.ts` כבר קיים ומכיל את כל הפונקציות הנדרשות - רק צריך לחבר אותו.
+### שינוי 1: תיקון חישוב ה-Span לתמיכה בדקות
 
-## שינויים נדרשים
+הפונקציה צריכה לחשב לפי דקות ולעגל למעלה:
 
-### קובץ: `src/context/VillageContext.tsx`
-
-| לפני | אחרי |
-|------|------|
-| `import { useVillageData } from '@/hooks/useVillageData'` | `import { useSupabaseVillage } from '@/hooks/useSupabaseVillage'` |
-| `const { state, isLoading, saveState, ... } = useVillageData()` | `const { state, isLoading, ... } = useSupabaseVillage()` |
-
-כמו כן, כל הפונקציות שכותבות למידע (כמו `updateBedStatus`, `addActivityReservation` וכו') צריכות להשתמש בפונקציות של `useSupabaseVillage` במקום לעדכן localStorage.
-
-## זרימת נתונים מתוקנת
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                      לפני התיקון                            │
-├─────────────────────────────────────────────────────────────┤
-│  Admin Groups ─── syncGroupToModules ───▶ Supabase DB       │
-│                                                             │
-│  Activities Page ◀─── useVillageData ─── localStorage       │
-│                                                             │
-│  ⚠️ נתונים לא מסונכרנים!                                    │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                      אחרי התיקון                            │
-├─────────────────────────────────────────────────────────────┤
-│  Admin Groups ─── syncGroupToModules ───▶ Supabase DB       │
-│                                              ▲              │
-│  Activities Page ◀─── useSupabaseVillage ────┘              │
-│                                                             │
-│  ✓ נתונים מסונכרנים!                                        │
-└─────────────────────────────────────────────────────────────┘
+```typescript
+const getReservationSpan = (reservation: ActivityReservation): number => {
+  const [startH, startM] = reservation.startTime.split(':').map(Number);
+  const [endH, endM] = reservation.endTime.split(':').map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+  // חישוב כמה שורות (שעות) הבלוק צריך לתפוס
+  return Math.ceil((endMinutes - startMinutes) / 60);
+};
 ```
 
-## מבנה השינוי
+### שינוי 2: תיקון `getReservationForHour` לתמיכה בדקות
 
-הפונקציות ב-`VillageContext` מתחלקות לשתי קטגוריות:
+הפונקציה צריכה להשוות לפי דקות ולא לפי מחרוזות:
 
-**פונקציות חישוב (נשארות כמו שהן):**
-- `getNeighborhoodSummary`
-- `getTentSummary`
-- `getTodaySummary`
-- `checkNeighborhoodAvailability`
-- וכו'
+```typescript
+const getReservationForHour = (hour: string): ActivityReservation | null => {
+  const hourMinutes = parseInt(hour.split(':')[0]) * 60;
+  return spaceReservations.find(r => {
+    const [startH, startM] = r.startTime.split(':').map(Number);
+    const [endH, endM] = r.endTime.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    return hourMinutes >= startMinutes && hourMinutes < endMinutes;
+  }) || null;
+};
+```
 
-**פונקציות כתיבה (צריכות לעבור ל-Supabase):**
-- `updateBedStatus` → קריאה ל-`updateBed` מ-Supabase hook
-- `addActivityReservation` → קריאה ל-`addActivityReservation` מ-Supabase hook
-- וכו'
+### שינוי 3: הוספת בדיקת מרווח 15 דקות
+
+פונקציית עזר חדשה לבדיקת חפיפה עם מרווח:
+
+```typescript
+const timeRangesOverlapWithGap = (
+  start1: string, end1: string,
+  start2: string, end2: string,
+  gapMinutes: number = 15
+): boolean => {
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  
+  const s1 = toMinutes(start1);
+  const e1 = toMinutes(end1);
+  const s2 = toMinutes(start2);
+  const e2 = toMinutes(end2);
+  
+  // חפיפה קיימת אם אין מרווח של gapMinutes בין ההזמנות
+  return s1 < (e2 + gapMinutes) && s2 < (e1 + gapMinutes);
+};
+```
+
+### שינוי 4: עדכון הבדיקה ב-VillageContext
+
+```typescript
+const addActivityReservation = useCallback((reservation) => {
+  // ... existing code ...
+  
+  for (const existing of existingReservations) {
+    if (timeRangesOverlapWithGap(
+      newStart, newEnd,
+      existing.startTime, existing.endTime,
+      15 // מרווח 15 דקות
+    )) {
+      return false; // התנגשות!
+    }
+  }
+  
+  // ... rest of code ...
+}, []);
+```
+
+### שינוי 5: עדכון הבדיקה ב-groupSync
+
+```typescript
+// בפונקציה syncGroupToModules
+if (timeRangesOverlapWithGap(
+  item.startTime, itemEnd,
+  res.start_time, res.end_time,
+  15
+)) {
+  hasConflict = true;
+  // ...
+}
+```
+
+ו**חשוב**: כאשר יש התנגשות, להחזיר שגיאה ברורה למשתמש במקום ליצור הזמנה עם סטטוס `conflict`.
+
+---
 
 ## סיכום קבצים לעדכון
 
-| קובץ | סוג שינוי |
-|------|-----------|
-| `src/context/VillageContext.tsx` | החלפת hook מקור הנתונים + עדכון כל פונקציות הכתיבה |
+| קובץ | שינוי |
+|------|-------|
+| `src/pages/Activities.tsx` | תיקון `getReservationSpan`, `getReservationForHour`, `isReservationStart` לתמיכה בדקות |
+| `src/context/VillageContext.tsx` | הוספת פונקציה `timeRangesOverlapWithGap` ועדכון בדיקת החפיפה ב-`addActivityReservation` |
+| `src/lib/groupSync.ts` | עדכון `timeRangesOverlap` לכלול מרווח 15 דקות + מניעת יצירת הזמנות מתנגשות (או הצגת שגיאה ברורה) |
+
+---
 
 ## תוצאה צפויה
 
-1. ✅ הזמנות שנוצרות מסנכרון קבוצות יופיעו בדף מתקנים משותפים
-2. ✅ כל הנתונים יהיו מסונכרנים בזמן אמת (realtime כבר מוגדר ב-Supabase hook)
-3. ✅ הנתונים יהיו עקביים בכל הדפים
-4. ✅ ניתן יהיה לעבוד מכמה מכשירים במקביל
+1. ✅ הצגה נכונה של הזמנות גם עם שעות לא עגולות (09:30-10:30)
+2. ✅ מניעת יצירת הזמנה חדשה אם אין מרווח של 15 דקות מהזמנה קיימת
+3. ✅ הודעת שגיאה ברורה כאשר יש התנגשות
+4. ✅ הכלל חל על כל מקורות ההזמנות:
+   - הזמנה ידנית מדף Activities
+   - סנכרון קבוצות לינה
+   - סנכרון קבוצות יום
 
-## הערה חשובה
-
-שמות המתקנים ב-Supabase הם באנגלית ("Bunker 6") אבל ב-`initialData.ts` הם בעברית ("ממ״ד 6"). לאחר העברה ל-Supabase, ייתכן שיהיה צורך לעדכן את שמות המתקנים בטבלת `activity_spaces` לעברית:
-
-```sql
-UPDATE activity_spaces SET name = 'ממ״ד 6' WHERE id = 'bunker_6';
-UPDATE activity_spaces SET name = 'ממ״ד 7' WHERE id = 'bunker_7';
-UPDATE activity_spaces SET name = 'ממ״ד 8' WHERE id = 'bunker_8';
-UPDATE activity_spaces SET name = 'אוהל מועד' WHERE id = 'ohel_moed';
-UPDATE activity_spaces SET name = 'חדר אוכל' WHERE id = 'dining_hall';
-```
