@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { GroupRecord, GroupType, GroupStatus, VIPTentConfig, MealPlanItem, ScheduleItem } from '@/types/adminGroups';
 import { parseISO, isWithinInterval, isSameDay } from 'date-fns';
+import { cascadeDeleteGroupRecords } from '@/lib/groupLinkedRecords';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
@@ -104,16 +105,40 @@ export const useAdminGroups = () => {
     if (updates.scheduleItems !== undefined) dbUpdates.schedule_items = JSON.parse(JSON.stringify(updates.scheduleItems));
     if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = JSON.parse(JSON.stringify(updates.vipTentConfigs));
 
+    // If group name is changing, update all linked records
+    if (updates.groupName !== undefined) {
+      const currentGroup = groups.find(g => g.id === id);
+      if (currentGroup && currentGroup.groupName !== updates.groupName) {
+        const oldName = currentGroup.groupName;
+        const newName = updates.groupName;
+        console.log(`[updateGroup] Propagating name change: "${oldName}" → "${newName}"`);
+        
+        // Update all linked tables in parallel
+        await Promise.all([
+          supabase.from('neighborhood_reservations').update({ group_name: newName }).eq('group_name', oldName),
+          supabase.from('activity_reservations').update({ group_name: newName }).eq('group_name', oldName),
+          supabase.from('tents').update({ group_name: newName }).eq('group_name', oldName),
+        ]);
+      }
+    }
+
     const { error } = await supabase.from('groups').update(dbUpdates).eq('id', id);
     if (error) throw error;
     setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates, updatedAt: new Date().toISOString() } : g));
-  }, []);
+  }, [groups]);
 
   const deleteGroup = useCallback(async (id: string) => {
+    // Find group to get its name for cascade delete
+    const group = groups.find(g => g.id === id);
+    if (group) {
+      console.log(`[deleteGroup] Cascade deleting linked records for: ${group.groupName}`);
+      await cascadeDeleteGroupRecords(id, group.groupName);
+    }
+    
     const { error } = await supabase.from('groups').delete().eq('id', id);
     if (error) throw error;
     setGroups(prev => prev.filter(g => g.id !== id));
-  }, []);
+  }, [groups]);
 
   const getGroup = useCallback((id: string) => groups.find(g => g.id === id), [groups]);
 
