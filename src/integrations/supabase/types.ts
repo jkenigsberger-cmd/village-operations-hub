@@ -562,10 +562,12 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          group_id: string | null
           groups: Json | null
           id: string
           location: Database["public"]["Enums"]["meal_location"]
           meal_type: Database["public"]["Enums"]["meal_type"]
+          source: string | null
           special_diets: Json | null
           time: string
           total_pax: number
@@ -574,10 +576,12 @@ export type Database = {
         Insert: {
           created_at?: string
           date: string
+          group_id?: string | null
           groups?: Json | null
           id: string
           location?: Database["public"]["Enums"]["meal_location"]
           meal_type: Database["public"]["Enums"]["meal_type"]
+          source?: string | null
           special_diets?: Json | null
           time: string
           total_pax?: number
@@ -586,10 +590,12 @@ export type Database = {
         Update: {
           created_at?: string
           date?: string
+          group_id?: string | null
           groups?: Json | null
           id?: string
           location?: Database["public"]["Enums"]["meal_location"]
           meal_type?: Database["public"]["Enums"]["meal_type"]
+          source?: string | null
           special_diets?: Json | null
           time?: string
           total_pax?: number
