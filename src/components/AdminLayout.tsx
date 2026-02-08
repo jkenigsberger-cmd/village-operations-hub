@@ -36,9 +36,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subti
         </div>
       </header>
 
-      {/* Admin internal navigation */}
-      <nav className="bg-muted/50 border-b overflow-x-auto">
-        <div className="container">
+      {/* Admin internal navigation - scrollable with larger touch targets */}
+      <nav className="bg-muted/50 border-b relative">
+        {/* Scroll fade indicators */}
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-muted/50 to-transparent pointer-events-none z-10 md:hidden" />
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-muted/50 to-transparent pointer-events-none z-10 md:hidden" />
+        
+        <div className="container overflow-x-auto scrollbar-hide">
           <div className="flex gap-1 py-2">
             {adminNavItems.map((item) => {
               const Icon = item.icon;
@@ -48,13 +52,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subti
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm whitespace-nowrap transition-colors',
+                    'flex items-center gap-2 px-4 py-3 md:py-2.5 rounded-lg font-medium text-sm whitespace-nowrap transition-colors min-h-[48px] touch-target',
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5 md:w-4 md:h-4" />
                   {item.label}
                 </NavLink>
               );

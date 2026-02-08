@@ -123,10 +123,10 @@ export const GlobalSearch: React.FC = () => {
 
   return (
     <>
-      {/* Search Trigger Button */}
+      {/* Search Trigger Button - Larger touch target on mobile */}
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-muted/50 hover:bg-muted rounded-xl text-muted-foreground transition-colors"
+        className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-muted/50 hover:bg-muted rounded-xl text-muted-foreground transition-colors min-w-[44px] min-h-[44px]"
         aria-label="חיפוש"
       >
         <Search className="w-5 h-5" />
@@ -136,10 +136,10 @@ export const GlobalSearch: React.FC = () => {
         </kbd>
       </button>
 
-      {/* Search Modal */}
+      {/* Search Modal - Full screen on mobile */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh] px-4"
+          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-4 md:pt-[10vh] px-2 md:px-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setIsOpen(false);
@@ -147,18 +147,18 @@ export const GlobalSearch: React.FC = () => {
             }
           }}
         >
-          <div className="w-full max-w-xl bg-background rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
+          <div className="w-full max-w-xl bg-background rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
             {/* Search Input */}
-            <div className="flex items-center gap-3 p-4 border-b border-border">
-              <Search className="w-6 h-6 text-muted-foreground flex-shrink-0" />
+            <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-b border-border">
+              <Search className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground flex-shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="חיפוש... (לדוגמה: 12 ב׳, ממ״ד 7, מקלחת 6)"
-                className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground/60"
+                placeholder="חיפוש..."
+                className="flex-1 bg-transparent text-base md:text-lg outline-none placeholder:text-muted-foreground/60"
                 dir="rtl"
               />
               {query && (

@@ -96,10 +96,10 @@ const Today = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b-2 border-border">
-        <div className="container py-6">
+        <div className="container py-3 md:py-6">
           <BreadcrumbNav items={[{ label: 'Tareas Hoy' }]} />
-          <h1 className="text-3xl md:text-4xl font-bold">Operaciones del Día</h1>
-          <p className="text-xl text-muted-foreground mt-2 capitalize">{formattedDate}</p>
+          <h1 className="text-2xl md:text-4xl font-bold">Operaciones del Día</h1>
+          <p className="text-lg md:text-xl text-muted-foreground mt-1 md:mt-2 capitalize">{formattedDate}</p>
         </div>
       </header>
 

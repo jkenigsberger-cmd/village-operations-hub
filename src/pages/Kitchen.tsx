@@ -86,25 +86,25 @@ const Kitchen: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
+      {/* Header - Compact on mobile */}
       <header className="bg-card border-b-2 border-border sticky top-0 z-10">
-        <div className="container py-4">
-          <div className="flex items-center gap-4">
+        <div className="container py-3 md:py-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate('/')}
               className="shrink-0"
             >
-              <ArrowRight className="w-6 h-6" />
+              <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
             </Button>
-            <div className="flex items-center gap-3 flex-1">
-              <ChefHat className="w-8 h-8 text-primary" />
+            <div className="flex items-center gap-2 md:gap-3 flex-1">
+              <ChefHat className="w-6 h-6 md:w-8 md:h-8 text-primary" />
               <div>
-                <h1 className="text-2xl font-bold text-foreground">
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">
                   🍽️ מטבח / ארוחות
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-xs md:text-sm hidden sm:block">
                   תכנון ארוחות יומי
                 </p>
               </div>

@@ -159,24 +159,24 @@ const AdminGroups = () => {
 
   return (
     <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold">רשימת קבוצות</h2>
-          <div className="flex items-center gap-2 mr-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+          <h2 className="text-lg md:text-xl font-bold">רשימת קבוצות</h2>
+          <div className="flex items-center gap-2">
             <Switch 
               id="show-archived" 
               checked={showArchived} 
               onCheckedChange={setShowArchived}
             />
-            <Label htmlFor="show-archived" className="text-sm text-muted-foreground">
-              הצג ארכיון ({archivedGroups.length})
+            <Label htmlFor="show-archived" className="text-xs md:text-sm text-muted-foreground">
+              ארכיון ({archivedGroups.length})
             </Label>
           </div>
         </div>
         <Button 
           size="lg" 
           onClick={() => navigate('/admin/groups/new')}
-          className="text-lg px-6"
+          className="text-base md:text-lg px-4 md:px-6 w-full sm:w-auto"
         >
           <Plus className="w-5 h-5 ml-2" />
           קבוצה חדשה
@@ -211,63 +211,51 @@ const AdminGroups = () => {
                 className={`hover:shadow-md transition-shadow cursor-pointer ${isArchivedGroup ? 'opacity-60' : ''}`}
                 onClick={() => navigate(`/admin/groups/${group.id}`)}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold">{group.groupName}</h3>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[status]}`}>
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 md:gap-3 mb-2 flex-wrap">
+                        <h3 className="text-lg md:text-xl font-bold truncate">{group.groupName}</h3>
+                        <span className={`px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium ${statusColors[status]}`}>
                           {statusLabels[status]}
                         </span>
                         {isArchivedGroup && (
-                          <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                             <Archive className="w-3 h-3 inline ml-1" />
                             ארכיון
                           </span>
                         )}
                       </div>
                       
-                      <div className="flex flex-wrap gap-4 text-muted-foreground">
+                      <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-3 h-3 md:w-4 md:h-4" />
                           <span>
-                            {format(parseISO(group.startDate), 'd MMM', { locale: he })} - {format(parseISO(group.endDate), 'd MMM yyyy', { locale: he })}
+                            {format(parseISO(group.startDate), 'd MMM', { locale: he })} - {format(parseISO(group.endDate), 'd MMM', { locale: he })}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
+                          <Users className="w-3 h-3 md:w-4 md:h-4" />
                           <span>{group.pax} אנשים</span>
                         </div>
-                        {group.reservedBy && (
-                          <div className="flex items-center gap-1">
-                            <span>מזמין: {group.reservedBy}</span>
-                          </div>
-                        )}
                         {group.contactPhone && (
                           <div className="flex items-center gap-1">
-                            <Phone className="w-4 h-4" />
-                            <span>{group.contactPhone}</span>
+                            <Phone className="w-3 h-3 md:w-4 md:h-4" />
+                            <span className="hidden sm:inline">{group.contactPhone}</span>
                           </div>
                         )}
                       </div>
                       
-                      {group.scheduleItems.length > 0 && (
-                        <div className="mt-2 text-sm text-muted-foreground">
-                          <Clock className="w-4 h-4 inline ml-1" />
-                          {group.scheduleItems.length} פריטים בלו״ז
-                        </div>
-                      )}
-                      
-                      {/* Remaining allocation counters - shows beds left to assign, NOT occupancy */}
+                      {/* Remaining allocation counters */}
                       {group.groupType !== 'יום ללא לינה' && (group.staffCount || group.participantCount) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-2 md:mt-3 flex flex-wrap gap-1 md:gap-2">
                           {(group.staffCount !== undefined && group.staffCount > 0) && (() => {
                             const remaining = group.remainingStaff ?? group.staffCount;
                             const total = group.staffCount;
                             const assigned = total - remaining;
                             return (
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                צוות: שובצו {assigned}/{total}
+                              <span className="px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-amber-100 text-amber-800">
+                                צוות: {assigned}/{total}
                               </span>
                             );
                           })()}
@@ -276,8 +264,8 @@ const AdminGroups = () => {
                             const total = group.participantCount;
                             const assigned = total - remaining;
                             return (
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                חניכים: שובצו {assigned}/{total}
+                              <span className="px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-blue-100 text-blue-800">
+                                חניכים: {assigned}/{total}
                               </span>
                             );
                           })()}
