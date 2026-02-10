@@ -1,38 +1,37 @@
 
 
-# תיקון: מספר בנים/בנות מתאפס ל-10
+# הוספת צבעי מגדר לאוהלי לינה בתכנון חלוקה
 
-## הבעיה
+## מה ישתנה
 
-כשמזינים מספר בשדות "בנים" או "בנות", הערך מתאפס ל-10 אוטומטית.
+בקטע "העדפת חלוקה לאוהלי לינה" — כשהפרדה לפי מגדר מופעלת, כל אוהל (Badge או כרטיס) יקבל צבע רקע לפי המגדר:
 
-**הסיבה**: הרכיב `NumericInput` מקבל `max={formData.participantCount || 0}`, וכשיוצרים קבוצה חדשה ה-`participantCount` הוא 10 כברירת מחדל. כשיוצאים מהשדה (blur), הרכיב חותך את הערך ל-max (כלומר 10).
-
-## הפתרון
-
-להסיר את מגבלת ה-`max` מהשדות בנים ובנות. במקום חסימה, כבר קיימת **אזהרה ויזואלית** כשהסכום לא תואם את מספר החניכים — וזה מספיק.
+- **בנים** — רקע כחול בהיר (כמו MALE ב-VIP)
+- **בנות** — רקע ורוד בהיר (כמו FEMALE ב-VIP)
+- **מעורב** — רקע סגול בהיר (כמו MIXED ב-VIP)
+- **ללא בחירה** — ללא שינוי (ברירת מחדל)
 
 ## פרטים טכניים
 
-**קובץ: `src/pages/AdminGroupEdit.tsx`**
+### קובץ: `src/components/SleepingTentDistributionSection.tsx`
 
-שורות 1016-1017 ו-1025-1026 — הסרת `max` מ-NumericInput:
+הוספת פונקציית עזר שממפה את ערכי `TentGender` של ההעדפה (`BOYS`/`GIRLS`/`MIXED`) לצבעי רקע וגבול:
 
-```diff
- <NumericInput
-   value={formData.boysCount ?? 0}
-   onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
-   min={0}
--  max={formData.participantCount || 0}
- />
-
- <NumericInput
-   value={formData.girlsCount ?? 0}
-   onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
-   min={0}
--  max={formData.participantCount || 0}
- />
+```typescript
+function distributionGenderStyle(gender?: TentGender): { bg: string; border: string } {
+  switch (gender) {
+    case 'BOYS':  return { bg: 'hsl(210, 55%, 92%)', border: 'hsl(210, 60%, 70%)' };
+    case 'GIRLS': return { bg: 'hsl(330, 55%, 92%)', border: 'hsl(330, 60%, 70%)' };
+    case 'MIXED': return { bg: 'hsl(270, 40%, 92%)', border: 'hsl(270, 50%, 70%)' };
+    default:      return { bg: '', border: '' };
+  }
+}
 ```
 
-שינוי אחד בקובץ אחד בלבד.
+שלושה מקומות שישתנו:
 
+1. **מצב אחיד (uniform)** — ה-Badge בשורה 360: הוספת inline style לרקע וגבול לפי `tent.gender`
+2. **מצב טווחים (ranges)** — ה-Badge בשורה 448: אותו דבר
+3. **מצב מותאם (custom)** — ה-div כרטיס בשורה 481: הוספת סגנון צבע מגדרי במקום/בנוסף ל-bg-muted
+
+שינוי אחד בקובץ אחד בלבד. ללא שינוי בלוגיקה, שמירה, או הקצאות.
