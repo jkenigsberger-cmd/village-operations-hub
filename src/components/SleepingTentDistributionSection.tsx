@@ -32,6 +32,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+function distributionGenderStyle(gender?: TentGender): { bg: string; border: string } {
+  switch (gender) {
+    case 'BOYS':  return { bg: 'hsl(210, 55%, 92%)', border: 'hsl(210, 60%, 70%)' };
+    case 'GIRLS': return { bg: 'hsl(330, 55%, 92%)', border: 'hsl(330, 60%, 70%)' };
+    case 'MIXED': return { bg: 'hsl(270, 40%, 92%)', border: 'hsl(270, 50%, 70%)' };
+    default:      return { bg: '', border: '' };
+  }
+}
+
 interface SleepingTentDistributionSectionProps {
   participantCount: number;
   preference: DistributionPreference | null;
@@ -357,7 +366,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                 <div className="flex flex-wrap gap-2">
                   {(localPreference.tents || []).map((tent, idx) => (
                     <div key={tent.index} className="flex items-center gap-1">
-                      <Badge variant="outline" className="gap-1">
+                      <Badge variant="outline" className="gap-1" style={genderSeparation && tent.gender ? { backgroundColor: distributionGenderStyle(tent.gender).bg, borderColor: distributionGenderStyle(tent.gender).border } : undefined}>
                         {tent.index}: {tent.pax}
                         {genderSeparation && tent.gender && (
                           <span className="text-xs">({GENDER_LABELS[tent.gender]})</span>
@@ -445,7 +454,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                 {(localPreference.ranges?.length || 0) > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
                     {(localPreference.tents || []).map((tent) => (
-                      <Badge key={tent.index} variant="outline" className="gap-1">
+                      <Badge key={tent.index} variant="outline" className="gap-1" style={genderSeparation && tent.gender ? { backgroundColor: distributionGenderStyle(tent.gender).bg, borderColor: distributionGenderStyle(tent.gender).border } : undefined}>
                         {tent.index}: {tent.pax}
                         {genderSeparation && tent.gender && (
                           <span className="text-xs">({GENDER_LABELS[tent.gender]})</span>
@@ -484,6 +493,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                           "p-2 rounded-lg border flex flex-col items-center gap-1",
                           isOverCapacity ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "bg-muted/30"
                         )}
+                        style={genderSeparation && tent.gender && !isOverCapacity ? { backgroundColor: distributionGenderStyle(tent.gender).bg, borderColor: distributionGenderStyle(tent.gender).border } : undefined}
                       >
                         <span className="text-xs text-muted-foreground">אוהל {tent.index}</span>
                         <NumericInput
