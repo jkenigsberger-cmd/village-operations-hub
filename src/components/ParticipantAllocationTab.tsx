@@ -159,6 +159,8 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
       <DistributionRequirementsPanel
         preference={group.distributionPreference as DistributionPreference | null}
         participantCount={remainingParticipants}
+        boysCount={group.boysCount}
+        girlsCount={group.girlsCount}
       />
 
       <h3 className="text-lg font-semibold flex items-center gap-2">

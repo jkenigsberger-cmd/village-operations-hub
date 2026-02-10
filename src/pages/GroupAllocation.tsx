@@ -177,6 +177,8 @@ const GroupAllocation: React.FC = () => {
         <DistributionPreferenceDisplay
           preference={group.distributionPreference || null}
           participantCount={participantCount}
+          boysCount={group.boysCount}
+          girlsCount={group.girlsCount}
         />
 
         {/* Allocation Tabs */}

@@ -29,6 +29,8 @@ const mapDbRowToGroup = (row: any): GroupRecord => ({
   scheduleItems: (row.schedule_items as ScheduleItem[]) || [],
   vipTentConfigs: (row.vip_tent_configs as VIPTentConfig[]) || [],
   distributionPreference: row.distribution_preference || undefined,
+  boysCount: row.boys_count ?? undefined,
+  girlsCount: row.girls_count ?? undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -85,6 +87,8 @@ export const useAdminGroups = () => {
       distribution_preference: group.distributionPreference 
         ? JSON.parse(JSON.stringify(group.distributionPreference)) 
         : null,
+      boys_count: group.boysCount ?? null,
+      girls_count: group.girlsCount ?? null,
     });
     if (error) throw error;
     const now = new Date().toISOString();
@@ -119,6 +123,8 @@ export const useAdminGroups = () => {
         ? JSON.parse(JSON.stringify(updates.distributionPreference)) 
         : null;
     }
+    if (updates.boysCount !== undefined) dbUpdates.boys_count = updates.boysCount ?? null;
+    if (updates.girlsCount !== undefined) dbUpdates.girls_count = updates.girlsCount ?? null;
 
     // If group name is changing, update all linked records
     if (updates.groupName !== undefined) {

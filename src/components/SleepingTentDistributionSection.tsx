@@ -4,6 +4,7 @@ import {
   DistributionMode, 
   TentRange, 
   VirtualTent,
+  TentGender,
   createEmptyDistributionPreference,
   generateUniformTents,
   generateTentsFromRanges,
@@ -11,11 +12,11 @@ import {
   validateDistribution
 } from '@/types/distributionPreference';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/NumericInput';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   ChevronDown, 
@@ -36,6 +37,8 @@ interface SleepingTentDistributionSectionProps {
   preference: DistributionPreference | null;
   onChange: (preference: DistributionPreference | null) => void;
   disabled?: boolean;
+  boysCount?: number;
+  girlsCount?: number;
 }
 
 const DISTRIBUTION_MODE_LABELS: Record<DistributionMode, string> = {
@@ -44,18 +47,25 @@ const DISTRIBUTION_MODE_LABELS: Record<DistributionMode, string> = {
   custom: 'מותאם אישית',
 };
 
+const GENDER_LABELS: Record<TentGender, string> = {
+  BOYS: 'בנים',
+  GIRLS: 'בנות',
+  MIXED: 'מעורב',
+};
+
 export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionSectionProps> = ({
   participantCount,
   preference,
   onChange,
   disabled = false,
+  boysCount,
+  girlsCount,
 }) => {
   const [isOpen, setIsOpen] = useState(preference !== null && preference.requestedSleepingTentCount > 0);
   const [localPreference, setLocalPreference] = useState<DistributionPreference>(
     preference || createEmptyDistributionPreference()
   );
   
-  // When preference prop changes, update local state
   useEffect(() => {
     if (preference) {
       setLocalPreference(preference);
@@ -65,12 +75,28 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     }
   }, [preference]);
 
-  // Calculate validation
   const validation = useMemo(() => {
     return validateDistribution(localPreference, participantCount);
   }, [localPreference, participantCount]);
 
-  // Update parent when local changes
+  const genderSeparation = localPreference.genderSeparation || false;
+  const hasGenderCounts = !!(boysCount || girlsCount);
+
+  // Gender validation
+  const genderValidation = useMemo(() => {
+    if (!genderSeparation || !hasGenderCounts || !localPreference.tents) return null;
+    const boysTents = localPreference.tents.filter(t => t.gender === 'BOYS');
+    const girlsTents = localPreference.tents.filter(t => t.gender === 'GIRLS');
+    const boysSum = boysTents.reduce((s, t) => s + t.pax, 0);
+    const girlsSum = girlsTents.reduce((s, t) => s + t.pax, 0);
+    return {
+      boysSum,
+      girlsSum,
+      boysMatch: boysSum === (boysCount || 0),
+      girlsMatch: girlsSum === (girlsCount || 0),
+    };
+  }, [genderSeparation, hasGenderCounts, localPreference.tents, boysCount, girlsCount]);
+
   const updatePreference = (updates: Partial<DistributionPreference>) => {
     const newPref = { 
       ...localPreference, 
@@ -78,15 +104,27 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
       updatedAt: new Date().toISOString() 
     };
     
-    // Recalculate tents and totalPax based on mode
     let tents: VirtualTent[] = [];
     
     if (newPref.mode === 'uniform' && newPref.requestedSleepingTentCount > 0) {
-      // For uniform, calculate pax per tent
       const paxPerTent = newPref.preferredTentCapacity || 8;
       tents = generateUniformTents(newPref.requestedSleepingTentCount, paxPerTent);
+      // Preserve gender tags if they exist
+      if (localPreference.tents && newPref.genderSeparation) {
+        tents = tents.map((t, i) => ({
+          ...t,
+          gender: localPreference.tents?.[i]?.gender,
+        }));
+      }
     } else if (newPref.mode === 'ranges' && newPref.ranges && newPref.ranges.length > 0) {
       tents = generateTentsFromRanges(newPref.ranges);
+      // Apply gender from range to generated tents
+      if (newPref.genderSeparation && newPref.ranges) {
+        tents = tents.map(t => {
+          const range = newPref.ranges?.find(r => t.index >= r.from && t.index <= r.to);
+          return { ...t, gender: range?.gender };
+        });
+      }
     } else if (newPref.mode === 'custom' && newPref.tents) {
       tents = newPref.tents;
     }
@@ -99,7 +137,6 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     onChange(newPref.requestedSleepingTentCount > 0 ? newPref : null);
   };
 
-  // Auto-distribute evenly
   const autoDistribute = () => {
     if (participantCount <= 0) return;
     
@@ -125,7 +162,6 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     });
   };
 
-  // Add a range
   const addRange = () => {
     const currentRanges = localPreference.ranges || [];
     const lastTo = currentRanges.length > 0 
@@ -143,12 +179,9 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     });
   };
 
-  // Update a range
   const updateRange = (index: number, updates: Partial<TentRange>) => {
     const newRanges = [...(localPreference.ranges || [])];
     newRanges[index] = { ...newRanges[index], ...updates };
-    
-    // Update requestedSleepingTentCount to max 'to' value
     const maxTo = Math.max(...newRanges.map(r => r.to));
     
     updatePreference({
@@ -157,7 +190,6 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     });
   };
 
-  // Remove a range
   const removeRange = (index: number) => {
     const newRanges = (localPreference.ranges || []).filter((_, i) => i !== index);
     const maxTo = newRanges.length > 0 ? Math.max(...newRanges.map(r => r.to)) : 0;
@@ -168,16 +200,14 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     });
   };
 
-  // Update a custom tent
-  const updateTent = (index: number, pax: number) => {
+  const updateTent = (index: number, updates: Partial<VirtualTent>) => {
     const newTents = [...(localPreference.tents || [])];
     if (newTents[index]) {
-      newTents[index] = { ...newTents[index], pax };
+      newTents[index] = { ...newTents[index], ...updates };
     }
     updatePreference({ tents: newTents });
   };
 
-  // Add a tent in custom mode
   const addTent = () => {
     const newTents = [...(localPreference.tents || [])];
     const maxIndex = newTents.length > 0 ? Math.max(...newTents.map(t => t.index)) : 0;
@@ -188,7 +218,6 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     });
   };
 
-  // Remove a tent in custom mode
   const removeTent = (index: number) => {
     const newTents = (localPreference.tents || []).filter((_, i) => i !== index);
     const maxIndex = newTents.length > 0 ? Math.max(...newTents.map(t => t.index)) : 0;
@@ -198,12 +227,24 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     });
   };
 
-  // Clear preference
   const clearPreference = () => {
     setLocalPreference(createEmptyDistributionPreference());
     onChange(null);
     setIsOpen(false);
   };
+
+  const GenderSelect: React.FC<{ value?: TentGender; onChange: (v: TentGender) => void }> = ({ value, onChange: onGenderChange }) => (
+    <Select value={value || 'MIXED'} onValueChange={(v) => onGenderChange(v as TentGender)}>
+      <SelectTrigger className="w-20 h-8 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(GENDER_LABELS).map(([val, label]) => (
+          <SelectItem key={val} value={val}>{label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 
   return (
     <Card className={cn("border-dashed", disabled && "opacity-60")}>
@@ -278,6 +319,25 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
               </div>
             </div>
 
+            {/* Gender separation toggle */}
+            {hasGenderCounts && (
+              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                <Switch
+                  checked={genderSeparation}
+                  onCheckedChange={(checked) => updatePreference({ genderSeparation: checked })}
+                  disabled={disabled}
+                />
+                <label className="text-sm font-medium cursor-pointer">
+                  להפריד אוהלים לפי מגדר
+                </label>
+                {hasGenderCounts && (
+                  <span className="text-xs text-muted-foreground mr-auto">
+                    (בנים: {boysCount || 0}, בנות: {girlsCount || 0})
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Auto-distribute button */}
             <Button 
               type="button" 
@@ -295,10 +355,25 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
               <div className="p-3 bg-muted/30 rounded-lg space-y-2">
                 <p className="text-sm font-medium">תצוגה מקדימה:</p>
                 <div className="flex flex-wrap gap-2">
-                  {(localPreference.tents || []).map((tent) => (
-                    <Badge key={tent.index} variant="outline" className="gap-1">
-                      {tent.index}: {tent.pax}
-                    </Badge>
+                  {(localPreference.tents || []).map((tent, idx) => (
+                    <div key={tent.index} className="flex items-center gap-1">
+                      <Badge variant="outline" className="gap-1">
+                        {tent.index}: {tent.pax}
+                        {genderSeparation && tent.gender && (
+                          <span className="text-xs">({GENDER_LABELS[tent.gender]})</span>
+                        )}
+                      </Badge>
+                      {genderSeparation && (
+                        <GenderSelect
+                          value={tent.gender}
+                          onChange={(g) => {
+                            const newTents = [...(localPreference.tents || [])];
+                            newTents[idx] = { ...newTents[idx], gender: g };
+                            updatePreference({ tents: newTents });
+                          }}
+                        />
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -322,7 +397,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                 </div>
                 
                 {(localPreference.ranges || []).map((range, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div key={index} className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg flex-wrap">
                     <span className="text-sm">אוהלים</span>
                     <NumericInput
                       value={range.from}
@@ -348,6 +423,12 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                       disabled={disabled}
                     />
                     <span className="text-sm text-muted-foreground">בכל אוהל</span>
+                    {genderSeparation && (
+                      <GenderSelect
+                        value={range.gender}
+                        onChange={(g) => updateRange(index, { gender: g })}
+                      />
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
@@ -366,6 +447,9 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                     {(localPreference.tents || []).map((tent) => (
                       <Badge key={tent.index} variant="outline" className="gap-1">
                         {tent.index}: {tent.pax}
+                        {genderSeparation && tent.gender && (
+                          <span className="text-xs">({GENDER_LABELS[tent.gender]})</span>
+                        )}
                       </Badge>
                     ))}
                   </div>
@@ -404,11 +488,17 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                         <span className="text-xs text-muted-foreground">אוהל {tent.index}</span>
                         <NumericInput
                           value={tent.pax}
-                          onChange={(val) => updateTent(index, val)}
+                          onChange={(val) => updateTent(index, { pax: val })}
                           min={0}
                           className="w-full h-8 text-center"
                           disabled={disabled}
                         />
+                        {genderSeparation && (
+                          <GenderSelect
+                            value={tent.gender}
+                            onChange={(g) => updateTent(index, { gender: g })}
+                          />
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -455,6 +545,26 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                       ({validation.difference > 0 ? '+' : ''}{validation.difference})
                     </span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Gender validation warnings */}
+            {genderSeparation && genderValidation && (
+              <div className="space-y-2">
+                <div className={cn(
+                  "flex items-center gap-2 text-sm p-2 rounded-lg",
+                  genderValidation.boysMatch ? "text-green-600" : "text-amber-600 bg-amber-50 dark:bg-amber-950/20"
+                )}>
+                  {genderValidation.boysMatch ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                  <span>בנים: {genderValidation.boysSum} / {boysCount || 0}</span>
+                </div>
+                <div className={cn(
+                  "flex items-center gap-2 text-sm p-2 rounded-lg",
+                  genderValidation.girlsMatch ? "text-green-600" : "text-amber-600 bg-amber-50 dark:bg-amber-950/20"
+                )}>
+                  {genderValidation.girlsMatch ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                  <span>בנות: {genderValidation.girlsSum} / {girlsCount || 0}</span>
                 </div>
               </div>
             )}

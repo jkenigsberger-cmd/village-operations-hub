@@ -1,18 +1,28 @@
 import React from 'react';
-import { DistributionPreference, validateDistribution } from '@/types/distributionPreference';
+import { DistributionPreference, TentGender, validateDistribution } from '@/types/distributionPreference';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tent, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const GENDER_LABELS: Record<TentGender, string> = {
+  BOYS: 'בנים',
+  GIRLS: 'בנות',
+  MIXED: 'מעורב',
+};
+
 interface DistributionPreferenceDisplayProps {
   preference: DistributionPreference | null;
   participantCount: number;
+  boysCount?: number;
+  girlsCount?: number;
 }
 
 export const DistributionPreferenceDisplay: React.FC<DistributionPreferenceDisplayProps> = ({
   preference,
   participantCount,
+  boysCount,
+  girlsCount,
 }) => {
   if (!preference || preference.requestedSleepingTentCount === 0) {
     return (
@@ -28,6 +38,7 @@ export const DistributionPreferenceDisplay: React.FC<DistributionPreferenceDispl
   }
 
   const validation = validateDistribution(preference, participantCount);
+  const hasGenderInfo = !!(boysCount || girlsCount || preference.tents?.some(t => t.gender));
 
   return (
     <Card>
@@ -62,6 +73,17 @@ export const DistributionPreferenceDisplay: React.FC<DistributionPreferenceDispl
           </div>
         </div>
 
+        {/* Gender info */}
+        {hasGenderInfo && (
+          <div className="p-3 bg-muted/30 rounded-lg space-y-1">
+            <h5 className="text-sm font-medium">פירוט מגדרי:</h5>
+            <div className="flex gap-4 text-sm">
+              {boysCount !== undefined && boysCount > 0 && <span>בנים: <strong>{boysCount}</strong></span>}
+              {girlsCount !== undefined && girlsCount > 0 && <span>בנות: <strong>{girlsCount}</strong></span>}
+            </div>
+          </div>
+        )}
+
         {/* Tent distribution chips */}
         {preference.tents && preference.tents.length > 0 && (
           <div className="space-y-2">
@@ -79,6 +101,9 @@ export const DistributionPreferenceDisplay: React.FC<DistributionPreferenceDispl
                     )}
                   >
                     {tent.index}: {tent.pax}
+                    {tent.gender && tent.gender !== 'MIXED' && (
+                      <span className="text-muted-foreground"> ({GENDER_LABELS[tent.gender]})</span>
+                    )}
                   </Badge>
                 );
               })}

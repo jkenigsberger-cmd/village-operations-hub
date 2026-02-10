@@ -87,6 +87,9 @@ export interface GroupRecord {
   assignmentStatus?: AssignmentStatus; // Tracks allocation workflow status
   // Sleeping tent distribution preference (planning only, not actual allocation)
   distributionPreference?: DistributionPreference;
+  // Optional gender breakdown for participants (planning only)
+  boysCount?: number;
+  girlsCount?: number;
   createdAt: string;
   updatedAt: string;
 }

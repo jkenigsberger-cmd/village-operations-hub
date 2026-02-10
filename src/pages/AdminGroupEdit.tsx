@@ -479,6 +479,8 @@ const AdminGroupEdit = () => {
           remainingStaff: existing.remainingStaff ?? existing.staffCount ?? 0,
           remainingParticipants: existing.remainingParticipants ?? (existing.pax - (existing.staffCount || 0)),
           assignmentStatus: existing.assignmentStatus || 'pending_allocation',
+          boysCount: existing.boysCount,
+          girlsCount: existing.girlsCount,
         });
         // Load VIP tent configs into local state
         setVipTentConfigs(existing.vipTentConfigs || []);
@@ -1000,6 +1002,54 @@ const AdminGroupEdit = () => {
 
                 </div>
 
+                {/* Optional Gender Breakdown */}
+                <div className="p-3 bg-muted/30 rounded-lg space-y-3">
+                  <h5 className="text-sm font-medium text-muted-foreground">
+                    פירוט חניכים לפי מגדר (אופציונלי)
+                  </h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">בנים</label>
+                      <NumericInput
+                        value={formData.boysCount ?? 0}
+                        onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
+                        min={0}
+                        max={formData.participantCount || 0}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">בנות</label>
+                      <NumericInput
+                        value={formData.girlsCount ?? 0}
+                        onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
+                        min={0}
+                        max={formData.participantCount || 0}
+                      />
+                    </div>
+                  </div>
+                  {/* Gender validation warning */}
+                  {(formData.boysCount || formData.girlsCount) && (
+                    (() => {
+                      const sum = (formData.boysCount || 0) + (formData.girlsCount || 0);
+                      const target = formData.participantCount || 0;
+                      if (sum !== target) {
+                        return (
+                          <div className="flex items-center gap-2 text-amber-600 text-sm">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span>הסכום ({sum}) לא תואם למספר החניכים ({target})</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center gap-2 text-green-600 text-sm">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>בנים ({formData.boysCount || 0}) + בנות ({formData.girlsCount || 0}) = {sum} ✓</span>
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+
                 {/* VIP Tent Planner */}
                 <VIPTentPlanner
                   staffCount={formData.staffCount || 0}
@@ -1030,6 +1080,8 @@ const AdminGroupEdit = () => {
                 preference={distributionPreference}
                 onChange={setDistributionPreference}
                 disabled={!formData.startDate}
+                boysCount={formData.boysCount}
+                girlsCount={formData.girlsCount}
               />
             )}
 
