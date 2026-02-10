@@ -1014,16 +1014,14 @@ const AdminGroupEdit = () => {
                         value={formData.boysCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
                         min={0}
-                        max={formData.participantCount || 0}
                       />
                     </div>
-                    <div className="space-y-1">
+                    <div className="flex-1">
                       <label className="text-sm font-medium">בנות</label>
                       <NumericInput
                         value={formData.girlsCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
                         min={0}
-                        max={formData.participantCount || 0}
                       />
                     </div>
                   </div>
