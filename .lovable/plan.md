@@ -1,71 +1,40 @@
 
 
-# תיקון שמירת "העדפת חלוקה לאוהלי לינה"
+# תיקון שמירת שעת הגעה ויציאה לקבוצות פעילות יום
 
 ## הבעיה
 
-העדפת החלוקה לאוהלי לינה **לא נשמרת ולא נטענת** מכיוון שה-hook `useAdminGroups.ts` חסר את הקוד לטיפול בשדה `distribution_preference`.
+שעת ההגעה (`arrivalTime`) ושעת היציאה (`departureTime`) של קבוצות "יום ללא לינה" **לא נשמרות** כי:
+1. אין עמודות `arrival_time` ו-`departure_time` בטבלת `groups` בדאטהבייס
+2. ה-hook `useAdminGroups.ts` לא שומר/טוען את השדות האלה
 
-**השדה קיים בדאטהבייס** (עמודת JSONB בטבלת groups), אבל ה-hook לא:
-1. שומר אותו בעת יצירת קבוצה
-2. שומר אותו בעת עדכון קבוצה  
-3. טוען אותו בעת קריאת קבוצות
+הנתונים מוצגים בטופס אבל נעלמים אחרי רענון.
 
 ## הפתרון
 
-עדכון הקובץ `src/hooks/useAdminGroups.ts` בשלושה מקומות:
+### שלב 1: הוספת עמודות לדאטהבייס
 
-### 1. טעינה - הוספה ל-`mapDbRowToGroup`
-
-```typescript
-const mapDbRowToGroup = (row: any): GroupRecord => ({
-  // ... existing mappings ...
-  distributionPreference: row.distribution_preference || undefined,  // הוסף שורה זו
-});
+```sql
+ALTER TABLE public.groups 
+  ADD COLUMN arrival_time text,
+  ADD COLUMN departure_time text;
 ```
 
-### 2. יצירה - הוספה ל-`addGroup`
+### שלב 2: עדכון ה-hook
 
-```typescript
-const { error } = await supabase.from('groups').insert({
-  // ... existing fields ...
-  distribution_preference: group.distributionPreference 
-    ? JSON.parse(JSON.stringify(group.distributionPreference)) 
-    : null,  // הוסף שורה זו
-});
-```
+**קובץ: `src/hooks/useAdminGroups.ts`**
 
-### 3. עדכון - הוספה ל-`updateGroup`
-
-```typescript
-// הוסף את הבלוק הזה אחרי שאר המיפויים:
-if (updates.distributionPreference !== undefined) {
-  dbUpdates.distribution_preference = updates.distributionPreference 
-    ? JSON.parse(JSON.stringify(updates.distributionPreference)) 
-    : null;
-}
-```
-
----
+1. **טעינה** (`mapDbRowToGroup`): מיפוי `row.arrival_time` ו-`row.departure_time`
+2. **יצירה** (`addGroup`): שמירת `arrival_time` ו-`departure_time`
+3. **עדכון** (`updateGroup`): מיפוי `updates.arrivalTime` ו-`updates.departureTime`
 
 ## פרטים טכניים
 
-| קובץ | שינוי |
-|------|-------|
-| `src/hooks/useAdminGroups.ts` | הוספת מיפוי `distributionPreference` בשלושה מקומות |
+| שינוי | קובץ |
+|-------|------|
+| מיגרציה - 2 עמודות חדשות | `supabase/migrations/...` |
+| שמירה/טעינה של שעות | `src/hooks/useAdminGroups.ts` |
 
 ### מה לא ישתנה
-- לוגיקת השיבוץ
-- טבלאות allocations ו-neighborhood_reservations
-- VIP, לוח שנה, מטבח
-
----
-
-## בדיקות קבלה
-
-1. יצירת קבוצה חדשה עם העדפת חלוקה → נשמרת
-2. רענון הדף → ההעדפה נטענת לטופס
-3. עדכון קבוצה קיימת עם העדפה → נשמרת
-4. פתיחת טאב שיבוצים → הפאנל מציג את ההעדפה
-5. הזנת נתונים מומלצים (לחיצה על "חלק אוטומטית") → נשמרת
-
+- הטופס ב-`AdminGroupEdit.tsx` כבר עובד נכון
+- תצוגות בלוח שנה, דף היום, ומודל לוח זמנים - כבר קוראות את השדות מה-GroupRecord
