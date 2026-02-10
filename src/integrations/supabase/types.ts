@@ -439,12 +439,14 @@ export type Database = {
       groups: {
         Row: {
           arrival_date: string
+          arrival_time: string | null
           color: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string
           departure_date: string
+          departure_time: string | null
           distribution_preference: Json | null
           group_type: string
           id: string
@@ -464,12 +466,14 @@ export type Database = {
         }
         Insert: {
           arrival_date: string
+          arrival_time?: string | null
           color?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
           departure_date: string
+          departure_time?: string | null
           distribution_preference?: Json | null
           group_type?: string
           id: string
@@ -489,12 +493,14 @@ export type Database = {
         }
         Update: {
           arrival_date?: string
+          arrival_time?: string | null
           color?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
           departure_date?: string
+          departure_time?: string | null
           distribution_preference?: Json | null
           group_type?: string
           id?: string

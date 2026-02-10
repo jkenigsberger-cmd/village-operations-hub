@@ -22,6 +22,8 @@ const mapDbRowToGroup = (row: any): GroupRecord => ({
   remainingStaff: row.remaining_staff ?? row.staff_count,
   remainingParticipants: row.remaining_participants ?? row.participant_count,
   notes: row.notes || undefined,
+  arrivalTime: row.arrival_time || undefined,
+  departureTime: row.departure_time || undefined,
   status: (row.status as GroupStatus) || 'PLANNED',
   mealsPlan: (row.meal_plan as MealPlanItem[]) || [],
   scheduleItems: (row.schedule_items as ScheduleItem[]) || [],
@@ -73,6 +75,8 @@ export const useAdminGroups = () => {
       contact_name: group.reservedBy || null,
       contact_phone: group.contactPhone || null,
       notes: group.notes || null,
+      arrival_time: group.arrivalTime || null,
+      departure_time: group.departureTime || null,
       status: group.status || 'PLANNED',
       group_type: group.groupType || 'לינה',
       meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || [])),
@@ -103,6 +107,8 @@ export const useAdminGroups = () => {
     if (updates.reservedBy !== undefined) dbUpdates.contact_name = updates.reservedBy || null;
     if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone || null;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    if (updates.arrivalTime !== undefined) dbUpdates.arrival_time = updates.arrivalTime || null;
+    if (updates.departureTime !== undefined) dbUpdates.departure_time = updates.departureTime || null;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
     if (updates.mealsPlan !== undefined) dbUpdates.meal_plan = JSON.parse(JSON.stringify(updates.mealsPlan));
