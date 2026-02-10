@@ -1,40 +1,38 @@
 
 
-# תיקון שמירת שעת הגעה ויציאה לקבוצות פעילות יום
+# תיקון: מספר בנים/בנות מתאפס ל-10
 
 ## הבעיה
 
-שעת ההגעה (`arrivalTime`) ושעת היציאה (`departureTime`) של קבוצות "יום ללא לינה" **לא נשמרות** כי:
-1. אין עמודות `arrival_time` ו-`departure_time` בטבלת `groups` בדאטהבייס
-2. ה-hook `useAdminGroups.ts` לא שומר/טוען את השדות האלה
+כשמזינים מספר בשדות "בנים" או "בנות", הערך מתאפס ל-10 אוטומטית.
 
-הנתונים מוצגים בטופס אבל נעלמים אחרי רענון.
+**הסיבה**: הרכיב `NumericInput` מקבל `max={formData.participantCount || 0}`, וכשיוצרים קבוצה חדשה ה-`participantCount` הוא 10 כברירת מחדל. כשיוצאים מהשדה (blur), הרכיב חותך את הערך ל-max (כלומר 10).
 
 ## הפתרון
 
-### שלב 1: הוספת עמודות לדאטהבייס
-
-```sql
-ALTER TABLE public.groups 
-  ADD COLUMN arrival_time text,
-  ADD COLUMN departure_time text;
-```
-
-### שלב 2: עדכון ה-hook
-
-**קובץ: `src/hooks/useAdminGroups.ts`**
-
-1. **טעינה** (`mapDbRowToGroup`): מיפוי `row.arrival_time` ו-`row.departure_time`
-2. **יצירה** (`addGroup`): שמירת `arrival_time` ו-`departure_time`
-3. **עדכון** (`updateGroup`): מיפוי `updates.arrivalTime` ו-`updates.departureTime`
+להסיר את מגבלת ה-`max` מהשדות בנים ובנות. במקום חסימה, כבר קיימת **אזהרה ויזואלית** כשהסכום לא תואם את מספר החניכים — וזה מספיק.
 
 ## פרטים טכניים
 
-| שינוי | קובץ |
-|-------|------|
-| מיגרציה - 2 עמודות חדשות | `supabase/migrations/...` |
-| שמירה/טעינה של שעות | `src/hooks/useAdminGroups.ts` |
+**קובץ: `src/pages/AdminGroupEdit.tsx`**
 
-### מה לא ישתנה
-- הטופס ב-`AdminGroupEdit.tsx` כבר עובד נכון
-- תצוגות בלוח שנה, דף היום, ומודל לוח זמנים - כבר קוראות את השדות מה-GroupRecord
+שורות 1016-1017 ו-1025-1026 — הסרת `max` מ-NumericInput:
+
+```diff
+ <NumericInput
+   value={formData.boysCount ?? 0}
+   onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
+   min={0}
+-  max={formData.participantCount || 0}
+ />
+
+ <NumericInput
+   value={formData.girlsCount ?? 0}
+   onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
+   min={0}
+-  max={formData.participantCount || 0}
+ />
+```
+
+שינוי אחד בקובץ אחד בלבד.
+
