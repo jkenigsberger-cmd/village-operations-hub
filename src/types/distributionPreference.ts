@@ -6,16 +6,19 @@
 // Real allocation is a separate step in the Allocations flow.
 
 export type DistributionMode = 'uniform' | 'ranges' | 'custom';
+export type TentGender = 'BOYS' | 'GIRLS' | 'MIXED';
 
 export interface TentRange {
   from: number; // fromTentIndex (1-based)
   to: number;   // toTentIndex (1-based)
   pax: number;  // people per tent in this range
+  gender?: TentGender; // optional gender tag
 }
 
 export interface VirtualTent {
   index: number; // 1-based tent index
   pax: number;   // planned people in this tent
+  gender?: TentGender; // optional gender tag
 }
 
 export interface DistributionPreference {
@@ -26,6 +29,7 @@ export interface DistributionPreference {
   tents?: VirtualTent[];               // For custom mode (or generated from ranges/uniform)
   totalPax: number;                    // Sum of all tent assignments
   isValid: boolean;                    // Whether totalPax matches participantCount
+  genderSeparation?: boolean;          // Whether gender separation toggle is on
   updatedAt: string;                   // ISO timestamp
 }
 
@@ -54,7 +58,7 @@ export const generateTentsFromRanges = (ranges: TentRange[]): VirtualTent[] => {
   const tents: VirtualTent[] = [];
   ranges.forEach(range => {
     for (let i = range.from; i <= range.to; i++) {
-      tents.push({ index: i, pax: range.pax });
+      tents.push({ index: i, pax: range.pax, gender: range.gender });
     }
   });
   // Sort by index

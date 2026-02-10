@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { DistributionPreference, validateDistribution } from '@/types/distributionPreference';
+import { DistributionPreference, TentGender, validateDistribution } from '@/types/distributionPreference';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -9,15 +9,24 @@ import { cn } from '@/lib/utils';
 interface DistributionRequirementsPanelProps {
   preference: DistributionPreference | null;
   participantCount: number;
+  boysCount?: number;
+  girlsCount?: number;
 }
+
+const GENDER_LABELS: Record<TentGender, string> = {
+  BOYS: 'בנים',
+  GIRLS: 'בנות',
+  MIXED: 'מעורב',
+};
 
 interface GroupedRequirement {
   pax: number;
   count: number;
+  gender?: TentGender;
 }
 
-// Group tents by pax count for summary display
-const groupTentsByPax = (tents: { index: number; pax: number }[]): GroupedRequirement[] => {
+// Group tents by pax count for summary display (without gender)
+const groupTentsByPax = (tents: { index: number; pax: number; gender?: TentGender }[]): GroupedRequirement[] => {
   const groups: Record<number, number> = {};
   tents.forEach(tent => {
     groups[tent.pax] = (groups[tent.pax] || 0) + 1;
@@ -27,9 +36,27 @@ const groupTentsByPax = (tents: { index: number; pax: number }[]): GroupedRequir
     .sort((a, b) => b.count - a.count);
 };
 
+// Group tents by pax+gender for gender breakdown
+const groupTentsByPaxAndGender = (tents: { index: number; pax: number; gender?: TentGender }[]): GroupedRequirement[] => {
+  const key = (pax: number, gender?: TentGender) => `${pax}_${gender || 'NONE'}`;
+  const groups: Record<string, { pax: number; count: number; gender?: TentGender }> = {};
+  tents.forEach(tent => {
+    const k = key(tent.pax, tent.gender);
+    if (!groups[k]) groups[k] = { pax: tent.pax, count: 0, gender: tent.gender };
+    groups[k].count++;
+  });
+  return Object.values(groups).sort((a, b) => {
+    if (a.gender && b.gender) return a.gender.localeCompare(b.gender);
+    if (a.gender) return -1;
+    return b.count - a.count;
+  });
+};
+
 export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPanelProps> = ({
   preference,
   participantCount,
+  boysCount,
+  girlsCount,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -37,6 +64,14 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
     if (!preference?.tents || preference.tents.length === 0) return [];
     return groupTentsByPax(preference.tents);
   }, [preference?.tents]);
+
+  const hasGenderInfo = !!(boysCount || girlsCount || preference?.tents?.some(t => t.gender));
+  const hasGenderTags = preference?.tents?.some(t => t.gender && t.gender !== 'MIXED');
+
+  const genderGrouped = useMemo(() => {
+    if (!hasGenderTags || !preference?.tents) return [];
+    return groupTentsByPaxAndGender(preference.tents.filter(t => t.gender));
+  }, [hasGenderTags, preference?.tents]);
 
   if (!preference || preference.requestedSleepingTentCount === 0) {
     return (
@@ -62,7 +97,7 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
           <h4 className="font-semibold text-base">דרישות חלוקה מהזמנה</h4>
         </div>
 
-        {/* Grouped Requirements */}
+        {/* A) Aggregate requirements WITHOUT gender */}
         <div className="space-y-1.5">
           {groupedRequirements.map((req, idx) => (
             <div key={idx} className="flex items-center gap-2 text-sm">
@@ -73,6 +108,32 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
             </div>
           ))}
         </div>
+
+        {/* B) Gender breakdown section */}
+        {hasGenderInfo && (
+          <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+            <h5 className="text-sm font-medium">פירוט מגדרי:</h5>
+            <div className="flex gap-4 text-sm">
+              {boysCount !== undefined && boysCount > 0 && (
+                <span>בנים: <strong>{boysCount}</strong></span>
+              )}
+              {girlsCount !== undefined && girlsCount > 0 && (
+                <span>בנות: <strong>{girlsCount}</strong></span>
+              )}
+            </div>
+            {hasGenderTags && genderGrouped.length > 0 && (
+              <div className="space-y-1 pt-1 border-t border-border/50">
+                {genderGrouped.map((req, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">•</span>
+                    {req.gender && <Badge variant="outline" className="text-xs py-0">{GENDER_LABELS[req.gender]}</Badge>}
+                    <span>{req.count} אוהלים × {req.pax}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Validation Status */}
         <div className={cn(
@@ -98,7 +159,7 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
           )}
         </div>
 
-        {/* Expandable Details */}
+        {/* C) Expandable Details with gender tags */}
         {preference.tents && preference.tents.length > 0 && (
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <CollapsibleTrigger className="flex items-center gap-1 text-sm text-primary hover:underline cursor-pointer">
@@ -123,6 +184,9 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
                     className="text-xs gap-0.5"
                   >
                     {tent.index}:{tent.pax}
+                    {tent.gender && tent.gender !== 'MIXED' && (
+                      <span className="text-muted-foreground"> ({GENDER_LABELS[tent.gender]})</span>
+                    )}
                   </Badge>
                 ))}
               </div>
@@ -130,11 +194,11 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
           </Collapsible>
         )}
 
-        {/* Info Notice */}
+        {/* D) Info Notice */}
         <div className="flex items-start gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            זהו מידע תכנוני בלבד. השיבוץ בפועל מתבצע בבחירת שכונות/אוהלים בהמשך.
+            מידע תכנוני בלבד – השיבוץ בפועל מתבצע בבחירת שכונות/אוהלים.
           </span>
         </div>
       </CardContent>

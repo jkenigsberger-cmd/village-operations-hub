@@ -440,6 +440,7 @@ export type Database = {
         Row: {
           arrival_date: string
           arrival_time: string | null
+          boys_count: number | null
           color: string | null
           contact_email: string | null
           contact_name: string | null
@@ -448,6 +449,7 @@ export type Database = {
           departure_date: string
           departure_time: string | null
           distribution_preference: Json | null
+          girls_count: number | null
           group_type: string
           id: string
           meal_plan: Json | null
@@ -467,6 +469,7 @@ export type Database = {
         Insert: {
           arrival_date: string
           arrival_time?: string | null
+          boys_count?: number | null
           color?: string | null
           contact_email?: string | null
           contact_name?: string | null
@@ -475,6 +478,7 @@ export type Database = {
           departure_date: string
           departure_time?: string | null
           distribution_preference?: Json | null
+          girls_count?: number | null
           group_type?: string
           id: string
           meal_plan?: Json | null
@@ -494,6 +498,7 @@ export type Database = {
         Update: {
           arrival_date?: string
           arrival_time?: string | null
+          boys_count?: number | null
           color?: string | null
           contact_email?: string | null
           contact_name?: string | null
@@ -502,6 +507,7 @@ export type Database = {
           departure_date?: string
           departure_time?: string | null
           distribution_preference?: Json | null
+          girls_count?: number | null
           group_type?: string
           id?: string
           meal_plan?: Json | null
