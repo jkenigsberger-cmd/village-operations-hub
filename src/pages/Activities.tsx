@@ -24,7 +24,7 @@ import {
   Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { timeToMinutes } from '@/lib/timeUtils';
+import { getReservationSpan, isHourInReservation, isReservationStartHour } from '@/lib/timeUtils';
 
 // Generate consistent color for group names
 const getGroupColor = (groupName: string): string => {
@@ -134,32 +134,21 @@ const Activities = () => {
     setSelectedSpaceId(activitySpaces[0].id);
   }
 
-  const BUFFER = 15; // minutes buffer before and after reservation
-
-  // Get reservation for a specific hour slot (using buffered range)
+  // Get reservation for a specific hour slot (using minute-based comparison)
   const getReservationForHour = (hour: string): ActivityReservation | null => {
-    return spaceReservations.find(r => {
-      const hourMin = timeToMinutes(hour);
-      const bufferedStart = timeToMinutes(r.startTime) - BUFFER;
-      const bufferedEnd = timeToMinutes(r.endTime) + BUFFER;
-      return hourMin >= bufferedStart && hourMin < bufferedEnd;
-    }) || null;
+    return spaceReservations.find(r => 
+      isHourInReservation(hour, r.startTime, r.endTime)
+    ) || null;
   };
 
-  // Check if this hour is the start row of a reservation block (using buffered start)
+  // Check if this hour is the start row of a reservation block
   const isReservationStart = (hour: string): boolean => {
-    return spaceReservations.some(r => {
-      const bufferedStartHour = Math.floor((timeToMinutes(r.startTime) - BUFFER) / 60);
-      const hourValue = parseInt(hour.split(':')[0]);
-      return hourValue === bufferedStartHour;
-    });
+    return spaceReservations.some(r => isReservationStartHour(hour, r.startTime));
   };
 
-  // Get reservation span using buffered times
+  // Get reservation span (how many hour rows to span)
   const getReservationSpanForRow = (reservation: ActivityReservation): number => {
-    const bufferedStart = timeToMinutes(reservation.startTime) - BUFFER;
-    const bufferedEnd = timeToMinutes(reservation.endTime) + BUFFER;
-    return Math.max(1, Math.ceil((bufferedEnd - bufferedStart) / 60));
+    return getReservationSpan(reservation.startTime, reservation.endTime);
   };
 
   const handleHourClick = (hour: string) => {
