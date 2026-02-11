@@ -1,50 +1,47 @@
 
 
-# Fix: VIP 87 Still Shows as Occupied
+# Fix: VIP Tents Still Showing Stale Group Data
 
-## Problem
+## Root Causes
 
-The previous database cleanup for VIP 87 did not take effect. The tent still has:
-- `group_name: "השומר החדש  "` (with trailing spaces)
-- `check_in_date: 2026-02-09`, `check_out_date: 2026-02-10`
-- `gender: MALE`
-- 3 beds in `RESERVED` status
+Two issues remain:
 
-VIP 88 also has stale dates (`2026-02-09` to `2026-02-10`) with `gender: MALE`.
+1. **Database cleanup never took effect** -- VIP 87 and 88 still have `group_name: "השומר החדש  "`, old dates (Feb 9-10), and 6 beds in RESERVED status. The previous UPDATE statements were approved but the data persists.
 
-The map color fix (`hasReservation` via `getBookingStatus`) is logically correct -- it should show neutral colors for past reservations. But the tent cards still display group name and occupied bed counts because the underlying data was never cleaned.
+2. **TentCard has its own `hasReservation` check (line 55)** that still uses the naive non-null logic:
+   ```
+   const hasReservation = !!(summary.groupName || summary.checkInDate || summary.checkOutDate);
+   ```
+   This means even if the map colors are fixed, the **tent cards** still show gender colors, group names, and dates for past reservations.
 
-## Fix
+## Fix Plan
 
-### 1. Database Cleanup (one-time)
+### 1. Retry database cleanup for VIP 87 and VIP 88
 
-Clear stale data from VIP 87 and VIP 88:
+Clear all stale group data and reset beds:
 
 ```sql
--- VIP 87: clear all stale group data
 UPDATE tents 
 SET group_name = NULL, check_in_date = NULL, check_out_date = NULL, gender = 'MIXED'
-WHERE id = '4sm0ac191';
+WHERE id IN ('4sm0ac191', '7kc6aojuh');
 
--- VIP 87: reset beds to FREE
 UPDATE beds 
 SET status = 'FREE', guest_name = NULL 
-WHERE tent_id = '4sm0ac191' AND status = 'RESERVED';
-
--- VIP 88: clear stale dates (no group_name but has old dates)
-UPDATE tents 
-SET check_in_date = NULL, check_out_date = NULL, gender = 'MIXED'
-WHERE id = '7kc6aojuh' AND group_name IS NULL;
+WHERE tent_id IN ('4sm0ac191', '7kc6aojuh') AND status = 'RESERVED';
 ```
 
-### 2. Harden the cascade delete to also use `.or()` with trimmed+padded variants
+### 2. Fix TentCard.tsx -- use date-aware `hasReservation`
 
-The previous cleanup likely failed because the group name `"השומר החדש  "` has **two** trailing spaces, while our `.or()` query only tried one trailing space. Update `cascadeDeleteGroupRecords` in `src/lib/groupLinkedRecords.ts` to use a broader match:
+Update `src/components/TentCard.tsx` line 55 to use `getBookingStatus` instead of a naive non-null check. This ensures:
+- Past reservations show neutral/empty card styling
+- Group names and dates for past reservations are hidden
+- Gender colors only appear for active reservations
 
-- Use `.ilike('group_name', trimmedName)` combined with `.like('group_name', trimmedName + '%')` to catch any amount of trailing whitespace
-- This prevents future mismatches regardless of how many trailing spaces exist
+### 3. Consider a broader systemic fix
 
-### Files Changed
+The real long-term fix: when a group checks out, the system should automatically clear the tent's `group_name`, dates, and reset beds to FREE. Currently this only happens during cascade delete, not on natural checkout. For now, the date-aware `hasReservation` check in TentCard will visually hide past reservations even if the underlying data hasn't been cleaned.
 
-- `src/lib/groupLinkedRecords.ts` -- broaden whitespace matching in cascade delete
-- Database -- one-time cleanup of VIP 87 and VIP 88 stale data
+## Files Changed
+
+- `src/components/TentCard.tsx` -- import `getBookingStatus` and `format`, replace naive `hasReservation` with hotel-logic date check
+- Database -- retry cleanup of VIP 87 and VIP 88 stale data
