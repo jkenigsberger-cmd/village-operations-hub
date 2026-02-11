@@ -1,57 +1,60 @@
 
 
-# Fix: Cascade Delete Not Clearing VIP Tents and Beds
+# Fix: VIP Tents Stay Colored After Checkout
 
-## Problem Found
+## Problem
 
-When a group is deleted, orphaned data remains in the database:
+VIP 87 ("השומר החדש") has `check_out_date: 2026-02-10` but today is 2026-02-11. The tent still appears colored (blue/male) on the map because the `hasReservation` flag only checks if `groupName`/`checkInDate`/`checkOutDate` are non-null -- it never checks whether the current date is actually within the reservation window.
 
-1. **VIP tents still show deleted groups**: Tents VIP 87 (group "השומר החדש"), VIP 83 (group "ddd") still have `group_name`, `check_in_date`, `check_out_date`, and `gender` set even though those groups no longer exist.
-
-2. **Beds stay RESERVED**: Beds in those VIP tents remain in `RESERVED` status instead of being reset to `FREE`.
-
-3. **Neighborhood reservations not deleted**: An orphaned reservation for "השומר החדש" still exists in `neighborhood_reservations`.
-
-**Root cause**: The cascade delete matches tents/reservations using exact string equality (`.eq('group_name', groupName)`), but some group names were stored with trailing whitespace (e.g., "השומר החדש " vs "השומר החדש"). This caused the cleanup queries to silently match zero rows.
-
-## Plan
-
-### 1. Fix `cascadeDeleteGroupRecords` in `src/lib/groupLinkedRecords.ts`
-
-- **Trim group name** before using it in queries to handle whitespace mismatches
-- **Use `.ilike()` or `.or()` with trimmed variant** as a safety net for matching
-- **Add beds cleanup step**: After clearing tents, also reset all beds in those tents from `RESERVED` to `FREE`
-- The updated cascade flow:
-  1. Delete allocations (by group_id) -- already works
-  2. Delete neighborhood_reservations (by group_name, trimmed) -- fix matching
-  3. Delete activity_reservations (by group_id OR group_name) -- fix matching
-  4. Clear tents: first **fetch matching tent IDs**, then update tents AND reset their beds to FREE
-  5. Update kitchen_time_slots -- already works
-
-### 2. Fix `getLinkedRecordsSummary` in the same file
-
-- Apply the same trimmed matching to the count queries so the "linked records" warning accurately detects orphaned data before deletion.
-
-### 3. Clean up existing orphaned data
-
-- Run a one-time database migration to:
-  - Clear the 4 orphaned VIP tents (reset group_name, dates, gender)
-  - Reset their beds to FREE
-  - Delete the orphaned neighborhood reservation
-
-### Technical Detail: Beds Cleanup Logic
-
-Currently, step 4 only does:
-```
-update tents set group_name=null, dates=null, gender='MIXED' where group_name = X
+**Line 175 of `src/pages/Neighborhood.tsx`:**
+```typescript
+const hasReservation = !!(tent.groupName || tent.checkInDate || tent.checkOutDate);
 ```
 
-It will be changed to:
-```
-1. SELECT id FROM tents WHERE group_name matches (trimmed)
-2. UPDATE tents SET group_name=null, dates=null, gender='MIXED' WHERE id IN (...)
-3. UPDATE beds SET status='FREE', guest_name=null WHERE tent_id IN (...) AND status='RESERVED'
+This returns `true` even for past reservations.
+
+## Solution
+
+### 1. Fix `hasReservation` logic in `src/pages/Neighborhood.tsx` (line 175)
+
+Replace the naive non-null check with proper hotel-logic date comparison using the existing `getBookingStatus` helper from `src/lib/bookingStatusColors.ts`:
+
+```typescript
+import { getBookingStatus } from '@/lib/bookingStatusColors';
+import { format } from 'date-fns';
+
+// Inside the useMemo where nodes are built:
+const today = format(new Date(), 'yyyy-MM-dd');
+const hasReservation = !!(
+  tent.checkInDate && tent.checkOutDate &&
+  getBookingStatus(tent.checkInDate, tent.checkOutDate, today)
+);
 ```
 
-This ensures both the tent metadata AND the individual bed statuses are fully reset.
+This ensures:
+- A tent is "reserved" only if `start_date <= today < end_date` (sleeping/check-in) OR `end_date == today` (check-out day)
+- After checkout day passes, the tent shows as neutral/empty
+
+### 2. Same fix for `VIPNeighborhoodMap` color logic
+
+The `VIPNeighborhoodMap` component receives `hasReservation` from the same `Neighborhood.tsx` node builder, so fixing the source fixes both the large map and mini-map.
+
+### 3. Clean up the orphaned VIP 87 tent data
+
+Run a one-time database cleanup to clear VIP 87's stale group data (since "השומר החדש" already checked out):
+
+```sql
+UPDATE tents SET group_name = NULL, check_in_date = NULL, check_out_date = NULL, gender = 'MIXED'
+WHERE id = '4sm0ac191';
+
+UPDATE beds SET status = 'FREE', guest_name = NULL
+WHERE tent_id = '4sm0ac191' AND status = 'RESERVED';
+```
+
+This addresses the immediate visual issue. Combined with the code fix, future checkouts will automatically stop showing colored tents once the checkout date has passed.
+
+## Files Changed
+
+- `src/pages/Neighborhood.tsx` -- import `getBookingStatus` and `format`, update `hasReservation` computation to use hotel-logic date check
+- Database: one-time cleanup of VIP 87 orphaned data
 
