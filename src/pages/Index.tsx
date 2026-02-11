@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import hadorHabaLogo from '@/assets/hador-haba-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
@@ -28,6 +29,7 @@ import {
   Moon,
   Bath, 
   CalendarDays, 
+  
   Tent,
   Loader2,
   Home,
@@ -274,13 +276,10 @@ const Index = () => {
         <div className="container py-3 md:py-6">
           <div className="flex items-center justify-between gap-3 md:gap-4">
             <div className="flex items-center gap-2 md:gap-4">
-              <Tent className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+              <img src={hadorHabaLogo} alt="הדור הבא" className="h-8 md:h-10" />
               <div>
-                <h1 className="text-2xl md:text-4xl font-bold text-foreground">
-                  חוות אהרונסון
-                </h1>
                 <p className="text-muted-foreground text-sm md:text-lg hidden sm:block">
-                  Glow Glamping & Ha-Dor Ha-Ba
+                  GLOW Glamping
                 </p>
               </div>
             </div>
