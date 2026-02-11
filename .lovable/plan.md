@@ -1,45 +1,35 @@
 
 
-# Fix: TentCard Still Shows Group Name and Occupancy for Past Reservations
+# Add Booking Status and Pax Info to Home Page (דף הבית) Neighborhood Section
 
-## Problem
+## What Changes
 
-Two separate issues:
+The Neighborhoods section on the home page (overview) currently shows mini-maps without any booking/occupancy status information. The "neighborhoods" tab already has colored status bars (check-in/sleeping/check-out), group names, and pax counts on each tile -- but the home page does not.
 
-1. **Database cleanup keeps failing to persist** -- VIP 87 and 88 still have stale `group_name`, dates, and RESERVED beds despite multiple approved UPDATE attempts.
+## Plan
 
-2. **TentCard only uses `hasReservation` for colors/badges** -- The group name (line 79), occupancy bar (line 51 `usedBeds`), and date display (line 134) all render unconditionally based on raw data. Even if the color fix works, the text "השומר החדש" and "3/3" occupancy still appear.
+### 1. Add booking data to the overview neighborhood section
 
-## Fix
+The overview section (lines 486-532 in `Index.tsx`) renders `NeighborhoodMiniMap` components. We will enrich each mini-map card with:
 
-### 1. Retry database cleanup (again)
+- **A colored status indicator** (green for check-in, blue for sleeping, orange for check-out) -- a small banner or border matching the `bookingStatusColors` system
+- **Group name** when a neighborhood is booked
+- **Number of people** (total pax) for the reservation
 
-Execute the same cleanup SQL. If it fails again, we will verify by querying immediately after.
+This data is already available via `useNeighborhoodBookings` (line 106), which is called with `neighborhoodsSelectedDate`. For the home page we need today's date, so we'll use the existing `neighborhoodBookings` and `vipBooking` data (since `neighborhoodsSelectedDate` defaults to today).
 
-```sql
-UPDATE tents 
-SET group_name = NULL, check_in_date = NULL, check_out_date = NULL, gender = 'MIXED'
-WHERE id IN ('4sm0ac191', '7kc6aojuh');
+### 2. Implementation approach
 
-UPDATE beds 
-SET status = 'FREE', guest_name = NULL 
-WHERE tent_id IN ('4sm0ac191', '7kc6aojuh') AND status = 'RESERVED';
-```
+In `src/pages/Index.tsx`, in the overview section where `NeighborhoodMiniMap` is rendered (lines 512-531):
 
-### 2. Make TentCard fully respect `hasReservation`
+- After each `NeighborhoodMiniMap`, add a small footer/overlay showing:
+  - Booking status badge (icon + label + color) from `BOOKING_STATUS_COLORS`
+  - Group name (truncated)
+  - Pax count ("X איש")
+- Wrap the mini-map in a container with a top border color matching the booking status (same pattern as `NeighborhoodTile`)
 
-In `src/components/TentCard.tsx`, gate ALL reservation-related display on `hasReservation`:
+### 3. Files to modify
 
-**Group name** (line 79): Change from `summary.groupName &&` to `hasReservation && summary.groupName &&`
+- **`src/pages/Index.tsx`** -- Add booking status info below/around the `NeighborhoodMiniMap` cards in the overview section. Use the existing `neighborhoodBookings` and `vipBooking` data that's already computed.
 
-**Occupancy count** (line 51): When `!hasReservation`, treat `usedBeds` as 0 so the bar shows empty and the count shows "0/N"
-
-**Dates** (line 134): Change from `summary.checkInDate || summary.checkOutDate` to `hasReservation && (summary.checkInDate || summary.checkOutDate)`
-
-This ensures that even if stale data remains in the database, past reservations show a completely clean, neutral tent card with 0 occupancy and no group name.
-
-## Files Changed
-
-- `src/components/TentCard.tsx` -- gate group name, occupancy, and dates behind `hasReservation`
-- Database -- retry cleanup of VIP 87 and VIP 88
-
+No new components or hooks needed -- all data and styling utilities already exist.
