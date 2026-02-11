@@ -15,6 +15,7 @@ import {
   LogOut,
   Users,
   MapPin,
+  Tent,
   Calendar as CalendarIcon,
 } from 'lucide-react';
 
@@ -24,7 +25,11 @@ const statusConfig = {
   'check-out': { label: "צ'ק-אאוט", icon: LogOut, color: 'bg-orange-500', textColor: 'text-orange-700', bgLight: 'bg-orange-50 dark:bg-orange-950/30' },
 };
 
-export const SleepingDashboard: React.FC = () => {
+interface SleepingDashboardProps {
+  onNavigateToNeighborhoods?: () => void;
+}
+
+export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigateToNeighborhoods }) => {
   const { getRowsForDay, getMonthSleepingCounts } = useSleepingData();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -159,6 +164,17 @@ export const SleepingDashboard: React.FC = () => {
             {' — '}שכונות ו-VIP בלבד
           </p>
         </div>
+        {onNavigateToNeighborhoods && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mr-auto"
+            onClick={onNavigateToNeighborhoods}
+          >
+            <Tent className="w-4 h-4 ml-1" />
+            שכונות
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
