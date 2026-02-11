@@ -1,35 +1,24 @@
 
+# Sync Neighborhood Card Occupancy with Booking Pax Count
 
-# Add Booking Status and Pax Info to Home Page (דף הבית) Neighborhood Section
+## Problem
 
-## What Changes
+The `NeighborhoodMiniMap` card header shows `summary.occupiedBeds/summary.totalBeds` (e.g., "0/32"), where `occupiedBeds` is derived from counting individual bed records marked as OCCUPIED or RESERVED. When a neighborhood reservation exists but individual beds haven't been marked, this shows 0 -- even though the booking banner correctly shows "32 איש".
 
-The Neighborhoods section on the home page (overview) currently shows mini-maps without any booking/occupancy status information. The "neighborhoods" tab already has colored status bars (check-in/sleeping/check-out), group names, and pax counts on each tile -- but the home page does not.
+## Solution
 
-## Plan
+Update `NeighborhoodMiniMap` to accept an optional `bookingPax` prop. When provided and greater than `summary.occupiedBeds`, use it instead for the occupancy display and progress bar. This keeps the existing bed-level data as a fallback while showing the reservation-level pax count when available.
 
-### 1. Add booking data to the overview neighborhood section
+## Changes
 
-The overview section (lines 486-532 in `Index.tsx`) renders `NeighborhoodMiniMap` components. We will enrich each mini-map card with:
+### 1. `src/components/NeighborhoodMiniMap.tsx`
 
-- **A colored status indicator** (green for check-in, blue for sleeping, orange for check-out) -- a small banner or border matching the `bookingStatusColors` system
-- **Group name** when a neighborhood is booked
-- **Number of people** (total pax) for the reservation
+- Add optional `bookingPax?: number` prop
+- Compute `displayedOccupied = Math.max(summary.occupiedBeds, bookingPax ?? 0)`
+- Use `displayedOccupied` in the header ("X/32") and the occupancy bar percentage
 
-This data is already available via `useNeighborhoodBookings` (line 106), which is called with `neighborhoodsSelectedDate`. For the home page we need today's date, so we'll use the existing `neighborhoodBookings` and `vipBooking` data (since `neighborhoodsSelectedDate` defaults to today).
+### 2. `src/pages/Index.tsx`
 
-### 2. Implementation approach
+- Pass `bookingPax={booking?.totalPax}` to `NeighborhoodMiniMap` in the overview section (where the booking data is already computed)
 
-In `src/pages/Index.tsx`, in the overview section where `NeighborhoodMiniMap` is rendered (lines 512-531):
-
-- After each `NeighborhoodMiniMap`, add a small footer/overlay showing:
-  - Booking status badge (icon + label + color) from `BOOKING_STATUS_COLORS`
-  - Group name (truncated)
-  - Pax count ("X איש")
-- Wrap the mini-map in a container with a top border color matching the booking status (same pattern as `NeighborhoodTile`)
-
-### 3. Files to modify
-
-- **`src/pages/Index.tsx`** -- Add booking status info below/around the `NeighborhoodMiniMap` cards in the overview section. Use the existing `neighborhoodBookings` and `vipBooking` data that's already computed.
-
-No new components or hooks needed -- all data and styling utilities already exist.
+No new files, hooks, or dependencies needed.
