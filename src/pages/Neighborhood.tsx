@@ -13,7 +13,8 @@ import { VIPPlanningPanel } from '@/components/VIPPlanningPanel';
 import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
 import { NeighborhoodBookingsList } from '@/components/NeighborhoodBookingsList';
 import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
-import { BOOKING_STATUS_COLORS } from '@/lib/bookingStatusColors';
+import { BOOKING_STATUS_COLORS, getBookingStatus } from '@/lib/bookingStatusColors';
+
 import { Badge } from '@/components/ui/badge';
 import { NeighborhoodId, Tent } from '@/types/village';
 import { 
@@ -171,8 +172,12 @@ const Neighborhood = () => {
         cleaning = 'IN_PROGRESS';
       }
 
-      // Check if tent has active reservation (group name or dates)
-      const hasReservation = !!(tent.groupName || tent.checkInDate || tent.checkOutDate);
+      // Check if tent has active reservation using hotel-logic date check
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const hasReservation = !!(
+        tent.checkInDate && tent.checkOutDate &&
+        getBookingStatus(tent.checkInDate, tent.checkOutDate, today)
+      );
 
       return {
         id: tent.id,
