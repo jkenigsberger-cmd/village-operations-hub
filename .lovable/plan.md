@@ -1,24 +1,29 @@
 
-# Sync Neighborhood Card Occupancy with Booking Pax Count
+# Sort VIP Tent Cards by Ascending Number in Grid View
 
-## Problem
+## What Changes
 
-The `NeighborhoodMiniMap` card header shows `summary.occupiedBeds/summary.totalBeds` (e.g., "0/32"), where `occupiedBeds` is derived from counting individual bed records marked as OCCUPIED or RESERVED. When a neighborhood reservation exists but individual beds haven't been marked, this shows 0 -- even though the booking banner correctly shows "32 איש".
+The VIP tent cards in the grid view appear in whatever order `neighborhood.tentIds` provides. We'll add a sort step so they display in ascending numerical order (80, 81, 82, ... 88, 89) for easier scanning.
 
-## Solution
+## Scope
 
-Update `NeighborhoodMiniMap` to accept an optional `bookingPax` prop. When provided and greater than `summary.occupiedBeds`, use it instead for the occupancy display and progress bar. This keeps the existing bed-level data as a fallback while showing the reservation-level pax count when available.
+Only the **grid rendering order** is affected. The map layout, data, and all other logic remain untouched.
 
-## Changes
+## Technical Details
 
-### 1. `src/components/NeighborhoodMiniMap.tsx`
+### File: `src/pages/Neighborhood.tsx`
 
-- Add optional `bookingPax?: number` prop
-- Compute `displayedOccupied = Math.max(summary.occupiedBeds, bookingPax ?? 0)`
-- Use `displayedOccupied` in the header ("X/32") and the occupancy bar percentage
+In the `filteredTents` memo (around line 100), add a final `.sort()` step **only for the VIP neighborhood** that extracts the number from the tent code (e.g., "VIP 80" -> 80) and sorts ascending:
 
-### 2. `src/pages/Index.tsx`
+```typescript
+// At the end of filteredTents memo, before returning:
+if (isVIPNeighborhood) {
+  result = [...result].sort((a, b) => {
+    const numA = parseInt(a.tent.code.match(/\d+/)?.[0] ?? '0');
+    const numB = parseInt(b.tent.code.match(/\d+/)?.[0] ?? '0');
+    return numA - numB;
+  });
+}
+```
 
-- Pass `bookingPax={booking?.totalPax}` to `NeighborhoodMiniMap` in the overview section (where the booking data is already computed)
-
-No new files, hooks, or dependencies needed.
+This ensures tent cards appear as: VIP 80, VIP 81, VIP 82, ..., VIP 88, VIP 89.
