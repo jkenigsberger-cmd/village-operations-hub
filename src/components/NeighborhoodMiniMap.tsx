@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NeighborhoodId, NeighborhoodSummary, Tent, TentGender } from "@/types/village";
+import { getBookingStatus } from "@/lib/bookingStatusColors";
+import { format } from "date-fns";
 import MiniMapCircular, { MiniTentNode } from "./MiniMapCircular";
 import MiniMapVIP, { MiniVIPTentNode } from "./MiniMapVIP";
 import { Users, LogIn, LogOut } from "lucide-react";
@@ -46,7 +48,10 @@ export default function NeighborhoodMiniMap({
       isAlef: tent.isAlef,
       doubleTentId: tent.doubleTentId,
       gender: tent.gender,
-      hasReservation: !!(tent.groupName || tent.checkInDate),
+      hasReservation: (() => {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        return !!(tent.checkInDate && tent.checkOutDate && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
+      })(),
     }));
   }, [tents, isVIP, onTentClick]);
 
@@ -58,7 +63,10 @@ export default function NeighborhoodMiniMap({
       code: tent.code,
       onClick: () => onTentClick(tent.id),
       gender: tent.gender,
-      hasReservation: !!(tent.groupName || tent.checkInDate),
+      hasReservation: (() => {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        return !!(tent.checkInDate && tent.checkOutDate && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
+      })(),
     }));
   }, [tents, isVIP, onTentClick]);
 
