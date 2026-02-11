@@ -367,7 +367,13 @@ const Activities = () => {
                         
                         // Skip rendering if this hour is part of a reservation but not the start
                         if (reservation && !isStart) {
-                          return null;
+                          return (
+                            <tr key={hour} className="border-t">
+                              <td className="p-3 font-mono text-sm font-semibold text-muted-foreground border-r bg-muted/20">
+                                {hour}
+                              </td>
+                            </tr>
+                          );
                         }
 
                         return (
