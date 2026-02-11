@@ -277,7 +277,7 @@ const Index = () => {
         <div className="container py-3 md:py-6">
           <div className="flex items-center justify-between gap-3 md:gap-4">
             <div className="flex flex-col items-center gap-1">
-              <img alt="הדור הבא" className="h-16 md:h-24 w-auto" src="/lovable-uploads/318d9c5d-4001-403a-b971-c013d3bb658d.png" />
+              <img alt="הדור הבא" className="h-12 md:h-18 w-auto" src="/lovable-uploads/318d9c5d-4001-403a-b971-c013d3bb658d.png" />
               <div className="flex items-center gap-2">
                 <img src={glowLogo} alt="GLOW Alternative Hospitality" className="h-6 md:h-8" />
                 <span className="text-xs md:text-sm text-muted-foreground font-medium">by: Glow Glamping</span>
