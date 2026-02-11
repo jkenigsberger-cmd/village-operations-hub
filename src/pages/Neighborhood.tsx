@@ -127,8 +127,17 @@ const Neighborhood = () => {
         break;
     }
 
+    // Sort VIP tents by ascending number for grid view
+    if (isVIPNeighborhood) {
+      result = [...result].sort((a, b) => {
+        const numA = parseInt(a.tent.code.match(/\d+/)?.[0] ?? '0');
+        const numB = parseInt(b.tent.code.match(/\d+/)?.[0] ?? '0');
+        return numA - numB;
+      });
+    }
+
     return result;
-  }, [tentSummaries, searchQuery, activeFilter, today]);
+  }, [tentSummaries, searchQuery, activeFilter, today, isVIPNeighborhood]);
 
   // Group by double tent for N1-N3
   const groupedTents = useMemo(() => {
