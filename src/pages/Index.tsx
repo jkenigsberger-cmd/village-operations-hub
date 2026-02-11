@@ -582,7 +582,7 @@ const Index = () => {
 
         {/* Sleeping Section */}
         {activeSection === 'sleeping' &&
-        <SleepingDashboard />
+        <SleepingDashboard onNavigateToNeighborhoods={() => setActiveSection('neighborhoods')} />
         }
 
         {/* Allocations Section - ALL sleeping groups (GOAL 2) */}
@@ -621,6 +621,15 @@ const Index = () => {
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <Tent className="w-8 h-8" />
               {HE.pages.allNeighborhoods}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-auto"
+                onClick={() => setActiveSection('sleeping')}
+              >
+                <Moon className="w-4 h-4 ml-1" />
+                לינה
+              </Button>
             </h2>
 
             {/* Mini Calendar + Status Filters */}
