@@ -1,50 +1,65 @@
 
 
-# Fix Activity Space Hourly Grid - Reservation Block Spanning Wrong Hours
+# Show 15-Minute Buffer Visually in Hourly Grid
 
-## Problem
+## What Changes
 
-The colored reservation block extends far beyond its actual end time. For example, a 09:00-15:30 reservation shows color all the way to 21:00 instead of stopping at ~16:00.
+When a reservation is booked from 09:00 to 15:30, the colored block currently spans 09:00-15:00 (or 16:00). With this change, the colored block will visually extend to include the 15-minute buffer on both sides, so it covers 08:00-16:00 (the hour rows that contain 08:45 and 15:45).
 
-## Root Cause
+The reservation text inside the block still shows the actual booked times (09:00 - 15:30). Only the visual coloring extends to reflect the buffer.
 
-When a reservation occupies a time range, the code skips the **entire table row** (`<tr>`) for intermediate hours (lines 369-371). The reservation cell uses `rowSpan` to visually span multiple rows -- but `rowSpan` counts only **rendered** rows in the DOM. Since intermediate rows are removed entirely, the `rowSpan` bleeds into the hours that follow the reservation, painting them with the reservation color.
+## Technical Details
 
-```text
-Current (broken):                    Fixed:
-09:00 | [reservation rowSpan=7]      09:00 | [reservation rowSpan=7]
-      | (rows 10-15 MISSING)         10:00 |   (covered by rowSpan)
-16:00 | ...extends here...           11:00 |   (covered by rowSpan)
-17:00 | ...extends here...           12:00 |   (covered by rowSpan)
-18:00 | ...extends here...           13:00 |   (covered by rowSpan)
-19:00 | ...extends here...           14:00 |   (covered by rowSpan)
-20:00 | ...extends here...           15:00 |   (covered by rowSpan)
-21:00 | ...extends here...           16:00 | empty
-                                     17:00 | empty
-```
+### File: `src/pages/Activities.tsx`
 
-## Fix
+Modify the three helper functions to use buffered times for visual rendering:
 
-**File: `src/pages/Activities.tsx`** (lines 369-371)
-
-Instead of returning `null` for the entire `<tr>`, render the row with just the hour label cell (the reservation cell is already covered by `rowSpan`):
+**1. `getReservationForHour`** - Check if an hour falls within the buffered range (startTime - 15min to endTime + 15min):
 
 ```typescript
-// Was: return null (removes entire row)
-// Fix: render the hour label but skip the reservation cell
-if (reservation && !isStart) {
-  return (
-    <tr key={hour} className="border-t">
-      <td className="p-3 font-mono text-sm font-semibold text-muted-foreground border-r bg-muted/20">
-        {hour}
-      </td>
-      {/* No second <td> -- covered by rowSpan from start row */}
-    </tr>
-  );
-}
+const getReservationForHour = (hour: string): ActivityReservation | null => {
+  const BUFFER = 15; // minutes
+  return spaceReservations.find(r => {
+    const hourMin = timeToMinutes(hour);
+    const bufferedStart = timeToMinutes(r.startTime) - BUFFER;
+    const bufferedEnd = timeToMinutes(r.endTime) + BUFFER;
+    return hourMin >= bufferedStart && hourMin < bufferedEnd;
+  }) || null;
+};
 ```
 
-This ensures:
-- All hour labels remain visible on the left column
-- The reservation color block spans exactly the correct hours
-- Click-to-book on empty hours still works correctly
+**2. `isReservationStart`** - The start row is now the hour containing (startTime - 15min):
+
+```typescript
+const isReservationStart = (hour: string): boolean => {
+  const BUFFER = 15;
+  return spaceReservations.some(r => {
+    const bufferedStartHour = Math.floor((timeToMinutes(r.startTime) - BUFFER) / 60);
+    const hourValue = parseInt(hour.split(':')[0]);
+    return hourValue === bufferedStartHour;
+  });
+};
+```
+
+**3. `getReservationSpanForRow`** - Calculate span using buffered times:
+
+```typescript
+const getReservationSpanForRow = (reservation: ActivityReservation): number => {
+  const BUFFER = 15;
+  const bufferedStart = timeToMinutes(reservation.startTime) - BUFFER;
+  const bufferedEnd = timeToMinutes(reservation.endTime) + BUFFER;
+  return Math.max(1, Math.ceil((bufferedEnd - bufferedStart) / 60));
+};
+```
+
+**4. Visual distinction for buffer zones** (optional but recommended): The buffer portions of the block will use a slightly different style (striped/hatched pattern or reduced opacity) so staff can visually distinguish "setup/cleanup time" from actual booking time. The reservation info text (group name, times, notes) remains positioned in the main block area.
+
+### What stays the same
+- The reservation data and actual times are unchanged
+- The text inside the colored block still shows actual times (e.g., "09:00 - 15:30")
+- The 15-minute gap validation logic is unchanged
+- Click-to-book on empty hours still works
+- The map and all other pages are untouched
+
+### Import needed
+`timeToMinutes` is already imported from `@/lib/timeUtils`.
