@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import hadorHabaLogo from '@/assets/hador-haba-logo.png';
+import glowLogo from '@/assets/glow-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
@@ -276,12 +277,9 @@ const Index = () => {
         <div className="container py-3 md:py-6">
           <div className="flex items-center justify-between gap-3 md:gap-4">
             <div className="flex items-center gap-2 md:gap-4">
-              <img src={hadorHabaLogo} alt="הדור הבא" className="h-8 md:h-10 bg-background rounded-lg p-1" />
-              <div>
-                <p className="text-muted-foreground text-sm md:text-lg hidden sm:block">
-                  GLOW Glamping
-                </p>
-              </div>
+              <img src={hadorHabaLogo} alt="הדור הבא" className="h-10 md:h-14" />
+              <div className="h-8 md:h-12 w-px bg-border" />
+              <img src={glowLogo} alt="GLOW Alternative Hospitality" className="h-10 md:h-14" />
             </div>
             
             {/* Global Search & Settings */}
