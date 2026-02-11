@@ -272,7 +272,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header - Compact on mobile */}
-      <header className="bg-card border-b-2 border-border sticky top-0 z-10">
+      <header className="bg-background border-b-2 border-border sticky top-0 z-10">
         <div className="container py-3 md:py-6">
           <div className="flex items-center justify-between gap-3 md:gap-4">
             <div className="flex items-center gap-2 md:gap-4">
