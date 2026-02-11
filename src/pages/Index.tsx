@@ -280,7 +280,7 @@ const Index = () => {
               <img alt="הדור הבא" className="h-12 md:h-18 w-auto" src="/lovable-uploads/318d9c5d-4001-403a-b971-c013d3bb658d.png" />
               <div className="flex items-center gap-2">
                 <img src={glowLogo} alt="GLOW Alternative Hospitality" className="h-6 md:h-8" />
-                <span className="text-xs md:text-sm text-muted-foreground font-medium">by: Glow Glamping</span>
+                <span className="text-xs md:text-sm font-medium text-primary">by: Glow Glamping</span>
               </div>
             </div>
             
