@@ -12,6 +12,9 @@ import { TentDetailModal } from '@/components/TentDetailModal';
 import { VIPPlanningPanel } from '@/components/VIPPlanningPanel';
 import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
 import { NeighborhoodBookingsList } from '@/components/NeighborhoodBookingsList';
+import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
+import { BOOKING_STATUS_COLORS } from '@/lib/bookingStatusColors';
+import { Badge } from '@/components/ui/badge';
 import { NeighborhoodId, Tent } from '@/types/village';
 import { 
   Search, 
@@ -49,6 +52,12 @@ const Neighborhood = () => {
 
   const neighborhoodId = id as NeighborhoodId;
   const isVIPNeighborhood = neighborhoodId === 'VIP';
+
+  // Booking data for the selected view date
+  const { neighborhoodBookings, vipBooking } = useNeighborhoodBookings(viewDate);
+  const currentBooking = isVIPNeighborhood
+    ? (vipBooking ? { status: vipBooking.status, groupName: vipBooking.groupName, startDate: vipBooking.startDate, endDate: vipBooking.endDate, totalPax: vipBooking.totalPax, boysCount: undefined as number | undefined, girlsCount: undefined as number | undefined } : null)
+    : neighborhoodBookings[neighborhoodId] || null;
 
   const neighborhood = state?.neighborhoods[neighborhoodId];
   const hasDoubleTents = neighborhood?.hasDoubleTents;
@@ -244,6 +253,48 @@ const Neighborhood = () => {
       </header>
 
       <main className="container py-6">
+        {/* Status Banner */}
+        {(() => {
+          if (currentBooking?.status) {
+            const style = BOOKING_STATUS_COLORS[currentBooking.status];
+            const Icon = style.icon;
+            return (
+              <div
+                className={cn(
+                  "rounded-xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-3 border-2",
+                  style.bgLight,
+                  style.border
+                )}
+                dir="rtl"
+              >
+                <div className={cn("p-3 rounded-xl", style.bg, "text-white")}>
+                  <Icon className="w-8 h-8" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={cn("text-2xl font-bold", style.text)}>תפוס</span>
+                    <Badge className={cn(style.bgLight, style.text, "text-sm")}>{style.label}</Badge>
+                  </div>
+                  <p className="text-lg font-semibold mt-1">{currentBooking.groupName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {currentBooking.startDate} → {currentBooking.endDate}
+                    {currentBooking.totalPax > 0 && <> · {currentBooking.totalPax} איש</>}
+                    {currentBooking.boysCount != null && currentBooking.girlsCount != null && (
+                      <> (ב:{currentBooking.boysCount} בנ:{currentBooking.girlsCount})</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div className="rounded-xl p-5 mb-6 border-2 border-green-300 bg-green-50 dark:bg-green-950/30 text-center" dir="rtl">
+              <span className="text-2xl font-bold text-green-700">פנוי</span>
+              <p className="text-sm text-muted-foreground mt-1">אין הזמנה לתאריך הנבחר</p>
+            </div>
+          );
+        })()}
+
         {/* Date Picker & Bookings Calendar Section */}
         <div className="tile p-4 mb-6">
           <div className="flex items-center gap-3 mb-4">
