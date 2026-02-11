@@ -12,6 +12,7 @@ import { ReportIssueModal } from '@/components/ReportIssueModal';
 import { TentCard } from '@/components/TentCard';
 import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
+import { SleepingDashboard } from '@/components/SleepingDashboard';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { PendingAllocationCard } from '@/components/PendingAllocationCard';
 import { MobileBottomNav, MenuSection } from '@/components/MobileBottomNav';
@@ -24,6 +25,7 @@ import {
 } from '@/lib/allocationStatus';
 import { 
   Calendar,
+  Moon,
   Bath, 
   CalendarDays, 
   Tent,
@@ -231,6 +233,7 @@ const Index = () => {
 
   const menuItems: { key: MenuSection; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: HE.nav.overview, icon: Home },
+    { key: 'sleeping', label: 'לינה', icon: Moon },
     { key: 'calendar', label: HE.nav.calendar, icon: CalendarDays },
     { key: 'allocations', label: HE.nav.allocations, icon: ClipboardList, count: groupsNeedingAllocation.length > 0 ? groupsNeedingAllocation.length : undefined },
     { key: 'neighborhoods', label: HE.nav.neighborhoods, icon: Tent },
@@ -522,6 +525,11 @@ const Index = () => {
         {/* Calendar Section */}
         {activeSection === 'calendar' && (
           <MasterCalendar />
+        )}
+
+        {/* Sleeping Section */}
+        {activeSection === 'sleeping' && (
+          <SleepingDashboard />
         )}
 
         {/* Allocations Section - ALL sleeping groups (GOAL 2) */}

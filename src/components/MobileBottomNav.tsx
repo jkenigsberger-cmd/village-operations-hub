@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList } from 'lucide-react';
+import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type MenuSection = 'overview' | 'calendar' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
+export type MenuSection = 'overview' | 'calendar' | 'sleeping' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 interface MobileBottomNavProps {
   activeSection: MenuSection;
@@ -14,6 +14,7 @@ interface MobileBottomNavProps {
 
 const navItems: { key: MenuSection; label: string; icon: React.ElementType }[] = [
   { key: 'overview', label: 'סקירה', icon: Home },
+  { key: 'sleeping', label: 'לינה', icon: Moon },
   { key: 'calendar', label: 'יומן', icon: CalendarDays },
   { key: 'allocations', label: 'שיבוצים', icon: ClipboardList },
   { key: 'neighborhoods', label: 'שכונות', icon: Tent },
