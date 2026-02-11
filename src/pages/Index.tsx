@@ -23,6 +23,8 @@ import {
   groupNeedsAllocation, 
   getSleepingGroups 
 } from '@/lib/allocationStatus';
+import logosImage from '@/assets/logos.png';
+import PartnerFooter from '@/components/PartnerFooter';
 import { 
   Calendar,
   Moon,
@@ -270,17 +272,21 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header - Compact on mobile */}
-      <header className="bg-card border-b-2 border-border sticky top-0 z-10">
-        <div className="container py-3 md:py-6">
+      <header className="bg-gray-900 border-b-2 border-border sticky top-0 z-10">
+        <div className="container py-3 md:py-4">
           <div className="flex items-center justify-between gap-3 md:gap-4">
-            <div className="flex items-center gap-2 md:gap-4">
-              <Tent className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+            <div className="flex items-center gap-3 md:gap-4">
+              <img 
+                src={logosImage} 
+                alt="הדור הבא & GLOW Glamping" 
+                className="h-12 md:h-16 w-auto rounded-lg"
+              />
               <div>
-                <h1 className="text-2xl md:text-4xl font-bold text-foreground">
-                  חוות אהרונסון
+                <h1 className="text-xl md:text-3xl font-bold text-white">
+                  הדור הבא
                 </h1>
-                <p className="text-muted-foreground text-sm md:text-lg hidden sm:block">
-                  Glow Glamping & Ha-Dor Ha-Ba
+                <p className="text-gray-400 text-xs md:text-sm">
+                  GLOW Glamping
                 </p>
               </div>
             </div>
@@ -292,14 +298,14 @@ const Index = () => {
                 variant="outline" 
                 size="icon"
                 onClick={() => navigate('/settings')}
-                className="md:hidden"
+                className="md:hidden border-gray-600 text-gray-300 hover:bg-gray-800"
               >
                 <Settings className="w-5 h-5" />
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/settings')}
-                className="hidden md:flex items-center gap-2"
+                className="hidden md:flex items-center gap-2 border-gray-600 text-gray-300 hover:bg-gray-800"
               >
                 <Settings className="w-5 h-5" />
                 <span>{HE.nav.settings}</span>
@@ -1203,6 +1209,9 @@ const Index = () => {
         onOpenChange={(open) => !open && setSelectedTentId(null)}
         tent={selectedTentId ? state.tents[selectedTentId] : null}
       />
+
+      {/* Partner Footer */}
+      <PartnerFooter />
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav
