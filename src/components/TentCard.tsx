@@ -4,6 +4,8 @@ import { TentSummary, TentGender } from '@/types/village';
 import { StatusBadge } from './StatusBadge';
 import { cn } from '@/lib/utils';
 import { Users, Calendar, Sparkles, Accessibility, Bath } from 'lucide-react';
+import { getBookingStatus } from '@/lib/bookingStatusColors';
+import { format } from 'date-fns';
 
 interface TentCardProps {
   summary: TentSummary;
@@ -51,8 +53,12 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
     ? Math.round((usedBeds / summary.totalBeds) * 100) 
     : 0;
 
-  // Determine if tent has an active reservation (groupName or dates set)
-  const hasReservation = !!(summary.groupName || summary.checkInDate || summary.checkOutDate);
+  // Determine if tent has an active reservation using hotel-logic date check
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const hasReservation = !!(
+    summary.checkInDate && summary.checkOutDate &&
+    getBookingStatus(summary.checkInDate, summary.checkOutDate, today)
+  );
   
   const genderBadge = getGenderBadge(summary.gender, hasReservation);
 
