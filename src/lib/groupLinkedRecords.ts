@@ -30,6 +30,7 @@ export const hasLinkedRecords = async (groupId: string, groupName: string): Prom
  * Returns a detailed summary of all linked records for a group (async - fetches from Supabase)
  */
 export const getLinkedRecordsSummary = async (groupId: string, groupName: string): Promise<LinkedRecordsSummary> => {
+  const trimmed = groupName.trim();
   let allocations = 0;
   let tentBookings = 0;
   let spaceBookings = 0;
@@ -37,7 +38,7 @@ export const getLinkedRecordsSummary = async (groupId: string, groupName: string
   let kitchenSlots = 0;
 
   try {
-    // Fetch all counts in parallel
+    // Fetch all counts in parallel - use ilike with trimmed name for whitespace safety
     const [
       allocationsRes,
       tentsRes,
@@ -48,14 +49,14 @@ export const getLinkedRecordsSummary = async (groupId: string, groupName: string
       // 1. Count allocations for this group
       supabase.from('allocations').select('id', { count: 'exact', head: true }).eq('group_id', groupId),
       
-      // 2. Count tents with this group name
-      supabase.from('tents').select('id', { count: 'exact', head: true }).eq('group_name', groupName),
+      // 2. Count tents with this group name (match trimmed or with trailing space)
+      supabase.from('tents').select('id', { count: 'exact', head: true }).or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `),
       
       // 3. Count activity reservations for this group
-      supabase.from('activity_reservations').select('id', { count: 'exact', head: true }).or(`group_id.eq.${groupId},group_name.eq.${groupName}`),
+      supabase.from('activity_reservations').select('id', { count: 'exact', head: true }).or(`group_id.eq.${groupId},group_name.eq.${trimmed},group_name.eq.${trimmed} `),
       
       // 4. Count neighborhood reservations for this group
-      supabase.from('neighborhood_reservations').select('id', { count: 'exact', head: true }).eq('group_name', groupName),
+      supabase.from('neighborhood_reservations').select('id', { count: 'exact', head: true }).or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `),
       
       // 5. Count kitchen time slots containing this group
       supabase.from('kitchen_time_slots').select('id, groups')
@@ -70,7 +71,7 @@ export const getLinkedRecordsSummary = async (groupId: string, groupName: string
     if (kitchenRes.data) {
       kitchenSlots = kitchenRes.data.filter(slot => {
         if (!slot.groups || !Array.isArray(slot.groups)) return false;
-        return (slot.groups as { name: string }[]).some(g => g.name === groupName);
+        return (slot.groups as { name: string }[]).some(g => g.name.trim() === trimmed);
       }).length;
     }
 
@@ -112,7 +113,8 @@ export const getLinkedRecordsDescription = (groupId: string, groupName: string):
  * 5. tents - clears group name, dates, and gender from tents
  */
 export const cascadeDeleteGroupRecords = async (groupId: string, groupName: string): Promise<void> => {
-  console.log(`[CASCADE DELETE] Starting for group: ${groupName} (${groupId})`);
+  const trimmed = groupName.trim();
+  console.log(`[CASCADE DELETE] Starting for group: "${trimmed}" (${groupId})`);
 
   try {
     // Run all delete/update operations in parallel where possible
@@ -127,62 +129,78 @@ export const cascadeDeleteGroupRecords = async (groupId: string, groupName: stri
         console.log(`[CASCADE DELETE] Removed ${count || 0} allocations`);
       })(),
 
-      // 2. Delete neighborhood reservations
+      // 2. Delete neighborhood reservations (trimmed matching)
       (async () => {
         const { error, count } = await supabase
           .from('neighborhood_reservations')
           .delete()
-          .eq('group_name', groupName);
+          .or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `);
         if (error) throw error;
         console.log(`[CASCADE DELETE] Removed ${count || 0} neighborhood reservations`);
       })(),
 
-      // 3. Delete activity reservations (by group_id OR group_name)
+      // 3. Delete activity reservations (by group_id OR group_name trimmed)
       (async () => {
         const { error, count } = await supabase
           .from('activity_reservations')
           .delete()
-          .or(`group_id.eq.${groupId},group_name.eq.${groupName}`);
+          .or(`group_id.eq.${groupId},group_name.eq.${trimmed},group_name.eq.${trimmed} `);
         if (error) throw error;
         console.log(`[CASCADE DELETE] Removed ${count || 0} activity reservations`);
       })(),
 
-      // 4. Clear tents - set group_name, dates, gender to null
+      // 4. Clear tents AND reset their beds to FREE
       (async () => {
-        const { error, count } = await supabase
+        // First fetch matching tent IDs
+        const { data: matchingTents, error: fetchErr } = await supabase
           .from('tents')
-          .update({
-            group_name: null,
-            check_in_date: null,
-            check_out_date: null,
-            gender: 'MIXED'
-          })
-          .eq('group_name', groupName);
-        if (error) throw error;
-        console.log(`[CASCADE DELETE] Cleared ${count || 0} tents`);
+          .select('id')
+          .or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `);
+        if (fetchErr) throw fetchErr;
+
+        if (matchingTents && matchingTents.length > 0) {
+          const tentIds = matchingTents.map(t => t.id);
+          
+          // Clear tent metadata and reset beds in parallel
+          const [tentResult, bedsResult] = await Promise.all([
+            supabase.from('tents').update({
+              group_name: null,
+              check_in_date: null,
+              check_out_date: null,
+              gender: 'MIXED'
+            }).in('id', tentIds),
+            supabase.from('beds').update({
+              status: 'FREE' as const,
+              guest_name: null
+            }).in('tent_id', tentIds).eq('status', 'RESERVED')
+          ]);
+
+          if (tentResult.error) throw tentResult.error;
+          if (bedsResult.error) throw bedsResult.error;
+          console.log(`[CASCADE DELETE] Cleared ${tentIds.length} tents and reset their beds`);
+        } else {
+          console.log(`[CASCADE DELETE] No tents found for group`);
+        }
       })(),
 
       // 5. Update kitchen time slots - remove group from JSON array
       (async () => {
-        // First fetch all slots that might contain this group
         const { data: slots, error: fetchError } = await supabase
           .from('kitchen_time_slots')
           .select('id, groups');
         
         if (fetchError) throw fetchError;
-        
         if (!slots) return;
 
-        // Filter and update slots that have this group
         let updatedCount = 0;
         for (const slot of slots) {
           if (!slot.groups || !Array.isArray(slot.groups)) continue;
           
           const groupsArray = slot.groups as { name: string }[];
-          const hasGroup = groupsArray.some(g => g.name === groupName);
+          const hasGroup = groupsArray.some(g => g.name.trim() === trimmed);
           
           if (hasGroup) {
-            const filteredGroups = groupsArray.filter(g => g.name !== groupName);
+            const filteredGroups = groupsArray.filter(g => g.name.trim() !== trimmed);
             const { error: updateError } = await supabase
               .from('kitchen_time_slots')
               .update({ groups: filteredGroups })
