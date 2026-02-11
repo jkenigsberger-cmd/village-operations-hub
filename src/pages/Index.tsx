@@ -276,9 +276,9 @@ const Index = () => {
       <header className="bg-background border-b-2 border-border sticky top-0 z-10">
         <div className="container py-3 md:py-6">
           <div className="flex items-center justify-between gap-3 md:gap-4">
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center -space-y-1">
               <img alt="הדור הבא" className="h-12 md:h-18 w-auto" src="/lovable-uploads/318d9c5d-4001-403a-b971-c013d3bb658d.png" />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 translate-x-1">
                 <img src={glowLogo} alt="GLOW Alternative Hospitality" className="h-6 md:h-8" />
                 <span className="text-xs font-medium md:text-[status-reserved-fg] text-sidebar-foreground">by: Glow Glamping</span>
               </div>
