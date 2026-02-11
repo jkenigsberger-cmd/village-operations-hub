@@ -1,38 +1,57 @@
 
 
-# החלפת "חוות אהרונסון" בלוגו הדור הבא
+# Fix: Cascade Delete Not Clearing VIP Tents and Beds
 
-## מה ישתנה
+## Problem Found
 
-### 1. שמירת תמונת הלוגו בפרויקט
-- העתקת הקובץ `ha_dor_haba_sin_fondo_1.png` ל-`src/assets/hador-haba-logo.png`
-- הלוגו כבר על רקע שקוף — מושלם לשימוש ישיר
+When a group is deleted, orphaned data remains in the database:
 
-### 2. Header (שורות 276-285 ב-Index.tsx)
-- הסרת אייקון ה-`Tent` והטקסט "חוות אהרונסון"
-- במקומם: תמונת הלוגו הכחול של הדור הבא (גובה ~40px בדסקטופ, ~32px במובייל)
-- הטקסט המשני "Glow Glamping & Ha-Dor Ha-Ba" נשאר מתחת כמו שהוא (או מתעדכן ל-"GLOW GLAMPING" בלבד)
+1. **VIP tents still show deleted groups**: Tents VIP 87 (group "השומר החדש"), VIP 83 (group "ddd") still have `group_name`, `check_in_date`, `check_out_date`, and `gender` set even though those groups no longer exist.
 
-### 3. עדכון כותרת HTML
-- שינוי `<title>` מ-"חוות אהרונסון - ניהול גלמפינג" ל-"הדור הבא — GLOW Glamping"
-- עדכון meta description
+2. **Beds stay RESERVED**: Beds in those VIP tents remain in `RESERVED` status instead of being reset to `FREE`.
 
-## פרטים טכניים
+3. **Neighborhood reservations not deleted**: An orphaned reservation for "השומר החדש" still exists in `neighborhood_reservations`.
 
-### קבצים חדשים
-- **`src/assets/hador-haba-logo.png`** — העתקה מהקובץ שהועלה
+**Root cause**: The cascade delete matches tents/reservations using exact string equality (`.eq('group_name', groupName)`), but some group names were stored with trailing whitespace (e.g., "השומר החדש " vs "השומר החדש"). This caused the cleanup queries to silently match zero rows.
 
-### קבצים שישתנו
+## Plan
 
-**`src/pages/Index.tsx`** (שורות 276-285):
-- הסרת `<Tent>` icon
-- החלפת `<h1>חוות אהרונסון</h1>` ב-`<img src={hadorHabaLogo} alt="הדור הבא" className="h-8 md:h-10" />`
-- עדכון כיתוב משנה
+### 1. Fix `cascadeDeleteGroupRecords` in `src/lib/groupLinkedRecords.ts`
 
-**`index.html`**:
-- שינוי `<title>` ו-meta description
+- **Trim group name** before using it in queries to handle whitespace mismatches
+- **Use `.ilike()` or `.or()` with trimmed variant** as a safety net for matching
+- **Add beds cleanup step**: After clearing tents, also reset all beds in those tents from `RESERVED` to `FREE`
+- The updated cascade flow:
+  1. Delete allocations (by group_id) -- already works
+  2. Delete neighborhood_reservations (by group_name, trimmed) -- fix matching
+  3. Delete activity_reservations (by group_id OR group_name) -- fix matching
+  4. Clear tents: first **fetch matching tent IDs**, then update tents AND reset their beds to FREE
+  5. Update kitchen_time_slots -- already works
 
-### מה לא ישתנה
-- כל שאר הדשבורד, ניווט, לוגיקה
-- ה-Footer עם שני הלוגואים (נוסיף בשלב הבא כשתעלה את לוגו GLOW)
+### 2. Fix `getLinkedRecordsSummary` in the same file
+
+- Apply the same trimmed matching to the count queries so the "linked records" warning accurately detects orphaned data before deletion.
+
+### 3. Clean up existing orphaned data
+
+- Run a one-time database migration to:
+  - Clear the 4 orphaned VIP tents (reset group_name, dates, gender)
+  - Reset their beds to FREE
+  - Delete the orphaned neighborhood reservation
+
+### Technical Detail: Beds Cleanup Logic
+
+Currently, step 4 only does:
+```
+update tents set group_name=null, dates=null, gender='MIXED' where group_name = X
+```
+
+It will be changed to:
+```
+1. SELECT id FROM tents WHERE group_name matches (trimmed)
+2. UPDATE tents SET group_name=null, dates=null, gender='MIXED' WHERE id IN (...)
+3. UPDATE beds SET status='FREE', guest_name=null WHERE tent_id IN (...) AND status='RESERVED'
+```
+
+This ensures both the tent metadata AND the individual bed statuses are fully reset.
 
