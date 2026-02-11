@@ -407,24 +407,55 @@ const Activities = () => {
                                 <button
                                   type="button"
                                   onClick={() => setSelectedReservation(reservation)}
-                                  className="w-full h-full text-left p-3 transition-all hover:brightness-110"
-                                  style={{ 
-                                    backgroundColor: groupColor,
-                                    minHeight: `${span * 44}px`
-                                  }}
+                                  className="w-full h-full text-left transition-all hover:brightness-110 flex flex-col"
+                                  style={{ minHeight: `${span * 44}px` }}
                                 >
-                                  <div className="text-white font-bold text-lg">
-                                    {reservation.groupName}
-                                  </div>
-                                  <div className="text-white/90 text-sm flex items-center gap-2">
-                                    <Clock className="w-3 h-3" />
-                                    {reservation.startTime} - {reservation.endTime}
-                                  </div>
-                                  {reservation.notes && (
-                                    <div className="text-white/80 text-xs mt-1">
-                                      📝 {reservation.notes}
+                                  {/* Top buffer zone - striped */}
+                                  <div
+                                    className="w-full flex-shrink-0"
+                                    style={{
+                                      height: '22px',
+                                      background: `repeating-linear-gradient(
+                                        -45deg,
+                                        ${groupColor},
+                                        ${groupColor} 4px,
+                                        ${groupColor}88 4px,
+                                        ${groupColor}88 8px
+                                      )`,
+                                    }}
+                                  />
+                                  {/* Main booking zone - solid */}
+                                  <div
+                                    className="w-full flex-1 p-3"
+                                    style={{ backgroundColor: groupColor }}
+                                  >
+                                    <div className="text-white font-bold text-lg">
+                                      {reservation.groupName}
                                     </div>
-                                  )}
+                                    <div className="text-white/90 text-sm flex items-center gap-2">
+                                      <Clock className="w-3 h-3" />
+                                      {reservation.startTime} - {reservation.endTime}
+                                    </div>
+                                    {reservation.notes && (
+                                      <div className="text-white/80 text-xs mt-1">
+                                        📝 {reservation.notes}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Bottom buffer zone - striped */}
+                                  <div
+                                    className="w-full flex-shrink-0"
+                                    style={{
+                                      height: '22px',
+                                      background: `repeating-linear-gradient(
+                                        -45deg,
+                                        ${groupColor},
+                                        ${groupColor} 4px,
+                                        ${groupColor}88 4px,
+                                        ${groupColor}88 8px
+                                      )`,
+                                    }}
+                                  />
                                 </button>
                               ) : (
                                 <div className="p-3 text-muted-foreground/50 text-sm">
