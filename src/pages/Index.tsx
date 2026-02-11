@@ -276,10 +276,12 @@ const Index = () => {
       <header className="bg-background border-b-2 border-border sticky top-0 z-10">
         <div className="container py-3 md:py-6">
           <div className="flex items-center justify-between gap-3 md:gap-4">
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex flex-col items-center gap-1">
               <img src={hadorHabaLogo} alt="הדור הבא" className="h-10 md:h-14" />
-              <div className="h-8 md:h-12 w-px bg-border" />
-              <img src={glowLogo} alt="GLOW Alternative Hospitality" className="h-10 md:h-14" />
+              <div className="flex items-center gap-2">
+                <img src={glowLogo} alt="GLOW Alternative Hospitality" className="h-6 md:h-8" />
+                <span className="text-xs md:text-sm text-muted-foreground font-medium">by: GLOW Glamping</span>
+              </div>
             </div>
             
             {/* Global Search & Settings */}
