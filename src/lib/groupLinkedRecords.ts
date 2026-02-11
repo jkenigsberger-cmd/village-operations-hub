@@ -49,14 +49,14 @@ export const getLinkedRecordsSummary = async (groupId: string, groupName: string
       // 1. Count allocations for this group
       supabase.from('allocations').select('id', { count: 'exact', head: true }).eq('group_id', groupId),
       
-      // 2. Count tents with this group name (match trimmed or with trailing space)
-      supabase.from('tents').select('id', { count: 'exact', head: true }).or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `),
+      // 2. Count tents with this group name (use like to catch any trailing whitespace)
+      supabase.from('tents').select('id', { count: 'exact', head: true }).like('group_name', `${trimmed}%`),
       
       // 3. Count activity reservations for this group
-      supabase.from('activity_reservations').select('id', { count: 'exact', head: true }).or(`group_id.eq.${groupId},group_name.eq.${trimmed},group_name.eq.${trimmed} `),
+      supabase.from('activity_reservations').select('id', { count: 'exact', head: true }).or(`group_id.eq.${groupId},group_name.like.${trimmed}%`),
       
       // 4. Count neighborhood reservations for this group
-      supabase.from('neighborhood_reservations').select('id', { count: 'exact', head: true }).or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `),
+      supabase.from('neighborhood_reservations').select('id', { count: 'exact', head: true }).like('group_name', `${trimmed}%`),
       
       // 5. Count kitchen time slots containing this group
       supabase.from('kitchen_time_slots').select('id, groups')
@@ -129,33 +129,33 @@ export const cascadeDeleteGroupRecords = async (groupId: string, groupName: stri
         console.log(`[CASCADE DELETE] Removed ${count || 0} allocations`);
       })(),
 
-      // 2. Delete neighborhood reservations (trimmed matching)
+      // 2. Delete neighborhood reservations (like match catches any trailing whitespace)
       (async () => {
         const { error, count } = await supabase
           .from('neighborhood_reservations')
           .delete()
-          .or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `);
+          .like('group_name', `${trimmed}%`);
         if (error) throw error;
         console.log(`[CASCADE DELETE] Removed ${count || 0} neighborhood reservations`);
       })(),
 
-      // 3. Delete activity reservations (by group_id OR group_name trimmed)
+      // 3. Delete activity reservations (by group_id OR group_name with like)
       (async () => {
         const { error, count } = await supabase
           .from('activity_reservations')
           .delete()
-          .or(`group_id.eq.${groupId},group_name.eq.${trimmed},group_name.eq.${trimmed} `);
+          .or(`group_id.eq.${groupId},group_name.like.${trimmed}%`);
         if (error) throw error;
         console.log(`[CASCADE DELETE] Removed ${count || 0} activity reservations`);
       })(),
 
       // 4. Clear tents AND reset their beds to FREE
       (async () => {
-        // First fetch matching tent IDs
+        // First fetch matching tent IDs (like catches any trailing whitespace)
         const { data: matchingTents, error: fetchErr } = await supabase
           .from('tents')
           .select('id')
-          .or(`group_name.eq.${trimmed},group_name.eq.${trimmed} `);
+          .like('group_name', `${trimmed}%`);
         if (fetchErr) throw fetchErr;
 
         if (matchingTents && matchingTents.length > 0) {
