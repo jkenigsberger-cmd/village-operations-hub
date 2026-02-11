@@ -48,18 +48,18 @@ const getGenderBadge = (gender?: TentGender, hasReservation?: boolean) => {
 };
 
 export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) => {
-  const usedBeds = summary.occupiedBeds + summary.reservedBeds;
-  const occupancyPercent = summary.totalBeds > 0 
-    ? Math.round((usedBeds / summary.totalBeds) * 100) 
-    : 0;
-
   // Determine if tent has an active reservation using hotel-logic date check
   const today = format(new Date(), 'yyyy-MM-dd');
   const hasReservation = !!(
     summary.checkInDate && summary.checkOutDate &&
     getBookingStatus(summary.checkInDate, summary.checkOutDate, today)
   );
-  
+
+  const usedBeds = hasReservation ? (summary.occupiedBeds + summary.reservedBeds) : 0;
+  const occupancyPercent = summary.totalBeds > 0 
+    ? Math.round((usedBeds / summary.totalBeds) * 100) 
+    : 0;
+
   const genderBadge = getGenderBadge(summary.gender, hasReservation);
 
   return (
@@ -76,7 +76,7 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <h4 className="text-lg md:text-xl font-bold">{summary.code}</h4>
-          {summary.groupName && (
+          {hasReservation && summary.groupName && (
             <p className="text-muted-foreground text-sm md:font-medium mt-0.5 md:mt-1 truncate">
               {summary.groupName}
             </p>
@@ -131,7 +131,7 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={summary.cleaningStatus} size="sm" />
         
-        {(summary.checkInDate || summary.checkOutDate) && (
+        {hasReservation && (summary.checkInDate || summary.checkOutDate) && (
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <Calendar className="w-4 h-4" />
             {summary.checkInDate && new Date(summary.checkInDate).toLocaleDateString('he-IL')}
