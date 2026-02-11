@@ -14,6 +14,7 @@ interface NeighborhoodMiniMapProps {
   tents: Tent[];
   summary: NeighborhoodSummary;
   onTentClick: (tentId: string) => void;
+  bookingPax?: number;
 }
 
 function getTentType(tent: Tent): "SIMPLE" | "DOUBLE" | "WHITE" {
@@ -27,7 +28,8 @@ export default function NeighborhoodMiniMap({
   displayName, 
   tents, 
   summary,
-  onTentClick 
+  onTentClick,
+  bookingPax 
 }: NeighborhoodMiniMapProps) {
   const navigate = useNavigate();
   const isVIP = neighborhoodId === 'VIP';
@@ -70,8 +72,9 @@ export default function NeighborhoodMiniMap({
     }));
   }, [tents, isVIP, onTentClick]);
 
+  const displayedOccupied = Math.max(summary.occupiedBeds, bookingPax ?? 0);
   const occupancyPercent = summary.totalBeds > 0 
-    ? Math.round((summary.occupiedBeds / summary.totalBeds) * 100) 
+    ? Math.round((displayedOccupied / summary.totalBeds) * 100) 
     : 0;
 
   return (
@@ -82,7 +85,7 @@ export default function NeighborhoodMiniMap({
             {isVIP && '⭐ '}{displayName}
           </span>
           <span className="text-xs font-normal text-muted-foreground">
-            {summary.occupiedBeds}/{summary.totalBeds}
+            {displayedOccupied}/{summary.totalBeds}
           </span>
         </CardTitle>
       </CardHeader>

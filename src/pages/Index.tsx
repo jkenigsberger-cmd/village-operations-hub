@@ -565,6 +565,7 @@ const Index = () => {
                       tents={tents}
                       summary={summary}
                       onTentClick={(tentId) => setSelectedTentId(tentId)}
+                      bookingPax={booking?.totalPax}
                     />
                   </div>
                 );
