@@ -516,17 +516,58 @@ const Index = () => {
                 if (!summary || !neighborhood) return null;
 
                 const tents = Object.values(state.tents).filter((t) => t.neighborhoodId === id);
+                
+                // Get booking info for this neighborhood
+                const booking = id === 'VIP' ? (vipBooking ? {
+                  status: vipBooking.status,
+                  groupName: vipBooking.groupName,
+                  totalPax: vipBooking.totalPax,
+                } : null) : (neighborhoodBookings[id] ? {
+                  status: neighborhoodBookings[id].status,
+                  groupName: neighborhoodBookings[id].groupName,
+                  totalPax: neighborhoodBookings[id].totalPax,
+                } : null);
+                
+                const statusStyle = booking?.status ? BOOKING_STATUS_COLORS[booking.status] : null;
+                const StatusIcon = statusStyle?.icon;
 
                 return (
-                  <NeighborhoodMiniMap
+                  <div
                     key={id}
-                    neighborhoodId={id}
-                    displayName={HE.neighborhoodNames[id] || neighborhood.displayName}
-                    tents={tents}
-                    summary={summary}
-                    onTentClick={(tentId) => setSelectedTentId(tentId)} />);
-
-
+                    className="relative"
+                    style={statusStyle ? { borderRadius: 'var(--radius)' } : undefined}
+                  >
+                    {/* Colored top border for booking status */}
+                    {statusStyle && (
+                      <div
+                        className={`rounded-t-lg ${statusStyle.bgLight} flex items-center justify-between px-3 py-1 text-xs font-semibold`}
+                        style={{ borderTop: `3px solid ${statusStyle.hsl}` }}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {StatusIcon && <StatusIcon className={`w-3.5 h-3.5 shrink-0 ${statusStyle.text}`} />}
+                          <span className={statusStyle.text}>{statusStyle.label}</span>
+                          {booking.groupName && (
+                            <span className="font-bold text-foreground truncate max-w-[100px]">
+                              — {booking.groupName}
+                            </span>
+                          )}
+                        </div>
+                        {booking.totalPax > 0 && (
+                          <span className="text-muted-foreground whitespace-nowrap mr-1">
+                            {booking.totalPax} איש
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <NeighborhoodMiniMap
+                      neighborhoodId={id}
+                      displayName={HE.neighborhoodNames[id] || neighborhood.displayName}
+                      tents={tents}
+                      summary={summary}
+                      onTentClick={(tentId) => setSelectedTentId(tentId)}
+                    />
+                  </div>
+                );
               })}
               </div>
             </section>
