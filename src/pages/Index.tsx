@@ -17,6 +17,11 @@ import { MasterCalendar } from '@/components/MasterCalendar';
 import { SleepingDashboard } from '@/components/SleepingDashboard';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { PendingAllocationCard } from '@/components/PendingAllocationCard';
+import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
+import { BOOKING_STATUS_COLORS, type BookingStatus } from '@/lib/bookingStatusColors';
+import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { MobileBottomNav, MenuSection } from '@/components/MobileBottomNav';
 import { GENDER_LEGEND } from '@/lib/tentColors';
 import { HE } from '@/lib/translations';
@@ -55,7 +60,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { toast } from 'sonner';
-import { format, addDays, subDays, isToday } from 'date-fns';
+import { format, addDays, subDays, isToday, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { he } from 'date-fns/locale';
 
 const neighborhoodOrder: NeighborhoodId[] = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'VIP'];
@@ -92,6 +98,12 @@ const Index = () => {
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTentId, setSelectedTentId] = useState<string | null>(null);
+  const [neighborhoodsSelectedDate, setNeighborhoodsSelectedDate] = useState<Date>(new Date());
+  const [showFutureBookings, setShowFutureBookings] = useState(true);
+  const [statusFilters, setStatusFilters] = useState({ CHECKIN: true, SLEEPING: true, CHECKOUT: true });
+
+  // Neighborhood bookings for selected date
+  const { neighborhoodBookings, vipBooking, futureBookings } = useNeighborhoodBookings(neighborhoodsSelectedDate);
 
   // GOAL 2: Get ALL sleeping groups for allocations view
   const sleepingGroups = useMemo(() => getSleepingGroups(groups), [groups]);
@@ -568,17 +580,76 @@ const Index = () => {
               <Tent className="w-8 h-8" />
               {HE.pages.allNeighborhoods}
             </h2>
+
+            {/* Mini Calendar + Status Filters */}
+            <div className="tile p-4 mb-6 space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <NeighborhoodDatePicker value={neighborhoodsSelectedDate} onChange={setNeighborhoodsSelectedDate} />
+              </div>
+
+              {/* Status filter chips */}
+              <div className="flex flex-wrap items-center gap-2">
+                {(Object.keys(BOOKING_STATUS_COLORS) as BookingStatus[]).map((key) => {
+                  const style = BOOKING_STATUS_COLORS[key];
+                  const Icon = style.icon;
+                  const isActive = statusFilters[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setStatusFilters(prev => ({ ...prev, [key]: !prev[key] }))}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border-2',
+                        isActive
+                          ? `${style.bgLight} ${style.text} ${style.border}`
+                          : 'bg-muted text-muted-foreground border-transparent'
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {style.label}
+                    </button>
+                  );
+                })}
+
+                <div className="flex items-center gap-2 mr-auto">
+                  <Switch
+                    id="show-future"
+                    checked={showFutureBookings}
+                    onCheckedChange={setShowFutureBookings}
+                  />
+                  <Label htmlFor="show-future" className="text-xs text-muted-foreground cursor-pointer">
+                    הזמנות עתידיות
+                  </Label>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {neighborhoodOrder.map((id) => {
               const summary = getNeighborhoodSummary(id);
               if (!summary) return null;
+              const booking = id === 'VIP' 
+                ? (vipBooking ? { status: vipBooking.status, groupName: vipBooking.groupName, startDate: vipBooking.startDate, endDate: vipBooking.endDate, totalPax: vipBooking.totalPax } : null)
+                : neighborhoodBookings[id] || null;
+              const fb = futureBookings[id] || [];
+              // Dimmed if has a status but that status is filtered out
+              const isDimmed = booking?.status ? !statusFilters[booking.status] : false;
               return (
                 <NeighborhoodTile
                   key={id}
                   summary={{ ...summary, displayName: HE.neighborhoodNames[id] || summary.displayName }}
-                  to={`/neighborhood/${id}`} />);
-
-
+                  to={`/neighborhood/${id}`}
+                  bookingStatus={booking?.status}
+                  bookingGroupName={booking?.groupName}
+                  bookingStartDate={booking?.startDate}
+                  bookingEndDate={booking?.endDate}
+                  bookingPax={booking?.totalPax}
+                  bookingBoys={id !== 'VIP' ? (neighborhoodBookings[id] as any)?.boysCount : undefined}
+                  bookingGirls={id !== 'VIP' ? (neighborhoodBookings[id] as any)?.girlsCount : undefined}
+                  futureBookings={fb}
+                  showFutureBookings={showFutureBookings}
+                  onFutureBookingClick={(date) => setNeighborhoodsSelectedDate(parseISO(date))}
+                  dimmed={isDimmed}
+                />);
             })}
             </div>
           </section>
