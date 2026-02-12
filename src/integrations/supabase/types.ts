@@ -93,45 +93,60 @@ export type Database = {
       }
       activity_spaces: {
         Row: {
+          active: boolean | null
+          capacity: number | null
           cleaning_notes: string | null
           cleaning_status: Database["public"]["Enums"]["cleaning_status"] | null
           created_at: string
           description: string | null
+          display_name: string | null
           id: string
           maintenance_image: string | null
           maintenance_notes: string | null
           name: string
           notes: string | null
+          number: number | null
+          type: string | null
           updated_at: string
           working_status: Database["public"]["Enums"]["working_status"] | null
         }
         Insert: {
+          active?: boolean | null
+          capacity?: number | null
           cleaning_notes?: string | null
           cleaning_status?:
             | Database["public"]["Enums"]["cleaning_status"]
             | null
           created_at?: string
           description?: string | null
+          display_name?: string | null
           id: string
           maintenance_image?: string | null
           maintenance_notes?: string | null
           name: string
           notes?: string | null
+          number?: number | null
+          type?: string | null
           updated_at?: string
           working_status?: Database["public"]["Enums"]["working_status"] | null
         }
         Update: {
+          active?: boolean | null
+          capacity?: number | null
           cleaning_notes?: string | null
           cleaning_status?:
             | Database["public"]["Enums"]["cleaning_status"]
             | null
           created_at?: string
           description?: string | null
+          display_name?: string | null
           id?: string
           maintenance_image?: string | null
           maintenance_notes?: string | null
           name?: string
           notes?: string | null
+          number?: number | null
+          type?: string | null
           updated_at?: string
           working_status?: Database["public"]["Enums"]["working_status"] | null
         }
