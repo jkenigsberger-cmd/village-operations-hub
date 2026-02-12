@@ -1,50 +1,32 @@
 
-# Add "לינה" (Sleeping) Shortcut Button to the VIP Neighborhood Page
+
+# Fix: Sleeping Shortcut Button Visibility on Group Allocation Page
 
 ## Problem
 
-The neighborhoods list in the dashboard has a shortcut button to jump to the Sleeping tab, but when you navigate into the individual VIP neighborhood page (`/neighborhood/VIP`), there's no way to quickly jump to the Sleeping tab. You have to go back to the dashboard and manually switch.
+The "לינה" button was placed **inside** the `min-w-0` div (the text content area), which clips overflow content and hides the button. It needs to be a **sibling** element at the same flex level as the back arrow and group info.
 
-## Solution
+## Fix
 
-Add a "לינה" button in the VIP neighborhood page header (next to the stats), and wire it to navigate back to the dashboard's Sleeping tab.
+### File: `src/pages/GroupAllocation.tsx` (lines 88-111)
 
-## Changes
+Restructure the header so the button sits at the top level of the flex row, alongside the back arrow and the group info block:
 
-### 1. `src/pages/Index.tsx`
-- Read `location.state?.section` on mount using `useLocation` from react-router
-- If a `section` value is passed via navigation state, set `activeSection` to it
-- This enables other pages to navigate to `/` with a specific section pre-selected
-
-### 2. `src/pages/Neighborhood.tsx`
-- Import `Moon` icon from lucide-react and `useNavigate` (already imported)
-- Add a "לינה" button in the header area (alongside the stats row), visible only when `isVIPNeighborhood` is true
-- On click, navigate to `'/'` with `{ state: { section: 'sleeping' } }`
-- Style it identically to the existing shortcut in the neighborhoods section (outline variant, small size, with Moon icon)
-
-## Technical Details
-
-**Index.tsx** -- add location state handling:
-```typescript
-const location = useLocation();
-
-useEffect(() => {
-  if (location.state?.section) {
-    setActiveSection(location.state.section);
-  }
-}, [location.state]);
+```
+<div className="flex items-center gap-3">
+  [Back Arrow Button]
+  <div className="min-w-0 flex-1">    <!-- group name + metadata -->
+    <h1>...</h1>
+    <div>...dates...pax...</div>
+  </div>
+  <Button ...>לינה</Button>           <!-- moved HERE, outside min-w-0 -->
+</div>
 ```
 
-**Neighborhood.tsx** -- add button in VIP header:
-```typescript
-{isVIPNeighborhood && (
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={() => navigate('/', { state: { section: 'sleeping' } })}
-  >
-    <Moon className="w-4 h-4 ml-1" />
-    לינה
-  </Button>
-)}
-```
+This ensures:
+- The button is always visible at the right side of the header
+- The `min-w-0` div only contains the text (which can truncate)
+- The flex layout keeps everything aligned
+
+### No other files change
+
