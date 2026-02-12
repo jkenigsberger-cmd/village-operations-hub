@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
-import { useSupabaseAllocations } from '@/hooks/useSupabaseAllocations';
 import { GroupStay, GroupStayNeighborhood, GroupStayVipTent } from '@/types/groupStay';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
@@ -18,7 +17,6 @@ function isCheckOut(end: string, day: string): boolean {
 export const useGroupStays = () => {
   const { state } = useVillage();
   const { groups, archivedGroups } = useAdminGroups();
-  const { allocations } = useSupabaseAllocations();
 
   const archivedGroupNames = useMemo(
     () => new Set(archivedGroups.map(g => g.groupName)),
@@ -92,26 +90,23 @@ export const useGroupStays = () => {
       }
     });
 
-    // 2) VIP allocations
-    allocations
-      .filter(a => a.allocationType === 'VIP_TENT')
-      .forEach(a => {
-        const group = groupsById.get(a.groupId);
-        if (!group) return;
-        if (archivedGroupNames.has(group.groupName)) return;
+    // 2) VIP from group's vipTentConfigs
+    groups.forEach(group => {
+      if (archivedGroupNames.has(group.groupName)) return;
+      const configs = group.vipTentConfigs || [];
+      const assignedConfigs = configs.filter(c => c.assignedTentCode);
+      if (assignedConfigs.length === 0) return;
 
-        const entry = getOrCreate(group.id, group.groupName, a.dateRangeStart, a.dateRangeEnd);
-        const existing = entry.vipTents.get(a.resourceId);
-        if (existing) {
-          existing.bedsAssigned += a.bedsAssigned;
-        } else {
-          entry.vipTents.set(a.resourceId, {
-            tentNumber: a.resourceLabel.replace('VIP ', ''),
-            bedsAssigned: a.bedsAssigned,
-          });
-        }
-        entry.staffTotal += a.bedsAssigned;
+      const entry = getOrCreate(group.id, group.groupName, group.startDate, group.endDate);
+      assignedConfigs.forEach(config => {
+        const beds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
+        entry.vipTents.set(config.assignedTentCode!, {
+          tentNumber: config.assignedTentCode!,
+          bedsAssigned: beds,
+        });
+        entry.staffTotal += beds;
       });
+    });
 
     // Convert to array
     return Array.from(stayMap.entries()).map(([key, e]) => {
@@ -132,7 +127,7 @@ export const useGroupStays = () => {
         staffCount: group?.staffCount || 0,
       };
     });
-  }, [state, allocations, archivedGroupNames, groupsByName, groupsById]);
+  }, [state, groups, archivedGroupNames, groupsByName, groupsById]);
 
   // Get stays for a specific day with status annotation
   const getStaysForDay = useMemo(() => {
