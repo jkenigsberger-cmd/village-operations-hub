@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import hadorHabaLogo from '@/assets/hador-haba-logo.png';
 import glowLogo from '@/assets/glow-logo.png';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
@@ -92,7 +92,15 @@ const Index = () => {
     resolveTentFacilityIssue
   } = useVillage();
 
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
+
+  useEffect(() => {
+    if (location.state?.section) {
+      setActiveSection(location.state.section);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
