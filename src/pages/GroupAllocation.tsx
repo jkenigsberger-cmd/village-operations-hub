@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Calendar, Users, Lightbulb, CheckCircle, Crown, Home, Sun } from 'lucide-react';
+import { ArrowRight, Calendar, Users, Lightbulb, CheckCircle, Crown, Home, Sun, Moon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -96,9 +96,18 @@ const GroupAllocation: React.FC = () => {
                   <Users className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   {group.pax}
                 </span>
-              </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => navigate('/', { state: { section: 'sleeping' } })}
+            >
+              <Moon className="w-4 h-4 ml-1" />
+              לינה
+            </Button>
           </div>
+        </div>
         </div>
       </header>
 
