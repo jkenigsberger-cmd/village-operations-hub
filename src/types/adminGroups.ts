@@ -100,6 +100,10 @@ export const ADMIN_GROUPS_STORAGE_KEY = 'aharonson_admin_groups';
 // Location options for schedule items (common spaces)
 export const SCHEDULE_LOCATIONS = [
   'אוהל מועד',
+  'ממ״ד 1',
+  'ממ״ד 2',
+  'ממ״ד 4',
+  'ממ״ד 5',
   'ממ״ד 6',
   'ממ״ד 7',
   'ממ״ד 8',
@@ -112,6 +116,10 @@ export const SCHEDULE_LOCATIONS = [
 // Space IDs must match initialData.ts activitySpaces
 export const SPACE_ID_MAP: Record<string, string> = {
   'אוהל מועד': 'ohel_moed',
+  'ממ״ד 1': 'bunker_1',
+  'ממ״ד 2': 'bunker_2',
+  'ממ״ד 4': 'bunker_4',
+  'ממ״ד 5': 'bunker_5',
   'ממ״ד 6': 'bunker_6',
   'ממ״ד 7': 'bunker_7',
   'ממ״ד 8': 'bunker_8',
