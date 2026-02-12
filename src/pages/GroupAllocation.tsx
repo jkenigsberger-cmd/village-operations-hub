@@ -85,7 +85,7 @@ const GroupAllocation: React.FC = () => {
             >
               <ArrowRight className="w-5 h-5" />
             </Button>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-lg md:text-2xl font-bold truncate">{group.groupName}</h1>
               <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm text-muted-foreground mt-0.5">
                 <span className="flex items-center gap-1">
@@ -96,6 +96,7 @@ const GroupAllocation: React.FC = () => {
                   <Users className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   {group.pax}
                 </span>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -107,7 +108,6 @@ const GroupAllocation: React.FC = () => {
               לינה
             </Button>
           </div>
-        </div>
         </div>
       </header>
 
