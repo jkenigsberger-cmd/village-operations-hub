@@ -104,10 +104,13 @@ export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigate
               <Users className="w-3.5 h-3.5" />
               חניכים: {stay.participantsTotal}
             </span>
-            {stay.staffTotal > 0 && (
+            {(stay.staffCount > 0 || stay.staffTotal > 0) && (
               <span className="flex items-center gap-1">
                 <Crown className="w-3.5 h-3.5 text-amber-500" />
-                צוות: {stay.staffTotal} · VIP: {stay.vipTentCount}
+                צוות: {stay.staffCount || stay.staffTotal}
+                {stay.vipTentCount > 0
+                  ? ` · VIP: ${stay.vipTentCount} (${stay.vipTents.map(t => t.tentNumber).join(', ')})`
+                  : ' · VIP: לא שובץ'}
               </span>
             )}
           </div>

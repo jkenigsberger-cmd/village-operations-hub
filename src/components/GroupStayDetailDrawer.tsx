@@ -81,15 +81,21 @@ export const GroupStayDetailDrawer: React.FC<GroupStayDetailDrawerProps> = ({ st
           )}
 
           {/* VIP Staff */}
-          {stay.staffTotal > 0 && (
+          {(stay.staffCount > 0 || stay.staffTotal > 0) && (
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 text-amber-500" />
               <div>
                 <p className="text-sm text-muted-foreground">צוות (VIP)</p>
-                <p className="font-semibold">{stay.staffTotal} אנשים · {stay.vipTentCount} אוהלים</p>
-                <p className="text-sm text-muted-foreground">
-                  אוהלים: {stay.vipTents.map(t => t.tentNumber).join(', ')}
-                </p>
+                {stay.vipTentCount > 0 ? (
+                  <>
+                    <p className="font-semibold">{stay.staffCount || stay.staffTotal} אנשים · {stay.vipTentCount} אוהלים</p>
+                    <p className="text-sm text-muted-foreground">
+                      אוהלים: {stay.vipTents.map(t => t.tentNumber).join(', ')}
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-semibold text-amber-600">{stay.staffCount} אנשים · VIP: לא שובץ</p>
+                )}
               </div>
             </div>
           )}
