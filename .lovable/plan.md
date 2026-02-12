@@ -1,61 +1,50 @@
 
+# Add "לינה" (Sleeping) Shortcut Button to the VIP Neighborhood Page
 
-# Fix: Read VIP Assignments from Group's vipTentConfigs (Not Just Allocations Table)
+## Problem
 
-## Root Cause
+The neighborhoods list in the dashboard has a shortcut button to jump to the Sleeping tab, but when you navigate into the individual VIP neighborhood page (`/neighborhood/VIP`), there's no way to quickly jump to the Sleeping tab. You have to go back to the dashboard and manually switch.
 
-The VIP allocation flow (`assignVIPConfig` in `useGroupAllocation.ts`) stores VIP tent assignments in **two places**:
-1. `groups.vip_tent_configs` JSON column (with `assignedTentCode` field) -- this is the primary source
-2. `tents` table (setting `group_name`, dates on the physical tent)
+## Solution
 
-It does **NOT** write to the `allocations` table for VIP tents.
+Add a "לינה" button in the VIP neighborhood page header (next to the stats), and wire it to navigate back to the dashboard's Sleeping tab.
 
-However, `useGroupStays` only looks at the `allocations` table (filtering by `allocationType === 'VIP_TENT'`), which is empty for this group. That's why VIP shows as "not allocated" even though tents 80 and 89 are assigned.
+## Changes
 
-## Fix
+### 1. `src/pages/Index.tsx`
+- Read `location.state?.section` on mount using `useLocation` from react-router
+- If a `section` value is passed via navigation state, set `activeSection` to it
+- This enables other pages to navigate to `/` with a specific section pre-selected
 
-### File: `src/hooks/useGroupStays.ts`
+### 2. `src/pages/Neighborhood.tsx`
+- Import `Moon` icon from lucide-react and `useNavigate` (already imported)
+- Add a "לינה" button in the header area (alongside the stats row), visible only when `isVIPNeighborhood` is true
+- On click, navigate to `'/'` with `{ state: { section: 'sleeping' } }`
+- Style it identically to the existing shortcut in the neighborhoods section (outline variant, small size, with Moon icon)
 
-Change the VIP data source from the `allocations` table to the `groups.vip_tent_configs` JSON field:
+## Technical Details
 
-- Instead of iterating `allocations.filter(a => a.allocationType === 'VIP_TENT')`, iterate over each group's `vipTentConfigs` array
-- Only include configs where `assignedTentCode` is set (meaning the tent is actually assigned)
-- Calculate `staffTotal` from the configs' `bedsPlanned` + `hasExtraBed`
-- Build the `vipTents` array from assigned tent codes
-
-This way, the hook reads from the same source that the allocation UI writes to.
-
-### What changes in the code
-
-Replace the "VIP allocations" section (currently iterating `allocations.filter(...)`) with:
-
+**Index.tsx** -- add location state handling:
 ```typescript
-// 2) VIP from group's vipTentConfigs
-groups.forEach(group => {
-  if (archivedGroupNames.has(group.groupName)) return;
-  const configs = group.vipTentConfigs || [];
-  const assignedConfigs = configs.filter(c => c.assignedTentCode);
-  if (assignedConfigs.length === 0) return;
+const location = useLocation();
 
-  const entry = getOrCreate(group.id, group.groupName, group.startDate, group.endDate);
-  assignedConfigs.forEach(config => {
-    const beds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
-    entry.vipTents.set(config.assignedTentCode, {
-      tentNumber: config.assignedTentCode,
-      bedsAssigned: beds,
-    });
-    entry.staffTotal += beds;
-  });
-});
+useEffect(() => {
+  if (location.state?.section) {
+    setActiveSection(location.state.section);
+  }
+}, [location.state]);
 ```
 
-### File: `src/components/MasterCalendar.tsx`
-
-Same fix applies here if it also reads VIP from the allocations table -- update to use the `allGroupStays` data from `useGroupStays` (which will now be correct).
-
-### No other changes needed
-
-- The `allocations` table dependency can be removed from `useGroupStays` if it's only used for VIP (neighborhood data comes from `neighborhood_reservations`)
-- The `useSupabaseAllocations` hook remains unchanged -- it's still used by other parts of the app
-- No database changes, no new tables
-
+**Neighborhood.tsx** -- add button in VIP header:
+```typescript
+{isVIPNeighborhood && (
+  <Button
+    variant="outline"
+    size="sm"
+    onClick={() => navigate('/', { state: { section: 'sleeping' } })}
+  >
+    <Moon className="w-4 h-4 ml-1" />
+    לינה
+  </Button>
+)}
+```
