@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { CleaningStatus, WorkingStatus, ActivityReservation, ActivitySpace } from '@/types/village';
+import { CleaningStatus, WorkingStatus, ActivityReservation, ActivitySpace, getActivitySpaceLabel } from '@/types/village';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivitySpaceReportModal } from '@/components/ActivitySpaceReportModal';
 import { 
@@ -307,7 +307,7 @@ const Activities = () => {
               )}
             >
               {getStatusIcon(space)}
-              {space.name}
+              {getActivitySpaceLabel(space)}
             </button>
           ))}
         </div>
@@ -338,7 +338,7 @@ const Activities = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold flex items-center gap-2">
                     <Clock className="w-5 h-5" />
-                    {currentSpace.name} - {selectedDate}
+                    {getActivitySpaceLabel(currentSpace)} - {selectedDate}
                   </h3>
                   <button
                     onClick={() => setShowAddForm(true)}
@@ -431,7 +431,7 @@ const Activities = () => {
 
               {/* Status Tab */}
               <TabsContent value="estado" className="m-0 p-6">
-                <h3 className="text-xl font-bold mb-6">{currentSpace.name}</h3>
+                <h3 className="text-xl font-bold mb-6">{getActivitySpaceLabel(currentSpace)}</h3>
                 
                 <div className="space-y-6">
                   {/* Cleaning Status */}

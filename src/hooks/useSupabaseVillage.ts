@@ -224,11 +224,16 @@ export const useSupabaseVillage = () => {
       });
 
       // Process activity spaces
-      activitySpacesRes.data?.forEach(as => {
+      activitySpacesRes.data?.forEach((as: any) => {
         activitySpaces[as.id] = {
           id: as.id,
           name: as.name,
           description: as.description || undefined,
+          type: as.type || undefined,
+          number: as.number ?? undefined,
+          displayName: as.display_name || undefined,
+          capacity: as.capacity ?? undefined,
+          active: as.active ?? true,
           cleaningStatus: as.cleaning_status ? mapDbCleaningStatus(as.cleaning_status) : undefined,
           cleaningNotes: as.cleaning_notes || undefined,
           workingStatus: mapDbWorkingStatus(as.working_status),

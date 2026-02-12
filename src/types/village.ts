@@ -130,6 +130,11 @@ export interface ActivitySpace {
   id: string;
   name: string;
   description?: string;
+  type?: string; // 'BUNKER' | 'GATHERING' | 'DINING'
+  number?: number; // bunker number
+  displayName?: string; // custom visible name e.g. "Strength"
+  capacity?: number;
+  active?: boolean;
   cleaningStatus?: CleaningStatus;
   cleaningNotes?: string; // Notes specifically for cleaning tasks
   workingStatus?: WorkingStatus;
@@ -137,6 +142,14 @@ export interface ActivitySpace {
   maintenanceImage?: string;
   maintenanceNotes?: string;
 }
+
+/** Returns the display label for an activity space. Bunkers show `displayName number`, others show `name`. */
+export const getActivitySpaceLabel = (space: ActivitySpace): string => {
+  if (space.type === 'BUNKER' && space.displayName && space.number != null) {
+    return `${space.displayName} ${space.number}`;
+  }
+  return space.name;
+};
 
 export interface ActivityReservation {
   id: string;

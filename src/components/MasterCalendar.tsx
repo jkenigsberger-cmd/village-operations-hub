@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupStays } from '@/hooks/useGroupStays';
-import { CalendarEvent, CalendarEventType } from '@/types/village';
+import { CalendarEvent, CalendarEventType, getActivitySpaceLabel } from '@/types/village';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { kitchenSlotsToCalendarEvents, KITCHEN_EVENT_COLOR } from '@/lib/kitchenCalendarEvents';
 import { CalendarDayView } from './CalendarDayView';
@@ -108,7 +108,7 @@ export const MasterCalendar: React.FC = () => {
       events.push({
         id: `facility_${reservation.id}`,
         type: 'FACILITY',
-        title: space?.name || reservation.facilityId,
+        title: space ? getActivitySpaceLabel(space) : reservation.facilityId,
         groupName: reservation.groupName,
         startDate: reservation.date,
         startTime: reservation.startTime,
@@ -128,7 +128,7 @@ export const MasterCalendar: React.FC = () => {
       events.push({
         id: `activity_${reservation.id}`,
         type: 'ACTIVITY',
-        title: space?.name || reservation.spaceId,
+        title: space ? getActivitySpaceLabel(space) : reservation.spaceId,
         groupName: reservation.groupName,
         startDate: reservation.date,
         startTime: reservation.startTime,
