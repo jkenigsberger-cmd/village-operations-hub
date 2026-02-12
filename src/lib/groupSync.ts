@@ -10,7 +10,7 @@ import { MealType, SpecialDiets } from '@/types/kitchen';
 import { timeRangesOverlapWithGap } from '@/lib/timeUtils';
 
 // Spaces that require booking (matching SPACE_ID_MAP keys)
-const BOOKABLE_SPACES = ['אוהל מועד', 'ממ״ד 6', 'ממ״ד 7', 'ממ״ד 8', 'חדר אוכל'];
+const BOOKABLE_SPACES = ['אוהל מועד', 'ממ״ד 1', 'ממ״ד 2', 'ממ״ד 4', 'ממ״ד 5', 'ממ״ד 6', 'ממ״ד 7', 'ממ״ד 8', 'חדר אוכל'];
 
 // Gap required between reservations (in minutes)
 const RESERVATION_GAP_MINUTES = 15;
