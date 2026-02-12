@@ -26,7 +26,8 @@ import {
   Map,
   Grid3X3,
   Plus,
-  CalendarDays
+  CalendarDays,
+  Moon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -256,6 +257,16 @@ const Neighborhood = () => {
                   {tentSummaries.reduce((acc, t) => acc + t.summary.occupiedBeds + t.summary.reservedBeds, 0)}
                 </strong> / {tentSummaries.reduce((acc, t) => acc + t.summary.totalBeds, 0)} מיטות
               </span>
+              {isVIPNeighborhood && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/', { state: { section: 'sleeping' } })}
+                >
+                  <Moon className="w-4 h-4 ml-1" />
+                  לינה
+                </Button>
+              )}
               <Button onClick={() => setShowReservationModal(true)} className="flex items-center gap-2" size="sm">
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">הזמנה חדשה</span>
