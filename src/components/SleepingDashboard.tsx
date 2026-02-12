@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useSleepingData, SleepingRow } from '@/hooks/useSleepingData';
+import { useGroupStays } from '@/hooks/useGroupStays';
+import { GroupStay } from '@/types/groupStay';
 import { SleepingCalendar } from '@/components/SleepingCalendar';
-import { SleepingDetailDrawer } from '@/components/SleepingDetailDrawer';
+import { GroupStayDetailDrawer } from '@/components/GroupStayDetailDrawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -15,6 +16,7 @@ import {
   LogOut,
   Users,
   MapPin,
+  Crown,
   Tent,
   Calendar as CalendarIcon,
 } from 'lucide-react';
@@ -30,96 +32,100 @@ interface SleepingDashboardProps {
 }
 
 export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigateToNeighborhoods }) => {
-  const { getRowsForDay, getMonthSleepingCounts } = useSleepingData();
+  const { getStaysForDay, getMonthCounts } = useGroupStays();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [filters, setFilters] = useState({ sleeping: true, checkIn: true, checkOut: true });
-  const [drawerRow, setDrawerRow] = useState<SleepingRow | null>(null);
+  const [drawerStay, setDrawerStay] = useState<GroupStay | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const dayStr = format(selectedDate, 'yyyy-MM-dd');
   const isViewingToday = isToday(selectedDate);
 
-  // Get rows for the selected day
-  const rows = useMemo(
-    () => getRowsForDay(dayStr, filters),
-    [getRowsForDay, dayStr, filters]
+  const stays = useMemo(
+    () => getStaysForDay(dayStr, filters),
+    [getStaysForDay, dayStr, filters]
   );
 
-  // Group rows by status
   const grouped = useMemo(() => {
-    const sleeping: SleepingRow[] = [];
-    const checkIn: SleepingRow[] = [];
-    const checkOut: SleepingRow[] = [];
+    const sleeping: GroupStay[] = [];
+    const checkIn: GroupStay[] = [];
+    const checkOut: GroupStay[] = [];
 
-    rows.forEach(r => {
-      if (r.statusForDay === 'sleeping') sleeping.push(r);
-      else if (r.statusForDay === 'check-in') checkIn.push(r);
-      else if (r.statusForDay === 'check-out') checkOut.push(r);
+    stays.forEach(s => {
+      if (s.statusForDay === 'sleeping') sleeping.push(s);
+      else if (s.statusForDay === 'check-in') checkIn.push(s);
+      else if (s.statusForDay === 'check-out') checkOut.push(s);
     });
 
     return { sleeping, checkIn, checkOut };
-  }, [rows]);
+  }, [stays]);
 
-  // Month counts for calendar
   const monthCounts = useMemo(
-    () => getMonthSleepingCounts(startOfMonth(selectedDate)),
-    [getMonthSleepingCounts, selectedDate]
+    () => getMonthCounts(startOfMonth(selectedDate)),
+    [getMonthCounts, selectedDate]
   );
 
   const toggleFilter = (key: keyof typeof filters) => {
     setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const openDrawer = (row: SleepingRow) => {
-    setDrawerRow(row);
+  const openDrawer = (stay: GroupStay) => {
+    setDrawerStay(stay);
     setDrawerOpen(true);
   };
 
-  const renderRow = (row: SleepingRow) => {
-    const config = row.statusForDay ? statusConfig[row.statusForDay] : null;
+  const renderCard = (stay: GroupStay) => {
+    const config = stay.statusForDay ? statusConfig[stay.statusForDay] : null;
     return (
       <button
-        key={row.id}
-        onClick={() => openDrawer(row)}
+        key={stay.key}
+        onClick={() => openDrawer(stay)}
         className="w-full text-right p-4 rounded-xl border bg-card hover:shadow-md transition-all flex items-center gap-4"
         dir="rtl"
       >
-        {/* Resource badge */}
-        <div className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0",
-          row.type === 'vip' ? 'bg-amber-500' : 'bg-primary'
-        )}>
-          {row.type === 'vip' ? 'VIP' : row.resourceLabel.replace('שכונה ', '')}
+        {/* Group initial badge */}
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary text-primary-foreground font-bold text-lg shrink-0">
+          {stay.groupName.charAt(0)}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold truncate">{row.groupName}</span>
+            <span className="font-semibold truncate">{stay.groupName}</span>
             {config && (
               <Badge variant="secondary" className={cn("text-xs", config.bgLight, config.textColor)}>
                 {config.label}
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5" />
-              {row.resourceLabel}
-            </span>
+          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
-              {row.totalPax}
+              חניכים: {stay.participantsTotal}
             </span>
-            {row.boysCount != null && row.girlsCount != null && (
-              <span className="text-xs">
-                ב: {row.boysCount} | בנ: {row.girlsCount}
+            {stay.staffTotal > 0 && (
+              <span className="flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5 text-amber-500" />
+                צוות: {stay.staffTotal} · VIP: {stay.vipTentCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
+            {stay.neighborhoods.length > 0 && (
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                שכונות: {stay.neighborhoods.map(n => n.neighborhoodName).join(', ')}
+              </span>
+            )}
+            {stay.vipTents.length > 0 && (
+              <span className="flex items-center gap-1">
+                VIP: {stay.vipTents.map(t => t.tentNumber).join(', ')}
               </span>
             )}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            {row.startDate} → {row.endDate}
+            {stay.startDate} → {stay.endDate}
           </div>
         </div>
       </button>
@@ -128,7 +134,7 @@ export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigate
 
   const renderSection = (
     title: string,
-    items: SleepingRow[],
+    items: GroupStay[],
     statusKey: 'sleeping' | 'check-in' | 'check-out'
   ) => {
     const config = statusConfig[statusKey];
@@ -145,7 +151,7 @@ export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigate
           <Badge variant="outline">{items.length}</Badge>
         </div>
         <div className="space-y-2">
-          {items.map(renderRow)}
+          {items.map(renderCard)}
         </div>
       </div>
     );
@@ -161,7 +167,7 @@ export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigate
           <h2 className="text-2xl font-bold">שיבוצי לינה</h2>
           <p className="text-muted-foreground">
             {isViewingToday ? 'היום' : format(selectedDate, "EEEE, d MMMM yyyy", { locale: he })}
-            {' — '}שכונות ו-VIP בלבד
+            {' — '}שכונות ו-VIP מאוחדים לפי קבוצה
           </p>
         </div>
         {onNavigateToNeighborhoods && (
@@ -227,7 +233,7 @@ export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigate
 
         {/* Right: Lists */}
         <div className="lg:col-span-2 space-y-6">
-          {rows.length === 0 ? (
+          {stays.length === 0 ? (
             <div className="rounded-xl border bg-card p-12 text-center text-muted-foreground">
               <Moon className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-lg font-medium">אין שיבוצי לינה ליום זה</p>
@@ -244,8 +250,8 @@ export const SleepingDashboard: React.FC<SleepingDashboardProps> = ({ onNavigate
       </div>
 
       {/* Detail Drawer */}
-      <SleepingDetailDrawer
-        row={drawerRow}
+      <GroupStayDetailDrawer
+        stay={drawerStay}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
