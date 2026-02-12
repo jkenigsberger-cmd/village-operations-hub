@@ -137,7 +137,7 @@ const Activities = () => {
   // Get reservation for a specific hour slot (using minute-based comparison)
   const getReservationForHour = (hour: string): ActivityReservation | null => {
     return spaceReservations.find(r => 
-      isHourInReservation(hour, r.startTime, r.endTime)
+      isHourInReservation(hour, r.startTime, r.endTime) || isReservationStartHour(hour, r.startTime)
     ) || null;
   };
 
@@ -148,7 +148,9 @@ const Activities = () => {
 
   // Get reservation span (how many hour rows to span)
   const getReservationSpanForRow = (reservation: ActivityReservation): number => {
-    return getReservationSpan(reservation.startTime, reservation.endTime);
+    const startHour = parseInt(reservation.startTime.split(':')[0]);
+    const hourStart = `${startHour.toString().padStart(2, '0')}:00`;
+    return getReservationSpan(hourStart, reservation.endTime);
   };
 
   const handleHourClick = (hour: string) => {
