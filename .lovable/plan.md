@@ -1,65 +1,89 @@
 
 
-# Show 15-Minute Buffer Visually in Hourly Grid
+# Unified Group Display in Calendar and Sleeping Tab
 
-## What Changes
+## Problem
 
-When a reservation is booked from 09:00 to 15:30, the colored block currently spans 09:00-15:00 (or 16:00). With this change, the colored block will visually extend to include the 15-minute buffer on both sides, so it covers 08:00-16:00 (the hour rows that contain 08:45 and 15:45).
+Right now, in the **Master Calendar**, a group's check-in day shows:
+- 1 "group arrival" event (neighborhoods)
+- **Separate events for each VIP tent** (e.g., tent 80, tent 81, tent 83 -- each as its own card)
 
-The reservation text inside the block still shows the actual booked times (09:00 - 15:30). Only the visual coloring extends to reflect the buffer.
+This is confusing. You want **ONE card per group** that shows both neighborhoods and VIP tents together.
+
+Similarly, in the **Sleeping tab**, the card only shows VIP info if allocations already exist. If a group has declared staff but VIP tents aren't assigned yet, there's no indication.
+
+## Solution
+
+### 1. Sleeping Tab: Show staff/VIP status even when unallocated
+
+**File: `src/types/groupStay.ts`**
+- Add `staffCount` field (the group's declared staff count from the groups table)
+
+**File: `src/hooks/useGroupStays.ts`**
+- Populate `staffCount` from the group record
+- This lets the card show "Staff: 3 -- VIP: not assigned" when no allocations exist yet
+
+**File: `src/components/SleepingDashboard.tsx`**
+- Show the staff/VIP line when `staffCount > 0` (not just when `staffTotal > 0`)
+- If VIP tents allocated: show tent numbers as today
+- If no VIP allocated but staff exists: show "VIP: not assigned yet" with a warning badge
+
+**File: `src/components/GroupStayDetailDrawer.tsx`**
+- Same logic: show staff count and "not assigned" status when relevant
+
+### 2. Calendar: One unified event per group (merge VIP tents into group event)
+
+**File: `src/components/MasterCalendar.tsx`**
+
+Replace the current approach (individual tent events + separate group arrival/departure) with unified events:
+
+- **Remove** individual tent check-in/check-out events (lines 143-176) for VIP tents that belong to a lodging group
+- **Enhance** the group arrival/departure events (lines 214-249) to include VIP tent info in the title and metadata
+
+The unified event will show:
+- Title: "Arrival: Group Name (50 people)"
+- Subtitle info: "Neighborhoods: 1, 4 | VIP: 3 tents (80, 81, 83)"
+
+This uses data from `useGroupStays` hook (already built) to get the merged neighborhoods + VIP tents per group.
+
+### What stays the same
+
+- No new database tables or columns
+- No changes to booking/allocation logic
+- No changes to URL routing
+- Non-VIP tent events (regular neighborhood tents) stay as-is
+- Kitchen, facility, activity, and day-use events are untouched
 
 ## Technical Details
 
-### File: `src/pages/Activities.tsx`
-
-Modify the three helper functions to use buffered times for visual rendering:
-
-**1. `getReservationForHour`** - Check if an hour falls within the buffered range (startTime - 15min to endTime + 15min):
-
+### `src/types/groupStay.ts` -- add field
 ```typescript
-const getReservationForHour = (hour: string): ActivityReservation | null => {
-  const BUFFER = 15; // minutes
-  return spaceReservations.find(r => {
-    const hourMin = timeToMinutes(hour);
-    const bufferedStart = timeToMinutes(r.startTime) - BUFFER;
-    const bufferedEnd = timeToMinutes(r.endTime) + BUFFER;
-    return hourMin >= bufferedStart && hourMin < bufferedEnd;
-  }) || null;
-};
+staffCount: number; // declared staff from groups table
 ```
 
-**2. `isReservationStart`** - The start row is now the hour containing (startTime - 15min):
-
+### `src/hooks/useGroupStays.ts` -- populate staffCount
 ```typescript
-const isReservationStart = (hour: string): boolean => {
-  const BUFFER = 15;
-  return spaceReservations.some(r => {
-    const bufferedStartHour = Math.floor((timeToMinutes(r.startTime) - BUFFER) / 60);
-    const hourValue = parseInt(hour.split(':')[0]);
-    return hourValue === bufferedStartHour;
-  });
-};
+staffCount: group?.staffCount || 0,
 ```
 
-**3. `getReservationSpanForRow`** - Calculate span using buffered times:
-
+### `src/components/SleepingDashboard.tsx` -- conditional VIP display
 ```typescript
-const getReservationSpanForRow = (reservation: ActivityReservation): number => {
-  const BUFFER = 15;
-  const bufferedStart = timeToMinutes(reservation.startTime) - BUFFER;
-  const bufferedEnd = timeToMinutes(reservation.endTime) + BUFFER;
-  return Math.max(1, Math.ceil((bufferedEnd - bufferedStart) / 60));
-};
+// Change condition from staffTotal > 0 to:
+{(stay.staffCount > 0 || stay.staffTotal > 0) && (
+  <span>
+    Staff: {stay.staffCount}
+    {stay.vipTentCount > 0
+      ? ` | VIP: ${stay.vipTentCount} (${stay.vipTents.map(t => t.tentNumber).join(', ')})`
+      : ' | VIP: not assigned'}
+  </span>
+)}
 ```
 
-**4. Visual distinction for buffer zones** (optional but recommended): The buffer portions of the block will use a slightly different style (striped/hatched pattern or reduced opacity) so staff can visually distinguish "setup/cleanup time" from actual booking time. The reservation info text (group name, times, notes) remains positioned in the main block area.
+### `src/components/MasterCalendar.tsx` -- unified group events
 
-### What stays the same
-- The reservation data and actual times are unchanged
-- The text inside the colored block still shows actual times (e.g., "09:00 - 15:30")
-- The 15-minute gap validation logic is unchanged
-- Click-to-book on empty hours still works
-- The map and all other pages are untouched
+Import and use `useGroupStays` to replace individual tent events with merged group events. For each lodging group:
 
-### Import needed
-`timeToMinutes` is already imported from `@/lib/timeUtils`.
+- One TENT_CHECKIN event on arrival day with title including neighborhoods + VIP count
+- One TENT_CHECKOUT event on departure day with same info
+- Skip generating individual VIP tent events (they're now inside the group event)
+
