@@ -1,39 +1,63 @@
 
+# Fix: Reservations Starting at Non-Exact Hours Not Displaying
 
-# Add New Common Spaces to Group Schedule & Sync
+## Problem
 
-## What Changes
+The hourly grid in the Common Spaces (Activities) page fails to render reservations that start at non-exact hours (e.g., 19:50). This is because:
+- `getReservationForHour` checks if the hour falls within `[startTime, endTime)` using minute precision
+- `isReservationStartHour` compares only the integer hour
+- These two checks become inconsistent when a reservation starts mid-hour (e.g., 19:50 is in hour 19 but 19:00 is NOT >= 19:50)
 
-The new bunkers (1, 2, 4, 5) need to appear as location options when creating/editing group schedules, and must sync correctly to the reservation calendar.
+## Fix (2 changes in `src/pages/Activities.tsx` only)
 
-## Changes Required
+### Change 1: `getReservationForHour` (line ~138-142)
 
-### 1. Update `src/types/adminGroups.ts` - Add new locations
+Add a fallback check: if the hour matches the reservation's start hour, include it.
 
-**SCHEDULE_LOCATIONS** array: Add the 4 new bunkers in numeric order:
-- `'ממ״ד 1'`, `'ממ״ד 2'`, `'ממ״ד 4'`, `'ממ״ד 5'`
+```typescript
+// BEFORE
+const getReservationForHour = (hour: string): ActivityReservation | null => {
+  return spaceReservations.find(r => 
+    isHourInReservation(hour, r.startTime, r.endTime)
+  ) || null;
+};
 
-**SPACE_ID_MAP** object: Add mappings for the new bunkers:
-- `'ממ״ד 1': 'bunker_1'`
-- `'ממ״ד 2': 'bunker_2'`
-- `'ממ״ד 4': 'bunker_4'`
-- `'ממ״ד 5': 'bunker_5'`
+// AFTER
+const getReservationForHour = (hour: string): ActivityReservation | null => {
+  return spaceReservations.find(r => 
+    isHourInReservation(hour, r.startTime, r.endTime) || isReservationStartHour(hour, r.startTime)
+  ) || null;
+};
+```
 
-### 2. Update `src/lib/groupSync.ts` - Add new bookable spaces
+### Change 2: `getReservationSpanForRow` (line ~150-152)
 
-**BOOKABLE_SPACES** array: Add the 4 new bunker names so that schedule items at these locations trigger reservation creation and conflict detection.
+Calculate the span from the floored start hour (not the exact start minute) to the end time, so the rowSpan covers all necessary rows.
 
-### No other changes needed
+```typescript
+// BEFORE
+const getReservationSpanForRow = (reservation: ActivityReservation): number => {
+  return getReservationSpan(reservation.startTime, reservation.endTime);
+};
 
-- The group form (`AdminGroupEdit.tsx`) already renders from `SCHEDULE_LOCATIONS` dynamically, so new entries appear automatically.
-- The sync engine (`syncGroupToModules`) already uses `SPACE_ID_MAP` for lookups, so new mappings work automatically.
-- Calendar display already reads from `activity_reservations` table, so synced bookings appear automatically.
-- Conflict detection logic is generic and applies to all spaces in `BOOKABLE_SPACES`.
+// AFTER
+const getReservationSpanForRow = (reservation: ActivityReservation): number => {
+  const startHour = parseInt(reservation.startTime.split(':')[0]);
+  const hourStart = `${startHour.toString().padStart(2, '0')}:00`;
+  return getReservationSpan(hourStart, reservation.endTime);
+};
+```
+
+## Why This Works
+
+For a reservation at 19:50-21:10:
+- **Row 19:00**: `getReservationForHour` now returns the reservation (via `isReservationStartHour`). `isReservationStart` is true. Block renders with rowSpan = ceil((21:10 - 19:00) / 60) = 3.
+- **Rows 20:00, 21:00**: Covered by the rowSpan from 19:00. Only hour cell rendered (correct).
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/types/adminGroups.ts` | Add 4 entries to `SCHEDULE_LOCATIONS` and `SPACE_ID_MAP` |
-| `src/lib/groupSync.ts` | Add 4 entries to `BOOKABLE_SPACES` |
+| `src/pages/Activities.tsx` | 2 small edits (~4 lines total) |
 
+No changes to `timeUtils.ts`, `groupSync.ts`, or any other file. Existing reservation logic, conflict detection, and sync remain untouched.
