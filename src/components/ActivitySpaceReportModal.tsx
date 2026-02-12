@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { WorkingStatus, ActivitySpace } from '@/types/village';
+import { WorkingStatus, ActivitySpace, getActivitySpaceLabel } from '@/types/village';
 import { cn } from '@/lib/utils';
 import { compressImageFileToDataUrl } from '@/lib/imageCompression';
 
@@ -89,7 +89,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <AlertTriangle className="w-6 h-6 text-destructive" />
-            Reportar Problema - {space.name}
+            Reportar Problema - {getActivitySpaceLabel(space)}
           </DialogTitle>
         </DialogHeader>
 

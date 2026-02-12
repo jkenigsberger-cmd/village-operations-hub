@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { CalendarEvent } from '@/types/village';
+import { CalendarEvent, getActivitySpaceLabel } from '@/types/village';
 import { GroupRecord } from '@/types/adminGroups';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useKitchenData } from '@/hooks/useKitchenData';
@@ -129,7 +129,7 @@ export const GroupItineraryModal: React.FC<GroupItineraryModalProps> = ({
           time: res.startTime,
           endTime: res.endTime,
           type: 'space',
-          title: space?.name || res.facilityId,
+          title: space ? getActivitySpaceLabel(space) : res.facilityId,
           subtitle: res.numberOfPeople ? `${res.numberOfPeople} איש` : undefined,
           details: res.notes ? [res.notes] : undefined,
           icon: <Flame className="w-5 h-5 text-orange-500" />,
@@ -146,7 +146,7 @@ export const GroupItineraryModal: React.FC<GroupItineraryModalProps> = ({
           time: res.startTime,
           endTime: res.endTime,
           type: 'activity',
-          title: space?.name || res.spaceId,
+          title: space ? getActivitySpaceLabel(space) : res.spaceId,
           details: res.notes ? [res.notes] : undefined,
           icon: <Flame className="w-5 h-5 text-orange-500" />,
         });

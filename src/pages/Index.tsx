@@ -7,7 +7,7 @@ import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
-import { NeighborhoodId, Facility, WorkingStatus } from '@/types/village';
+import { NeighborhoodId, Facility, WorkingStatus, getActivitySpaceLabel } from '@/types/village';
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
@@ -735,7 +735,7 @@ const Index = () => {
                     <Flame className="w-8 h-8 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold">{space.name}</h3>
+                    <h3 className="text-xl font-bold">{getActivitySpaceLabel(space)}</h3>
                     <p className="text-sm text-muted-foreground">{space.description}</p>
                   </div>
                 </div>
@@ -846,7 +846,7 @@ const Index = () => {
                           <div className="flex items-center gap-3 mb-4">
                             <AlertTriangle className="w-6 h-6 text-destructive" />
                             <div>
-                              <h4 className="font-bold text-lg">{space.name}</h4>
+                              <h4 className="font-bold text-lg">{getActivitySpaceLabel(space)}</h4>
                               <span className={`text-sm ${space.workingStatus === 'BROKEN' ? 'text-destructive' : 'text-yellow-600'}`}>
                                 {space.workingStatus === 'BROKEN' ? HE.status.broken : HE.status.maintenance}
                               </span>
@@ -1023,7 +1023,7 @@ const Index = () => {
                           <div className="flex items-center gap-3 mb-4">
                             <Sparkles className="w-6 h-6 text-yellow-600" />
                             <div className="flex-1">
-                              <h4 className="font-bold text-lg">{space.name}</h4>
+                              <h4 className="font-bold text-lg">{getActivitySpaceLabel(space)}</h4>
                               <span className={`text-sm ${space.cleaningStatus === 'NEEDS_CLEANING' ? 'text-yellow-600' : 'text-blue-600'}`}>
                                 {space.cleaningStatus === 'NEEDS_CLEANING' ? HE.status.needsCleaning : HE.status.inProgress}
                               </span>
