@@ -1,89 +1,61 @@
 
 
-# Unified Group Display in Calendar and Sleeping Tab
+# Fix: Read VIP Assignments from Group's vipTentConfigs (Not Just Allocations Table)
 
-## Problem
+## Root Cause
 
-Right now, in the **Master Calendar**, a group's check-in day shows:
-- 1 "group arrival" event (neighborhoods)
-- **Separate events for each VIP tent** (e.g., tent 80, tent 81, tent 83 -- each as its own card)
+The VIP allocation flow (`assignVIPConfig` in `useGroupAllocation.ts`) stores VIP tent assignments in **two places**:
+1. `groups.vip_tent_configs` JSON column (with `assignedTentCode` field) -- this is the primary source
+2. `tents` table (setting `group_name`, dates on the physical tent)
 
-This is confusing. You want **ONE card per group** that shows both neighborhoods and VIP tents together.
+It does **NOT** write to the `allocations` table for VIP tents.
 
-Similarly, in the **Sleeping tab**, the card only shows VIP info if allocations already exist. If a group has declared staff but VIP tents aren't assigned yet, there's no indication.
+However, `useGroupStays` only looks at the `allocations` table (filtering by `allocationType === 'VIP_TENT'`), which is empty for this group. That's why VIP shows as "not allocated" even though tents 80 and 89 are assigned.
 
-## Solution
+## Fix
 
-### 1. Sleeping Tab: Show staff/VIP status even when unallocated
+### File: `src/hooks/useGroupStays.ts`
 
-**File: `src/types/groupStay.ts`**
-- Add `staffCount` field (the group's declared staff count from the groups table)
+Change the VIP data source from the `allocations` table to the `groups.vip_tent_configs` JSON field:
 
-**File: `src/hooks/useGroupStays.ts`**
-- Populate `staffCount` from the group record
-- This lets the card show "Staff: 3 -- VIP: not assigned" when no allocations exist yet
+- Instead of iterating `allocations.filter(a => a.allocationType === 'VIP_TENT')`, iterate over each group's `vipTentConfigs` array
+- Only include configs where `assignedTentCode` is set (meaning the tent is actually assigned)
+- Calculate `staffTotal` from the configs' `bedsPlanned` + `hasExtraBed`
+- Build the `vipTents` array from assigned tent codes
 
-**File: `src/components/SleepingDashboard.tsx`**
-- Show the staff/VIP line when `staffCount > 0` (not just when `staffTotal > 0`)
-- If VIP tents allocated: show tent numbers as today
-- If no VIP allocated but staff exists: show "VIP: not assigned yet" with a warning badge
+This way, the hook reads from the same source that the allocation UI writes to.
 
-**File: `src/components/GroupStayDetailDrawer.tsx`**
-- Same logic: show staff count and "not assigned" status when relevant
+### What changes in the code
 
-### 2. Calendar: One unified event per group (merge VIP tents into group event)
+Replace the "VIP allocations" section (currently iterating `allocations.filter(...)`) with:
 
-**File: `src/components/MasterCalendar.tsx`**
-
-Replace the current approach (individual tent events + separate group arrival/departure) with unified events:
-
-- **Remove** individual tent check-in/check-out events (lines 143-176) for VIP tents that belong to a lodging group
-- **Enhance** the group arrival/departure events (lines 214-249) to include VIP tent info in the title and metadata
-
-The unified event will show:
-- Title: "Arrival: Group Name (50 people)"
-- Subtitle info: "Neighborhoods: 1, 4 | VIP: 3 tents (80, 81, 83)"
-
-This uses data from `useGroupStays` hook (already built) to get the merged neighborhoods + VIP tents per group.
-
-### What stays the same
-
-- No new database tables or columns
-- No changes to booking/allocation logic
-- No changes to URL routing
-- Non-VIP tent events (regular neighborhood tents) stay as-is
-- Kitchen, facility, activity, and day-use events are untouched
-
-## Technical Details
-
-### `src/types/groupStay.ts` -- add field
 ```typescript
-staffCount: number; // declared staff from groups table
+// 2) VIP from group's vipTentConfigs
+groups.forEach(group => {
+  if (archivedGroupNames.has(group.groupName)) return;
+  const configs = group.vipTentConfigs || [];
+  const assignedConfigs = configs.filter(c => c.assignedTentCode);
+  if (assignedConfigs.length === 0) return;
+
+  const entry = getOrCreate(group.id, group.groupName, group.startDate, group.endDate);
+  assignedConfigs.forEach(config => {
+    const beds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
+    entry.vipTents.set(config.assignedTentCode, {
+      tentNumber: config.assignedTentCode,
+      bedsAssigned: beds,
+    });
+    entry.staffTotal += beds;
+  });
+});
 ```
 
-### `src/hooks/useGroupStays.ts` -- populate staffCount
-```typescript
-staffCount: group?.staffCount || 0,
-```
+### File: `src/components/MasterCalendar.tsx`
 
-### `src/components/SleepingDashboard.tsx` -- conditional VIP display
-```typescript
-// Change condition from staffTotal > 0 to:
-{(stay.staffCount > 0 || stay.staffTotal > 0) && (
-  <span>
-    Staff: {stay.staffCount}
-    {stay.vipTentCount > 0
-      ? ` | VIP: ${stay.vipTentCount} (${stay.vipTents.map(t => t.tentNumber).join(', ')})`
-      : ' | VIP: not assigned'}
-  </span>
-)}
-```
+Same fix applies here if it also reads VIP from the allocations table -- update to use the `allGroupStays` data from `useGroupStays` (which will now be correct).
 
-### `src/components/MasterCalendar.tsx` -- unified group events
+### No other changes needed
 
-Import and use `useGroupStays` to replace individual tent events with merged group events. For each lodging group:
-
-- One TENT_CHECKIN event on arrival day with title including neighborhoods + VIP count
-- One TENT_CHECKOUT event on departure day with same info
-- Skip generating individual VIP tent events (they're now inside the group event)
+- The `allocations` table dependency can be removed from `useGroupStays` if it's only used for VIP (neighborhood data comes from `neighborhood_reservations`)
+- The `useSupabaseAllocations` hook remains unchanged -- it's still used by other parts of the app
+- No database changes, no new tables
 
