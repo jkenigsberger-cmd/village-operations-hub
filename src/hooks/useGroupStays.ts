@@ -114,20 +114,24 @@ export const useGroupStays = () => {
       });
 
     // Convert to array
-    return Array.from(stayMap.entries()).map(([key, e]) => ({
-      key,
-      groupId: e.groupId,
-      groupName: e.groupName,
-      startDate: e.startDate,
-      endDate: e.endDate,
-      participantsTotal: e.participantsTotal,
-      staffTotal: e.staffTotal,
-      boysCount: e.boysCount,
-      girlsCount: e.girlsCount,
-      neighborhoods: Array.from(e.neighborhoods.values()),
-      vipTents: Array.from(e.vipTents.values()),
-      vipTentCount: e.vipTents.size,
-    }));
+    return Array.from(stayMap.entries()).map(([key, e]) => {
+      const group = groupsById.get(e.groupId);
+      return {
+        key,
+        groupId: e.groupId,
+        groupName: e.groupName,
+        startDate: e.startDate,
+        endDate: e.endDate,
+        participantsTotal: e.participantsTotal,
+        staffTotal: e.staffTotal,
+        boysCount: e.boysCount,
+        girlsCount: e.girlsCount,
+        neighborhoods: Array.from(e.neighborhoods.values()),
+        vipTents: Array.from(e.vipTents.values()),
+        vipTentCount: e.vipTents.size,
+        staffCount: group?.staffCount || 0,
+      };
+    });
   }, [state, allocations, archivedGroupNames, groupsByName, groupsById]);
 
   // Get stays for a specific day with status annotation

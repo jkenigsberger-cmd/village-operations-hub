@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useGroupStays } from '@/hooks/useGroupStays';
 import { CalendarEvent, CalendarEventType } from '@/types/village';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { kitchenSlotsToCalendarEvents, KITCHEN_EVENT_COLOR } from '@/lib/kitchenCalendarEvents';
@@ -57,6 +58,7 @@ interface FilterState {
 export const MasterCalendar: React.FC = () => {
   const { state, getFacilityReservations } = useVillage();
   const { groups } = useAdminGroups();
+  const { allGroupStays } = useGroupStays();
   const { state: kitchenState } = useKitchenData();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -139,8 +141,13 @@ export const MasterCalendar: React.FC = () => {
       });
     });
 
-    // 4. Tent check-ins and check-outs
+    // 4. Unified group stay events (replaces individual tent events + group arrival/departure)
+    // Build a set of group names that have GroupStay entries to skip duplicate tent events
+    const groupStayGroupNames = new Set(allGroupStays.map(gs => gs.groupName));
+
+    // Individual tent check-in/check-out only for tents NOT belonging to a grouped stay
     Object.values(state.tents).forEach(tent => {
+      if (tent.groupName && groupStayGroupNames.has(tent.groupName)) return; // skip, handled by GroupStay
       if (tent.checkInDate && tent.groupName) {
         events.push({
           id: `checkin_${tent.id}`,
@@ -150,11 +157,7 @@ export const MasterCalendar: React.FC = () => {
           startDate: tent.checkInDate,
           location: state.neighborhoods[tent.neighborhoodId]?.displayName || tent.neighborhoodId,
           color: EVENT_COLORS.TENT_CHECKIN,
-          metadata: {
-            tentId: tent.id,
-            neighborhoodId: tent.neighborhoodId,
-            beds: tent.beds.length,
-          },
+          metadata: { tentId: tent.id, neighborhoodId: tent.neighborhoodId, beds: tent.beds.length },
         });
       }
       if (tent.checkOutDate && tent.groupName) {
@@ -166,11 +169,7 @@ export const MasterCalendar: React.FC = () => {
           startDate: tent.checkOutDate,
           location: state.neighborhoods[tent.neighborhoodId]?.displayName || tent.neighborhoodId,
           color: EVENT_COLORS.TENT_CHECKOUT,
-          metadata: {
-            tentId: tent.id,
-            neighborhoodId: tent.neighborhoodId,
-            beds: tent.beds.length,
-          },
+          metadata: { tentId: tent.id, neighborhoodId: tent.neighborhoodId, beds: tent.beds.length },
         });
       }
     });
@@ -210,46 +209,60 @@ export const MasterCalendar: React.FC = () => {
       });
     });
 
-    // 7. Lodging groups arrival/departure from admin groups
-    const lodgingGroups = groups.filter(g => g.groupType === 'לינה' && !g.isArchived);
-    lodgingGroups.forEach(group => {
-      // Arrival event (check-in)
+    // 7. Unified lodging group arrival/departure from GroupStays
+    allGroupStays.forEach(stay => {
+      const nhoodLabel = stay.neighborhoods.length > 0
+        ? `שכונות: ${stay.neighborhoods.map(n => n.neighborhoodName).join(', ')}`
+        : '';
+      const vipLabel = stay.vipTentCount > 0
+        ? `VIP: ${stay.vipTentCount} (${stay.vipTents.map(t => t.tentNumber).join(', ')})`
+        : (stay.staffCount > 0 ? 'VIP: לא שובץ' : '');
+      const subtitle = [nhoodLabel, vipLabel].filter(Boolean).join(' | ');
+
+      // Arrival event
+      const group = groups.find(g => g.id === stay.groupId);
       events.push({
-        id: `group_arrival_${group.id}`,
+        id: `group_arrival_${stay.key}`,
         type: 'TENT_CHECKIN',
-        title: `הגעה: ${group.groupName} (${group.pax} איש)`,
-        groupName: group.groupName,
-        startDate: group.startDate,
-        startTime: group.arrivalTime,
-        location: 'לינה',
+        title: `הגעה: ${stay.groupName} (${stay.participantsTotal + stay.staffTotal} איש)`,
+        groupName: stay.groupName,
+        startDate: stay.startDate,
+        startTime: group?.arrivalTime,
+        location: subtitle || 'לינה',
         color: EVENT_COLORS.TENT_CHECKIN,
         metadata: {
-          groupId: group.id,
-          pax: group.pax,
+          groupId: stay.groupId,
+          pax: stay.participantsTotal + stay.staffTotal,
           isGroupArrival: true,
+          neighborhoods: stay.neighborhoods,
+          vipTents: stay.vipTents,
+          vipTentCount: stay.vipTentCount,
         },
       });
-      
-      // Departure event (check-out)
+
+      // Departure event
       events.push({
-        id: `group_departure_${group.id}`,
+        id: `group_departure_${stay.key}`,
         type: 'TENT_CHECKOUT',
-        title: `עזיבה: ${group.groupName} (${group.pax} איש)`,
-        groupName: group.groupName,
-        startDate: group.endDate,
-        startTime: group.departureTime,
-        location: 'לינה',
+        title: `עזיבה: ${stay.groupName} (${stay.participantsTotal + stay.staffTotal} איש)`,
+        groupName: stay.groupName,
+        startDate: stay.endDate,
+        startTime: group?.departureTime,
+        location: subtitle || 'לינה',
         color: EVENT_COLORS.TENT_CHECKOUT,
         metadata: {
-          groupId: group.id,
-          pax: group.pax,
+          groupId: stay.groupId,
+          pax: stay.participantsTotal + stay.staffTotal,
           isGroupDeparture: true,
+          neighborhoods: stay.neighborhoods,
+          vipTents: stay.vipTents,
+          vipTentCount: stay.vipTentCount,
         },
       });
     });
 
     return events;
-  }, [state, kitchenState.timeSlots, groups]);
+  }, [state, kitchenState.timeSlots, groups, allGroupStays]);
 
   // Filter events based on active filters
   const filteredEvents = useMemo(() => {

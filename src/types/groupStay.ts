@@ -21,5 +21,6 @@ export interface GroupStay {
   neighborhoods: GroupStayNeighborhood[];
   vipTents: GroupStayVipTent[];
   vipTentCount: number;
+  staffCount: number; // declared staff from groups table
   statusForDay?: 'sleeping' | 'check-in' | 'check-out';
 }
