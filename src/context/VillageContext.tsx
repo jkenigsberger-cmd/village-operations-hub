@@ -511,14 +511,14 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [state]);
 
   const reserveNeighborhood = useCallback((reservation: Omit<NeighborhoodReservation, 'id' | 'createdAt'>): { success: boolean; error?: string } => {
-    if (!state) return { success: false, error: 'Estado no disponible' };
+    if (!state) return { success: false, error: 'המערכת לא זמינה' };
 
     const neighborhood = state.neighborhoods[reservation.neighborhoodId];
-    if (!neighborhood) return { success: false, error: 'Vecindario no encontrado' };
+    if (!neighborhood) return { success: false, error: 'שכונה לא נמצאה' };
 
     // Validate dates
     if (reservation.checkInDate >= reservation.checkOutDate) {
-      return { success: false, error: 'La fecha de check-out debe ser posterior al check-in' };
+      return { success: false, error: 'תאריך CHECK OUT חייב להיות אחרי CHECK IN' };
     }
 
     // Check for overlapping reservations
@@ -532,7 +532,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
       const conflict = availability.conflictingReservation;
       return { 
         success: false, 
-        error: `Conflicto con reserva existente: ${conflict?.groupName} (${conflict?.checkInDate} - ${conflict?.checkOutDate})` 
+        error: `התנגשות עם הזמנה קיימת: ${conflict?.groupName} (${conflict?.checkInDate} - ${conflict?.checkOutDate})` 
       };
     }
 
@@ -620,13 +620,13 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     contactPhone?: string;
     notes?: string;
   }): { success: boolean; error?: string } => {
-    if (!state) return { success: false, error: 'Estado no disponible' };
+    if (!state) return { success: false, error: 'המערכת לא זמינה' };
 
     const { neighborhoodId, tentIds, tentGenders, groupName, checkInDate, checkOutDate, totalPeople, contactName, contactPhone, notes } = params;
 
     // Validate dates
     if (checkInDate >= checkOutDate) {
-      return { success: false, error: 'La fecha de check-out debe ser posterior al check-in' };
+      return { success: false, error: 'תאריך CHECK OUT חייב להיות אחרי CHECK IN' };
     }
 
     // Check availability of each tent
@@ -636,7 +636,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
         const tent = state.tents[tentId];
         return { 
           success: false, 
-          error: `Carpa ${tent?.code} tiene conflicto con: ${availability.conflictingGroup || 'reserva existente'}` 
+          error: `אוהל ${tent?.code} מתנגש עם: ${availability.conflictingGroup || 'הזמנה קיימת'}` 
         };
       }
     }

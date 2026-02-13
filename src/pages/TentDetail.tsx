@@ -73,8 +73,8 @@ const TentDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Tent not found</h1>
-          <Link to="/" className="text-primary mt-4 block">← Back to Home</Link>
+          <h1 className="text-2xl font-bold">אוהל לא נמצא</h1>
+          <Link to="/" className="text-primary mt-4 block">← חזרה לדף הבית</Link>
         </div>
       </div>
     );
@@ -251,9 +251,9 @@ const TentDetail = () => {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-6 h-6 text-destructive flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-bold text-lg">Clear all beds?</p>
+                      <p className="font-bold text-lg">לנקות את כל המיטות?</p>
                       <p className="text-muted-foreground">
-                        This will set all beds to FREE and remove all guest names.
+                        כל המיטות יוגדרו כפנויות ושמות האורחים יוסרו.
                       </p>
                     </div>
                   </div>
@@ -262,13 +262,13 @@ const TentDetail = () => {
                       onClick={handleClearAll}
                       className="flex-1 px-4 py-3 bg-destructive text-destructive-foreground rounded-xl font-bold text-lg hover:bg-destructive/90"
                     >
-                      Yes, Clear All
+                      כן, נקה הכל
                     </button>
                     <button
                       onClick={() => setShowClearConfirm(false)}
                       className="flex-1 px-4 py-3 bg-muted text-foreground rounded-xl font-bold text-lg hover:bg-muted/80"
                     >
-                      Cancel
+                      ביטול
                     </button>
                   </div>
                 </div>

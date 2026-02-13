@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { CalendarEvent } from '@/types/village';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
   Tent, 
@@ -111,10 +111,10 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
       <div className="lg:w-80 border-b lg:border-b-0 lg:border-r border-border bg-muted/30">
         <div className="p-4 border-b border-border">
           <h3 className="font-bold text-lg">
-            {format(selectedDate, "EEEE d", { locale: es })}
+            {format(selectedDate, "EEEE d", { locale: he })}
           </h3>
           <p className="text-sm text-muted-foreground capitalize">
-            {format(selectedDate, "MMMM yyyy", { locale: es })}
+            {format(selectedDate, "MMMM yyyy", { locale: he })}
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
               <div>
                 <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                   <Tent className="w-4 h-4" />
-                  Grupos Hospedados
+                  קבוצות מאוכסנות
                 </h4>
                 <div className="space-y-2">
                   {activeNeighborhoods.map(event => (
@@ -146,7 +146,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                         {event.location}
                       </div>
                       <div className="text-muted-foreground text-xs">
-                        {format(parseISO(event.startDate), 'd MMM', { locale: es })} - {format(parseISO(event.endDate!), 'd MMM', { locale: es })}
+                        {format(parseISO(event.startDate), 'd MMM', { locale: he })} - {format(parseISO(event.endDate!), 'd MMM', { locale: he })}
                       </div>
                     </div>
                   ))}
@@ -159,7 +159,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
               <div>
                 <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                   <LogIn className="w-4 h-4 text-green-500" />
-                  Check-ins ({checkIns.length})
+                  CHECK IN ({checkIns.length})
                 </h4>
                 <div className="space-y-2">
                   {checkIns.map(event => (
@@ -192,7 +192,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
               <div>
                 <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                   <LogOut className="w-4 h-4 text-blue-500" />
-                  Check-outs ({checkOuts.length})
+                  CHECK OUT ({checkOuts.length})
                 </h4>
                 <div className="space-y-2">
                   {checkOuts.map(event => (
@@ -222,7 +222,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
 
             {allDayEvents.length === 0 && activeNeighborhoods.length === 0 && (
               <p className="text-muted-foreground text-sm text-center py-4">
-                Sin eventos de check-in/out
+                אין אירועי CHECK IN / CHECK OUT
               </p>
             )}
           </div>

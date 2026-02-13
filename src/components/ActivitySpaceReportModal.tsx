@@ -89,7 +89,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <AlertTriangle className="w-6 h-6 text-destructive" />
-            Reportar Problema - {getActivitySpaceLabel(space)}
+            דיווח בעיה - {getActivitySpaceLabel(space)}
           </DialogTitle>
         </DialogHeader>
 
@@ -97,7 +97,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
           {/* Status Selection */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">
-              Tipo de Problema
+              סוג הבעיה
             </label>
             <div className="flex gap-2">
               <button
@@ -110,7 +110,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
                 )}
               >
                 <AlertTriangle className="w-4 h-4" />
-                Roto
+                תקול
               </button>
               <button
                 onClick={() => setStatus('MAINTENANCE')}
@@ -122,7 +122,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
                 )}
               >
                 <Wrench className="w-4 h-4" />
-                Mantenimiento
+                תחזוקה
               </button>
             </div>
           </div>
@@ -130,13 +130,13 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
           {/* Photo Section */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">
-              Foto (Opcional)
+              תמונה (אופציונלי)
             </label>
             {previewImage ? (
               <div className="relative">
                 <img
                   src={previewImage}
-                  alt="Vista previa del problema"
+                  alt="תצוגה מקדימה של הבעיה"
                   className="w-full h-48 object-cover rounded-xl border-2 border-border"
                 />
                 <Button
@@ -146,7 +146,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
                   className="absolute top-2 right-2"
                 >
                   <X className="w-4 h-4 mr-1" />
-                  Quitar
+                  הסר
                 </Button>
               </div>
             ) : (
@@ -156,7 +156,7 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
               >
                 <Camera className="w-8 h-8 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Toca para agregar foto
+                  הקש להוספת תמונה
                 </span>
               </button>
             )}
@@ -173,12 +173,12 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
           {/* Notes Section */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">
-              Descripción del Problema
+              תיאור הבעיה
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Describe el problema..."
+              placeholder="תאר את הבעיה..."
               className="w-full px-4 py-3 rounded-xl border-2 border-input bg-background resize-none focus:outline-none focus:border-primary min-h-[100px]"
               rows={3}
             />
@@ -187,10 +187,10 @@ export const ActivitySpaceReportModal: React.FC<ActivitySpaceReportModalProps> =
 
         <DialogFooter className="flex gap-2 sm:gap-2">
           <Button variant="outline" onClick={handleCancel} className="flex-1">
-            Cancelar
+            ביטול
           </Button>
           <Button onClick={handleSubmit} className="flex-1">
-            Enviar Reporte
+            שלח דיווח
           </Button>
         </DialogFooter>
       </DialogContent>

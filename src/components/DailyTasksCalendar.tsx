@@ -3,7 +3,7 @@ import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { DailyTask, DailyTaskType, DailyTaskStatus } from '@/types/village';
 import { format, addDays, subDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -43,17 +43,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner';
 
 const taskTypeConfig: Record<DailyTaskType, { label: string; icon: React.ElementType; color: string }> = {
-  CLEANING: { label: 'Limpieza', icon: Sparkles, color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  CHECKOUT: { label: 'Check-out', icon: LogOut, color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  CHECKIN: { label: 'Check-in', icon: LogIn, color: 'bg-green-100 text-green-700 border-green-300' },
-  MAINTENANCE: { label: 'Mantenimiento', icon: Wrench, color: 'bg-red-100 text-red-700 border-red-300' },
-  CUSTOM: { label: 'Otro', icon: FileText, color: 'bg-gray-100 text-gray-700 border-gray-300' },
+  CLEANING: { label: 'ניקיון', icon: Sparkles, color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  CHECKOUT: { label: 'CHECK OUT', icon: LogOut, color: 'bg-orange-100 text-orange-700 border-orange-300' },
+  CHECKIN: { label: 'CHECK IN', icon: LogIn, color: 'bg-green-100 text-green-700 border-green-300' },
+  MAINTENANCE: { label: 'תחזוקה', icon: Wrench, color: 'bg-red-100 text-red-700 border-red-300' },
+  CUSTOM: { label: 'אחר', icon: FileText, color: 'bg-gray-100 text-gray-700 border-gray-300' },
 };
 
 const statusConfig: Record<DailyTaskStatus, { label: string; color: string }> = {
-  PENDING: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-700' },
-  IN_PROGRESS: { label: 'En Progreso', color: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Completado', color: 'bg-green-100 text-green-700' },
+  PENDING: { label: 'ממתין', color: 'bg-yellow-100 text-yellow-700' },
+  IN_PROGRESS: { label: 'בתהליך', color: 'bg-blue-100 text-blue-700' },
+  COMPLETED: { label: 'הושלם', color: 'bg-green-100 text-green-700' },
 };
 
 export const DailyTasksCalendar: React.FC = () => {
@@ -98,23 +98,23 @@ export const DailyTasksCalendar: React.FC = () => {
     todaySummary.checkOuts.forEach(tent => {
       generated.push({
         type: 'CHECKOUT',
-        title: `Check-out: ${tent.code}`,
-        description: tent.groupName ? `Grupo: ${tent.groupName}` : '',
+        title: `CHECK OUT: ${tent.code}`,
+        description: tent.groupName ? `קבוצה: ${tent.groupName}` : '',
       });
     });
 
     todaySummary.checkIns.forEach(tent => {
       generated.push({
         type: 'CHECKIN',
-        title: `Check-in: ${tent.code}`,
-        description: tent.groupName ? `Grupo: ${tent.groupName}` : '',
+        title: `CHECK IN: ${tent.code}`,
+        description: tent.groupName ? `קבוצה: ${tent.groupName}` : '',
       });
     });
 
     todaySummary.tentsToCleaning.forEach(tent => {
       generated.push({
         type: 'CLEANING',
-        title: `Limpiar: ${tent.code}`,
+        title: `ניקיון: ${tent.code}`,
         description: '',
       });
     });
@@ -122,7 +122,7 @@ export const DailyTasksCalendar: React.FC = () => {
     todaySummary.facilitiesNeedAttention.forEach(facility => {
       generated.push({
         type: 'MAINTENANCE',
-        title: `Atender: ${facility.label}`,
+        title: `טיפול: ${facility.label}`,
         description: facility.notes || '',
       });
     });
@@ -135,7 +135,7 @@ export const DailyTasksCalendar: React.FC = () => {
 
   const handleAddTask = () => {
     if (!newTask.title) {
-      toast.error('El título es requerido');
+      toast.error('יש להזין כותרת');
       return;
     }
 
@@ -147,7 +147,7 @@ export const DailyTasksCalendar: React.FC = () => {
       status: 'PENDING',
     });
 
-    toast.success('Tarea agregada');
+    toast.success('המשימה נוספה');
     setShowAddDialog(false);
     setNewTask({ type: 'CUSTOM', title: '', description: '', status: 'PENDING' });
   };
@@ -155,13 +155,13 @@ export const DailyTasksCalendar: React.FC = () => {
   const handleStatusChange = (taskId: string, status: DailyTaskStatus) => {
     updateDailyTaskStatus(taskId, status);
     if (status === 'COMPLETED') {
-      toast.success('Tarea completada ✓');
+      toast.success('המשימה הושלמה ✓');
     }
   };
 
   const handleDelete = (taskId: string) => {
     removeDailyTask(taskId);
-    toast.success('Tarea eliminada');
+    toast.success('המשימה נמחקה');
   };
 
   const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
@@ -171,7 +171,7 @@ export const DailyTasksCalendar: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <ClipboardList className="w-6 h-6" />
-          Tareas del Día
+          משימות היום
         </h2>
 
         {/* Date Navigation */}
@@ -183,8 +183,8 @@ export const DailyTasksCalendar: React.FC = () => {
           <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="min-w-[200px]">
-                {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
-                {isToday && <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">HOY</span>}
+                {format(selectedDate, "EEEE, d בMMMM", { locale: he })}
+                {isToday && <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">היום</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
@@ -212,7 +212,7 @@ export const DailyTasksCalendar: React.FC = () => {
       {isToday && autoTasks.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold text-muted-foreground mb-3 text-sm uppercase">
-            Tareas Automáticas del Sistema
+            משימות אוטומטיות מהמערכת
           </h3>
           <div className="space-y-2">
             {autoTasks.map((task, idx) => {
@@ -246,31 +246,31 @@ export const DailyTasksCalendar: React.FC = () => {
       {/* Manual Tasks */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-semibold text-muted-foreground text-sm uppercase">
-          Tareas Manuales
+          משימות ידניות
         </h3>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button size="sm" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Agregar Tarea
+              הוסף משימה
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Nueva Tarea</DialogTitle>
+              <DialogTitle>משימה חדשה</DialogTitle>
               <DialogDescription>
-                Agregar una tarea para el {format(selectedDate, "d 'de' MMMM", { locale: es })}
+                הוסף משימה ל-{format(selectedDate, "d בMMMM", { locale: he })}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Tipo de Tarea</Label>
+                <Label>סוג משימה</Label>
                 <Select 
                   value={newTask.type} 
                   onValueChange={(value) => setNewTask(prev => ({ ...prev, type: value as DailyTaskType }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
+                    <SelectValue placeholder="בחר סוג" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(taskTypeConfig).map(([key, config]) => (
@@ -285,32 +285,32 @@ export const DailyTasksCalendar: React.FC = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="title">Título *</Label>
+                <Label htmlFor="title">כותרת *</Label>
                 <Input
                   id="title"
                   value={newTask.title}
                   onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Ej: Revisar generador"
+                  placeholder="לדוגמה: בדוק גנרטור"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Descripción</Label>
+                <Label htmlFor="description">תיאור</Label>
                 <Textarea
                   id="description"
                   value={newTask.description}
                   onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Detalles adicionales..."
+                  placeholder="פרטים נוספים..."
                   rows={3}
                 />
               </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                Cancelar
+                ביטול
               </Button>
               <Button onClick={handleAddTask}>
                 <Plus className="w-4 h-4 mr-2" />
-                Agregar
+                הוסף
               </Button>
             </div>
           </DialogContent>
@@ -320,7 +320,7 @@ export const DailyTasksCalendar: React.FC = () => {
       {tasks.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <ClipboardList className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>No hay tareas manuales para este día</p>
+          <p>אין משימות ידניות ליום זה</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -367,7 +367,7 @@ export const DailyTasksCalendar: React.FC = () => {
                           variant="ghost" 
                           size="icon"
                           onClick={() => handleStatusChange(task.id, 'IN_PROGRESS')}
-                          title="Iniciar"
+                          title="התחל"
                         >
                           <Clock className="w-4 h-4" />
                         </Button>
@@ -376,7 +376,7 @@ export const DailyTasksCalendar: React.FC = () => {
                         variant="ghost" 
                         size="icon"
                         onClick={() => handleStatusChange(task.id, 'COMPLETED')}
-                        title="Completar"
+                        title="השלם"
                         className="text-green-600"
                       >
                         <Check className="w-4 h-4" />
@@ -387,7 +387,7 @@ export const DailyTasksCalendar: React.FC = () => {
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleDelete(task.id)}
-                    title="Eliminar"
+                    title="מחק"
                     className="text-red-600"
                   >
                     <Trash2 className="w-4 h-4" />

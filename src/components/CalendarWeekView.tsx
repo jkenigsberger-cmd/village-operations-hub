@@ -10,7 +10,7 @@ import {
   parseISO,
   isToday
 } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
   Tent, 
@@ -141,7 +141,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
               )}
             >
               <div className="text-xs text-muted-foreground uppercase">
-                {format(day, 'EEE', { locale: es })}
+                {format(day, 'EEE', { locale: he })}
               </div>
               <div className={cn(
                 "text-lg font-bold mt-1",
@@ -208,7 +208,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                   {checkIns.length > 0 && (
                     <div className="flex items-center gap-1 p-1.5 rounded bg-green-500/20 text-green-700 dark:text-green-400 text-xs">
                       <LogIn className="w-3 h-3" />
-                      <span className="font-medium">{checkIns.length} entrada{checkIns.length > 1 ? 's' : ''}</span>
+                      <span className="font-medium">{checkIns.length} CHECK IN</span>
                     </div>
                   )}
 
@@ -216,7 +216,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                   {checkOuts.length > 0 && (
                     <div className="flex items-center gap-1 p-1.5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs">
                       <LogOut className="w-3 h-3" />
-                      <span className="font-medium">{checkOuts.length} salida{checkOuts.length > 1 ? 's' : ''}</span>
+                      <span className="font-medium">{checkOuts.length} CHECK OUT</span>
                     </div>
                   )}
 
@@ -237,7 +237,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
 
                   {dayEvents.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-2">
-                      Sin eventos
+                      אין אירועים
                     </p>
                   )}
                 </div>
