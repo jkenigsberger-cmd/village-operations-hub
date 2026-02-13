@@ -66,9 +66,9 @@ export default function PasswordGate({ children }: { children: React.ReactNode }
     <div dir="rtl" className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))] p-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
         <img src={hadorHabaLogo} alt="הדור הבא" className="h-24 object-contain" />
-        <div className="flex items-center gap-2 opacity-60">
+        <div className="flex items-center gap-2 opacity-80">
           <span className="text-sm text-muted-foreground">by:</span>
-          <img src={glowLogo} alt="GLOW" className="h-5 object-contain" />
+          <img src={glowLogo} alt="GLOW" className="h-7 object-contain" />
           <span className="text-sm text-muted-foreground">By: Glow Glamping</span>
         </div>
 
