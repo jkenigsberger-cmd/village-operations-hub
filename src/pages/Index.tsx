@@ -291,7 +291,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen bg-background">
       {/* Header - Compact on mobile */}
       <header className="bg-background border-b-2 border-border sticky top-0 z-10">
         <div className="container py-3 md:py-6">
@@ -328,7 +328,16 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Navigation Menu - Hidden on mobile, use bottom nav instead */}
+      {/* Mobile Top Navigation */}
+      <MobileBottomNav
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        maintenanceCount={totalMaintenanceCount}
+        housekeepingCount={totalHousekeepingItems}
+        allocationsCount={groupsNeedingAllocation.length}
+        bathroomsCount={facilitiesNeedingAttention.length} />
+
+      {/* Navigation Menu - Desktop only */}
       <nav className="bg-card border-b border-border hidden md:block">
         <div className="container">
           <div className="flex overflow-x-auto gap-1 py-2">
@@ -1332,15 +1341,6 @@ const Index = () => {
         onOpenChange={(open) => !open && setSelectedTentId(null)}
         tent={selectedTentId ? state.tents[selectedTentId] : null} />
 
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        maintenanceCount={totalMaintenanceCount}
-        housekeepingCount={totalHousekeepingItems}
-        allocationsCount={groupsNeedingAllocation.length}
-        bathroomsCount={facilitiesNeedingAttention.length} />
 
     </div>);
 

@@ -37,7 +37,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   notesCount = 0,
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t-2 border-border md:hidden bottom-nav relative">
+    <nav className="bg-card border-b border-border md:hidden">
       {/* Scroll fade indicators */}
       <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-card to-transparent pointer-events-none z-10" />
       <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-card to-transparent pointer-events-none z-10" />
