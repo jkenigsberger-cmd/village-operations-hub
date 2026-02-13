@@ -28,7 +28,7 @@ import {
   Sun
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isWithinInterval, parseISO, eachDayOfInterval, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -335,14 +335,14 @@ export const MasterCalendar: React.FC = () => {
   const getDateLabel = (): string => {
     switch (viewMode) {
       case 'day':
-        return format(selectedDate, "EEEE, d 'de' MMMM yyyy", { locale: es });
+        return format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he });
       case 'week': {
         const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
         const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
-        return `${format(weekStart, "d MMM", { locale: es })} - ${format(weekEnd, "d MMM yyyy", { locale: es })}`;
+        return `${format(weekStart, "d MMM", { locale: he })} - ${format(weekEnd, "d MMM yyyy", { locale: he })}`;
       }
       case 'month':
-        return format(selectedDate, "MMMM yyyy", { locale: es });
+        return format(selectedDate, "MMMM yyyy", { locale: he });
     }
   };
 
@@ -362,15 +362,15 @@ export const MasterCalendar: React.FC = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <CalendarDays className="w-8 h-8 text-primary" />
-          <h2 className="text-2xl font-bold">Calendario General</h2>
+          <h2 className="text-2xl font-bold">לוח שנה כללי</h2>
         </div>
 
         {/* View mode tabs */}
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList className="grid grid-cols-3 w-full sm:w-auto">
-            <TabsTrigger value="day" className="px-6">Día</TabsTrigger>
-            <TabsTrigger value="week" className="px-6">Semana</TabsTrigger>
-            <TabsTrigger value="month" className="px-6">Mes</TabsTrigger>
+            <TabsTrigger value="day" className="px-6">יום</TabsTrigger>
+            <TabsTrigger value="week" className="px-6">שבוע</TabsTrigger>
+            <TabsTrigger value="month" className="px-6">חודש</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -405,7 +405,7 @@ export const MasterCalendar: React.FC = () => {
           </Button>
 
           <Button variant="ghost" onClick={handleToday} className="ml-2">
-            Hoy
+            היום
           </Button>
         </div>
 
@@ -413,7 +413,7 @@ export const MasterCalendar: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground mr-2">
             <Filter className="w-4 h-4 inline mr-1" />
-            Filtros:
+            סינון:
           </span>
           <Button
             variant={filters.showNeighborhoods ? "default" : "outline"}

@@ -13,7 +13,7 @@ import {
   parseISO,
   isToday
 } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
   Tent, 
@@ -92,7 +92,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
   }, [events, calendarDays]);
 
   // Day names header
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 
   return (
     <div>
@@ -149,7 +149,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   <div className="flex items-center gap-1 text-xs">
                     <div className={cn("w-2 h-2 rounded-full", DOT_COLORS.NEIGHBORHOOD)} />
                     <span className="hidden sm:inline truncate text-muted-foreground">
-                      {neighborhoodCount} grupo{neighborhoodCount > 1 ? 's' : ''}
+                      {neighborhoodCount} קבוצ{neighborhoodCount > 1 ? 'ות' : 'ה'}
                     </span>
                   </div>
                 )}
@@ -159,7 +159,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   <div className="flex items-center gap-1 text-xs">
                     <div className={cn("w-2 h-2 rounded-full", DOT_COLORS.TENT_CHECKIN)} />
                     <span className="hidden sm:inline truncate text-muted-foreground">
-                      {checkInCount} in
+                      {checkInCount} CHECK IN
                     </span>
                   </div>
                 )}
@@ -169,7 +169,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   <div className="flex items-center gap-1 text-xs">
                     <div className={cn("w-2 h-2 rounded-full", DOT_COLORS.TENT_CHECKOUT)} />
                     <span className="hidden sm:inline truncate text-muted-foreground">
-                      {checkOutCount} out
+                      {checkOutCount} CHECK OUT
                     </span>
                   </div>
                 )}

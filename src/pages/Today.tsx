@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TentSummary } from '@/types/village';
 import { format, isToday, addDays, subDays } from 'date-fns';
-import { es, he } from 'date-fns/locale';
+import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
   Calendar as CalendarIcon, 
@@ -98,7 +98,7 @@ const Today = () => {
   const todaySummary = getTodaySummary();
   const isViewingToday = isToday(selectedDate);
   
-  const formattedDate = format(selectedDate, "EEEE, d 'de' MMMM yyyy", { locale: es });
+  const formattedDate = format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he });
 
   const goToPreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
   const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1));
@@ -108,8 +108,8 @@ const Today = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b-2 border-border">
         <div className="container py-3 md:py-6">
-          <BreadcrumbNav items={[{ label: 'Tareas Hoy' }]} />
-          <h1 className="text-2xl md:text-4xl font-bold">Operaciones del Día</h1>
+          <BreadcrumbNav items={[{ label: 'משימות היום' }]} />
+          <h1 className="text-2xl md:text-4xl font-bold">פעולות היום</h1>
           <p className="text-lg md:text-xl text-muted-foreground mt-1 md:mt-2 capitalize">{formattedDate}</p>
         </div>
       </header>
@@ -124,10 +124,10 @@ const Today = () => {
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <CalendarIcon className="w-7 h-7" />
-                Ver Check-ins / Check-outs
+                CHECK IN / CHECK OUT
               </h2>
               <p className="text-muted-foreground mt-1">
-                Selecciona una fecha para prepararte con anticipación
+                בחר תאריך להיערכות מראש
               </p>
             </div>
 
@@ -151,7 +151,7 @@ const Today = () => {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-5 w-5" />
-                    {isViewingToday ? 'Hoy' : format(selectedDate, 'd MMM yyyy', { locale: es })}
+                    {isViewingToday ? 'היום' : format(selectedDate, 'd MMM yyyy', { locale: he })}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="center">
@@ -180,7 +180,7 @@ const Today = () => {
                   onClick={goToToday}
                   className="h-12 px-4 text-lg"
                 >
-                  Ir a Hoy
+                  עבור להיום
                 </Button>
               )}
             </div>
@@ -195,16 +195,16 @@ const Today = () => {
             </div>
             <div>
               <h2 className="text-2xl font-bold">
-                Check-ins {isViewingToday ? 'Hoy' : format(selectedDate, "d 'de' MMMM", { locale: es })}
+                CHECK IN {isViewingToday ? 'היום' : format(selectedDate, "d בMMMM", { locale: he })}
               </h2>
-              <p className="text-muted-foreground">{summaryForDate.checkIns.length} grupos llegando</p>
+              <p className="text-muted-foreground">{summaryForDate.checkIns.length} קבוצות מגיעות</p>
             </div>
           </div>
           
           {summaryForDate.checkIns.length === 0 ? (
             <div className="tile p-8 text-center text-muted-foreground">
               <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-xl">Sin check-ins {isViewingToday ? 'hoy' : 'en esta fecha'}</p>
+              <p className="text-xl">אין CHECK IN {isViewingToday ? 'היום' : 'בתאריך זה'}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -227,16 +227,16 @@ const Today = () => {
             </div>
             <div>
               <h2 className="text-2xl font-bold">
-                Check-outs {isViewingToday ? 'Hoy' : format(selectedDate, "d 'de' MMMM", { locale: es })}
+                CHECK OUT {isViewingToday ? 'היום' : format(selectedDate, "d בMMMM", { locale: he })}
               </h2>
-              <p className="text-muted-foreground">{summaryForDate.checkOuts.length} grupos saliendo</p>
+              <p className="text-muted-foreground">{summaryForDate.checkOuts.length} קבוצות עוזבות</p>
             </div>
           </div>
           
           {summaryForDate.checkOuts.length === 0 ? (
             <div className="tile p-8 text-center text-muted-foreground">
               <CalendarCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-xl">Sin check-outs {isViewingToday ? 'hoy' : 'en esta fecha'}</p>
+              <p className="text-xl">אין CHECK OUT {isViewingToday ? 'היום' : 'בתאריך זה'}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -335,15 +335,15 @@ const Today = () => {
                 <Sparkles className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Carpas para Limpiar</h2>
-                <p className="text-muted-foreground">{todaySummary.tentsToCleaning.length} carpas por limpiar</p>
+                <h2 className="text-2xl font-bold">אוהלים לניקיון</h2>
+                <p className="text-muted-foreground">{todaySummary.tentsToCleaning.length} אוהלים דורשים ניקיון</p>
               </div>
             </div>
             
             {todaySummary.tentsToCleaning.length === 0 ? (
               <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
                 <Sparkles className="w-12 h-12 mx-auto mb-3 text-status-clean" />
-                <p className="text-xl font-medium">¡Todas las carpas están limpias! ✨</p>
+                <p className="text-xl font-medium">כל האוהלים נקיים! ✨</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -368,9 +368,9 @@ const Today = () => {
                   <AlertTriangle className="w-8 h-8 text-destructive" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">Instalaciones que Necesitan Atención</h2>
+                  <h2 className="text-2xl font-bold">מתקנים הדורשים תשומת לב</h2>
                   <p className="text-muted-foreground">
-                    {todaySummary.facilitiesNeedAttention.length} instalaciones requieren atención
+                    {todaySummary.facilitiesNeedAttention.length} מתקנים דורשים טיפול
                   </p>
                 </div>
               </div>
@@ -378,7 +378,7 @@ const Today = () => {
                 to="/facilities"
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-colors"
               >
-                Ver Todas
+                הצג הכל
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
@@ -386,7 +386,7 @@ const Today = () => {
             {todaySummary.facilitiesNeedAttention.length === 0 ? (
               <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
                 <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-status-clean" />
-                <p className="text-xl font-medium">¡Todas las instalaciones funcionando! ✓</p>
+                <p className="text-xl font-medium">כל המתקנים תקינים! ✓</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
