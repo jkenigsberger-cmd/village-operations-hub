@@ -5,6 +5,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
+import { useGroupStays } from '@/hooks/useGroupStays';
+import { GroupStay } from '@/types/groupStay';
 import { NeighborhoodTile } from '@/components/NeighborhoodTile';
 import NeighborhoodMiniMap from '@/components/NeighborhoodMiniMap';
 import { NeighborhoodId, Facility, WorkingStatus, getActivitySpaceLabel } from '@/types/village';
@@ -53,7 +55,8 @@ import {
   ChevronRight,
   ChefHat,
   Settings,
-  ClipboardList } from
+  ClipboardList,
+  Users } from
 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -72,6 +75,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { groups, archivedGroups } = useAdminGroups();
   const { allocations } = useGroupAllocation();
+  const { getStaysForDay } = useGroupStays();
   const {
     state,
     isLoading,
@@ -164,27 +168,13 @@ const Index = () => {
 
   };
 
-  // Calculate check-ins and check-outs for selected date
+  // Calculate check-ins and check-outs for selected date (GroupStay-based)
   const summaryForDate = useMemo(() => {
-    if (!state) return { checkIns: [], checkOuts: [] };
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-
-    const checkIns: NonNullable<ReturnType<typeof getTentSummary>>[] = [];
-    const checkOuts: NonNullable<ReturnType<typeof getTentSummary>>[] = [];
-
-    Object.values(state.tents).forEach((tent) => {
-      if (tent.checkInDate === dateStr) {
-        const summary = getTentSummary(tent.id);
-        if (summary) checkIns.push(summary);
-      }
-      if (tent.checkOutDate === dateStr) {
-        const summary = getTentSummary(tent.id);
-        if (summary) checkOuts.push(summary);
-      }
-    });
-
+    const checkIns = getStaysForDay(dateStr, { sleeping: false, checkIn: true, checkOut: false });
+    const checkOuts = getStaysForDay(dateStr, { sleeping: false, checkIn: false, checkOut: true });
     return { checkIns, checkOuts };
-  }, [state, selectedDate, getTentSummary]);
+  }, [selectedDate, getStaysForDay]);
 
   // Get archived group names for filtering - MUST be before any early return
   const archivedGroupNames = useMemo(() =>
@@ -192,14 +182,20 @@ const Index = () => {
   [archivedGroups]
   );
 
-  // Filter out archived groups from today summary - MUST be before any early return
+  // Today's GroupStay-based check-ins/check-outs for overview tiles
+  const todayGroupStays = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const checkIns = getStaysForDay(todayStr, { sleeping: false, checkIn: true, checkOut: false });
+    const checkOuts = getStaysForDay(todayStr, { sleeping: false, checkIn: false, checkOut: true });
+    return { checkIns, checkOuts };
+  }, [getStaysForDay]);
+
+  // Filter out archived groups from today summary (for cleaning only now)
   const todaySummary = useMemo(() => {
-    if (!state) return { checkIns: [], checkOuts: [], tentsToCleaning: [] };
+    if (!state) return { tentsToCleaning: [] as any[] };
     const rawTodaySummary = getTodaySummary();
     return {
       ...rawTodaySummary,
-      checkIns: rawTodaySummary.checkIns.filter((t) => !t.groupName || !archivedGroupNames.has(t.groupName)),
-      checkOuts: rawTodaySummary.checkOuts.filter((t) => !t.groupName || !archivedGroupNames.has(t.groupName)),
       tentsToCleaning: rawTodaySummary.tentsToCleaning.filter((t) => !t.groupName || !archivedGroupNames.has(t.groupName))
     };
   }, [state, getTodaySummary, archivedGroupNames]);
@@ -378,12 +374,12 @@ const Index = () => {
                 <div
                 onClick={() => setActiveSection('check-ins')}
                 className={`tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 ${
-                todaySummary.checkIns.length > 0 ? 'border-green-500' : 'border-muted'}`
+                todayGroupStays.checkIns.length > 0 ? 'border-green-500' : 'border-muted'}`
                 }>
 
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                  todaySummary.checkIns.length > 0 ?
+                  todayGroupStays.checkIns.length > 0 ?
                   'bg-green-500/20 text-green-600' :
                   'bg-muted text-muted-foreground'}`
                   }>
@@ -393,9 +389,9 @@ const Index = () => {
                       <h3 className="text-xl font-bold">{HE.nav.checkIns}</h3>
                       <p className="text-sm text-muted-foreground">{HE.stats.todaysArrivals}</p>
                     </div>
-                    {todaySummary.checkIns.length > 0 &&
+                    {todayGroupStays.checkIns.length > 0 &&
                   <span className="px-3 py-1.5 rounded-full bg-green-500 text-white font-bold text-lg">
-                        {todaySummary.checkIns.length}
+                        {todayGroupStays.checkIns.length}
                       </span>
                   }
                   </div>
@@ -408,7 +404,7 @@ const Index = () => {
 
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                  todaySummary.checkOuts.length > 0 ?
+                  todayGroupStays.checkOuts.length > 0 ?
                   'bg-blue-500/20 text-blue-600' :
                   'bg-muted text-muted-foreground'}`
                   }>
@@ -418,9 +414,9 @@ const Index = () => {
                       <h3 className="text-xl font-bold">{HE.nav.checkOuts}</h3>
                       <p className="text-sm text-muted-foreground">{HE.stats.todaysDepartures}</p>
                     </div>
-                    {todaySummary.checkOuts.length > 0 &&
+                    {todayGroupStays.checkOuts.length > 0 &&
                   <span className="px-3 py-1.5 rounded-full bg-blue-500 text-white font-bold text-lg">
-                        {todaySummary.checkOuts.length}
+                        {todayGroupStays.checkOuts.length}
                       </span>
                   }
                   </div>
@@ -1131,12 +1127,40 @@ const Index = () => {
               </div> :
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summaryForDate.checkIns.map((tent) =>
-            <TentCard
-              key={tent.tentId}
-              summary={tent}
-              to={`/tent/${tent.tentId}`} />
-
+                {summaryForDate.checkIns.map((stay) =>
+            <div key={stay.key} className="tile p-4" dir="rtl">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary text-primary-foreground font-bold text-lg shrink-0">
+                  {stay.groupName.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold truncate">{stay.groupName}</h3>
+                  <p className="text-xs text-muted-foreground">{stay.startDate} → {stay.endDate}</p>
+                </div>
+                <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-700 font-semibold">CHECK IN</span>
+              </div>
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  חניכים: {stay.participantsTotal}
+                </span>
+                {(stay.staffCount > 0 || stay.staffTotal > 0) && (
+                  <span className="flex items-center gap-1">
+                    צוות: {stay.staffCount || stay.staffTotal}
+                  </span>
+                )}
+              </div>
+              {stay.neighborhoods.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  שכונות: {stay.neighborhoods.map(n => n.neighborhoodName).join(', ')}
+                </p>
+              )}
+              {stay.vipTents.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  VIP: {stay.vipTents.map(t => t.tentNumber).join(', ')}
+                </p>
+              )}
+            </div>
             )}
               </div>
           }
@@ -1197,12 +1221,40 @@ const Index = () => {
               </div> :
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summaryForDate.checkOuts.map((tent) =>
-            <TentCard
-              key={tent.tentId}
-              summary={tent}
-              to={`/tent/${tent.tentId}`} />
-
+                {summaryForDate.checkOuts.map((stay) =>
+            <div key={stay.key} className="tile p-4" dir="rtl">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary text-primary-foreground font-bold text-lg shrink-0">
+                  {stay.groupName.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold truncate">{stay.groupName}</h3>
+                  <p className="text-xs text-muted-foreground">{stay.startDate} → {stay.endDate}</p>
+                </div>
+                <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-700 font-semibold">CHECK OUT</span>
+              </div>
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  חניכים: {stay.participantsTotal}
+                </span>
+                {(stay.staffCount > 0 || stay.staffTotal > 0) && (
+                  <span className="flex items-center gap-1">
+                    צוות: {stay.staffCount || stay.staffTotal}
+                  </span>
+                )}
+              </div>
+              {stay.neighborhoods.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  שכונות: {stay.neighborhoods.map(n => n.neighborhoodName).join(', ')}
+                </p>
+              )}
+              {stay.vipTents.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  VIP: {stay.vipTents.map(t => t.tentNumber).join(', ')}
+                </p>
+              )}
+            </div>
             )}
               </div>
           }
