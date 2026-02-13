@@ -1339,7 +1339,8 @@ const Index = () => {
         onSectionChange={setActiveSection}
         maintenanceCount={totalMaintenanceCount}
         housekeepingCount={totalHousekeepingItems}
-        allocationsCount={groupsNeedingAllocation.length} />
+        allocationsCount={groupsNeedingAllocation.length}
+        bathroomsCount={facilitiesNeedingAttention.length} />
 
     </div>);
 

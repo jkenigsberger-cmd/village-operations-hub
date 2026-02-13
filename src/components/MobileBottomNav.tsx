@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon } from 'lucide-react';
+import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon, Flame, ShowerHead, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type MenuSection = 'overview' | 'calendar' | 'sleeping' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
@@ -10,16 +10,21 @@ interface MobileBottomNavProps {
   maintenanceCount?: number;
   housekeepingCount?: number;
   allocationsCount?: number;
+  bathroomsCount?: number;
+  notesCount?: number;
 }
 
 const navItems: { key: MenuSection; label: string; icon: React.ElementType }[] = [
-  { key: 'overview', label: 'סקירה', icon: Home },
+  { key: 'overview', label: 'דף הבית', icon: Home },
   { key: 'sleeping', label: 'לינה', icon: Moon },
-  { key: 'calendar', label: 'יומן', icon: CalendarDays },
+  { key: 'calendar', label: 'לוח שנה', icon: CalendarDays },
   { key: 'allocations', label: 'שיבוצים', icon: ClipboardList },
   { key: 'neighborhoods', label: 'שכונות', icon: Tent },
-  { key: 'housekeeping', label: 'ניקיון', icon: Sparkles },
+  { key: 'facilities', label: 'מתקנים', icon: Flame },
+  { key: 'bathrooms', label: 'שירותים', icon: ShowerHead },
   { key: 'maintenance', label: 'תחזוקה', icon: Wrench },
+  { key: 'housekeeping', label: 'משק בית', icon: Sparkles },
+  { key: 'notes', label: 'הערות', icon: StickyNote },
 ];
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -28,6 +33,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   maintenanceCount = 0,
   housekeepingCount = 0,
   allocationsCount = 0,
+  bathroomsCount = 0,
+  notesCount = 0,
 }) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t-2 border-border md:hidden bottom-nav relative">
@@ -41,6 +48,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           const count = item.key === 'maintenance' ? maintenanceCount 
                       : item.key === 'housekeeping' ? housekeepingCount 
                       : item.key === 'allocations' ? allocationsCount
+                      : item.key === 'bathrooms' ? bathroomsCount
+                      : item.key === 'notes' ? notesCount
                       : 0;
           
           return (
