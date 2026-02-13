@@ -1,31 +1,53 @@
 
 
-# Fix: Mobile Bottom Navigation Bar - Enable Horizontal Scrolling
+# Sync Mobile Bottom Nav with Desktop Navigation
 
 ## Problem
 
-The bottom navigation bar has 7 tabs crammed into a fixed-width row using `flex justify-around`. On narrow mobile screens, the items get squished together and there is no way to scroll horizontally to reach all tabs.
+The mobile bottom navigation bar shows only 7 of the 10 sections available on desktop, and some icons differ. This creates confusion when switching between devices.
+
+**Missing from mobile:**
+- Facilities (מתקנים משותפים) - Flame icon
+- Bathrooms (שירותים ומקלחות) - ShowerHead icon
+- Notes (הערות חשובות) - StickyNote icon
+
+**Icon mismatches:**
+- Desktop uses `Flame` for facilities, mobile has no equivalent
 
 ## Solution
 
-Make the bottom nav horizontally scrollable so all 7 tabs are comfortably accessible, with visual scroll indicators (fade edges) to hint that more items exist.
+Update `MobileBottomNav.tsx` to include all 10 sections with the same icons and labels as the desktop menu, and pass the missing badge counts.
 
-## Changes (1 file)
+## Changes
 
-### `src/components/MobileBottomNav.tsx`
+### 1. `src/components/MobileBottomNav.tsx`
 
-1. Change the inner container from `flex justify-around` to `flex overflow-x-auto gap-1` with `scrollbar-hide` to allow horizontal scrolling without a visible scrollbar.
-2. Add left/right gradient fade indicators (similar to the AdminLayout nav) so users can see there are more tabs to scroll to.
-3. Keep `min-w-[64px]` on each button and add `flex-shrink-0` so items do not compress below their minimum readable size.
+Update the `navItems` array to match all 10 desktop items in the same order:
 
-### Technical Detail
+| # | Key | Label | Icon |
+|---|-----|-------|------|
+| 1 | overview | דף הבית | Home |
+| 2 | sleeping | לינה | Moon |
+| 3 | calendar | לוח שנה | CalendarDays |
+| 4 | allocations | שיבוצים | ClipboardList |
+| 5 | neighborhoods | שכונות | Tent |
+| 6 | facilities | מתקנים משותפים | Flame |
+| 7 | bathrooms | שירותים ומקלחות | ShowerHead |
+| 8 | maintenance | תחזוקה | Wrench |
+| 9 | housekeeping | משק בית | Sparkles |
+| 10 | notes | הערות חשובות | StickyNote |
 
-```
-Current:  <div className="flex justify-around items-center py-2">
-Updated:  <div className="flex overflow-x-auto scrollbar-hide items-center py-2 px-1 gap-1">
+- Import `Flame`, `ShowerHead`, `StickyNote` from lucide-react (replacing unused icons)
+- Add `bathroomsCount` and `notesCount` to the props interface (optional, default 0) so badges can be shown for bathrooms too
+- Labels will be shortened slightly for mobile readability (e.g., "מתקנים" instead of "מתקנים משותפים", "שירותים" instead of "שירותים ומקלחות", "הערות" instead of "הערות חשובות")
 
-Each button gets: flex-shrink-0 (prevents squishing)
-```
+### 2. `src/pages/Index.tsx`
 
-Gradient overlays on left and right edges of the nav bar provide a visual cue that the bar is scrollable, matching the pattern already used in the admin navigation.
+Pass the `bathroomsCount` prop (count of facilities needing attention) to the `MobileBottomNav` component.
+
+## Technical Notes
+
+- The horizontal scrolling already implemented will accommodate 10 items comfortably
+- No structural changes needed -- only updating the items list, icons, and one extra prop
+- Desktop menu item order is preserved exactly
 
