@@ -69,7 +69,7 @@ export default function PasswordGate({ children }: { children: React.ReactNode }
         <div className="flex items-center gap-2 opacity-60">
           <span className="text-sm text-muted-foreground">by:</span>
           <img src={glowLogo} alt="GLOW" className="h-5 object-contain" />
-          <span className="text-sm text-muted-foreground">Glow Glamping</span>
+          <span className="text-sm text-muted-foreground">By: Glow Glamping</span>
         </div>
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 mt-4">
