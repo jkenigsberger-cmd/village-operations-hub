@@ -1,53 +1,83 @@
 
+# Fix: Mobile Calendar Design Issues
 
-# Sync Mobile Bottom Nav with Desktop Navigation
+## Problems Identified
 
-## Problem
+1. **Month view day cells**: Event indicator dots overflow outside the day cell boundaries on mobile. Multiple rows of dots push content below the cell's visible area.
 
-The mobile bottom navigation bar shows only 7 of the 10 sections available on desktop, and some icons differ. This creates confusion when switching between devices.
+2. **MasterCalendar header bloat**: On mobile, the header area (title, tabs, date navigation, 6 filter buttons, full legend) takes up nearly the entire screen, pushing the actual calendar content below the fold.
 
-**Missing from mobile:**
-- Facilities (מתקנים משותפים) - Flame icon
-- Bathrooms (שירותים ומקלחות) - ShowerHead icon
-- Notes (הערות חשובות) - StickyNote icon
+3. **Week view columns too narrow**: 7 columns on a 375px screen means each column is ~53px wide, making event cards unreadable and cramped.
 
-**Icon mismatches:**
-- Desktop uses `Flame` for facilities, mobile has no equivalent
+4. **Filter buttons wrapping**: The 6 filter buttons wrap into 3 rows on mobile, wasting vertical space.
+
+5. **Legend always visible**: The full legend with 6 items takes another chunk of space on mobile.
 
 ## Solution
 
-Update `MobileBottomNav.tsx` to include all 10 sections with the same icons and labels as the desktop menu, and pass the missing badge counts.
+### 1. `src/components/CalendarMonthView.tsx` - Contain dots inside cells
 
-## Changes
+- Add `overflow-hidden` to each day cell so dots never escape their boundaries
+- On mobile, limit dots to a single row (max 4 dots) and hide the rest
+- Reduce `min-h-[80px]` to `min-h-[56px]` on mobile (`min-h-[56px] sm:min-h-[100px]`)
+- Make the dot wrapper use `flex-wrap` with `max-h` to clip overflow
 
-### 1. `src/components/MobileBottomNav.tsx`
+### 2. `src/components/MasterCalendar.tsx` - Compact mobile header
 
-Update the `navItems` array to match all 10 desktop items in the same order:
+- **Date navigation row**: On mobile, make the date label button use a smaller font and shorter format (e.g., "13 פבר׳ 2026" instead of "יום שישי, 13 בפברואר 2026")
+- **Filter buttons**: On mobile, collapse into a single dropdown/popover button ("סינון") instead of showing all 6 buttons inline. Desktop stays unchanged.
+- **Legend**: Hide the legend on mobile by default (add `hidden sm:flex` class). The colored dots in month/week views are self-explanatory with the filter button labels.
+- **Title**: Reduce title size on mobile (`text-xl sm:text-2xl`)
 
-| # | Key | Label | Icon |
-|---|-----|-------|------|
-| 1 | overview | דף הבית | Home |
-| 2 | sleeping | לינה | Moon |
-| 3 | calendar | לוח שנה | CalendarDays |
-| 4 | allocations | שיבוצים | ClipboardList |
-| 5 | neighborhoods | שכונות | Tent |
-| 6 | facilities | מתקנים משותפים | Flame |
-| 7 | bathrooms | שירותים ומקלחות | ShowerHead |
-| 8 | maintenance | תחזוקה | Wrench |
-| 9 | housekeeping | משק בית | Sparkles |
-| 10 | notes | הערות חשובות | StickyNote |
+### 3. `src/components/CalendarWeekView.tsx` - Mobile-friendly week layout
 
-- Import `Flame`, `ShowerHead`, `StickyNote` from lucide-react (replacing unused icons)
-- Add `bathroomsCount` and `notesCount` to the props interface (optional, default 0) so badges can be shown for bathrooms too
-- Labels will be shortened slightly for mobile readability (e.g., "מתקנים" instead of "מתקנים משותפים", "שירותים" instead of "שירותים ומקלחות", "הערות" instead of "הערות חשובות")
+- On mobile, make the week view horizontally scrollable with a `min-w-[600px]` inner container so columns aren't crushed to 53px
+- Add `overflow-x-auto` wrapper
 
-### 2. `src/pages/Index.tsx`
+### 4. `src/components/CalendarDayView.tsx` - Stack layout on mobile
 
-Pass the `bathroomsCount` prop (count of facilities needing attention) to the `MobileBottomNav` component.
+- The sidebar (all-day events) and timeline already stack vertically on mobile via `flex-col lg:flex-row` -- this is fine, just verify no overflow on event cards
+- Add `overflow-hidden` and `text-ellipsis` on event title containers to prevent horizontal overflow
 
-## Technical Notes
+## Files to Modify
 
-- The horizontal scrolling already implemented will accommodate 10 items comfortably
-- No structural changes needed -- only updating the items list, icons, and one extra prop
-- Desktop menu item order is preserved exactly
+| File | Change |
+|------|--------|
+| `src/components/CalendarMonthView.tsx` | Contain dots, reduce cell height on mobile |
+| `src/components/MasterCalendar.tsx` | Compact date label, collapsible filters, hide legend on mobile |
+| `src/components/CalendarWeekView.tsx` | Horizontal scroll wrapper for narrow screens |
+| `src/components/CalendarDayView.tsx` | Prevent event card text overflow |
 
+## Technical Details
+
+**CalendarMonthView cell fix:**
+```
+// Before
+className="min-h-[80px] sm:min-h-[100px] ... p-1 sm:p-2"
+
+// After
+className="min-h-[56px] sm:min-h-[100px] ... p-1 sm:p-2 overflow-hidden"
+```
+
+**MasterCalendar filter collapse on mobile:**
+- Wrap filters in a Popover on mobile using `useIsMobile()` hook
+- Show a single "סינון" button that opens a popover with all filter toggles
+- Desktop: keep current inline layout unchanged
+
+**MasterCalendar date label shortening:**
+```
+// Mobile-friendly date format
+case 'day':
+  return isMobile 
+    ? format(selectedDate, "d בMMM yyyy", { locale: he })
+    : format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he });
+```
+
+**CalendarWeekView scroll:**
+```
+<div className="overflow-x-auto">
+  <div className="min-w-[600px]">
+    {/* existing grid-cols-7 layout */}
+  </div>
+</div>
+```
