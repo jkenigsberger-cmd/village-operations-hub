@@ -374,7 +374,11 @@ export const useSupabaseVillage = () => {
       supabase.channel('activity-reservations-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_reservations' }, () => loadData()),
       supabase.channel('facility-reservations-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'facility_reservations' }, () => loadData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'facility_reservations' }, () => loadData()),
+      supabase.channel('facilities-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, () => loadData()),
+      supabase.channel('activity-spaces-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_spaces' }, () => loadData())
     ];
 
     channels.forEach(channel => channel.subscribe());
