@@ -1,59 +1,34 @@
 
+# Fix: Maintenance Not Updating in Real-Time
 
-# Move Mobile Navigation from Bottom to Top
+## Root Cause
 
-## What Changes
+Two tables that store maintenance data -- `facilities` and `activity_spaces` -- are missing from both the database realtime publication and the code's realtime subscriptions. Changes to these tables only appear after a full page refresh.
 
-Move the mobile navigation bar from the bottom of the screen to the top (below the header), matching the desktop layout. This creates a consistent experience across all devices.
+## Changes
 
-## Changes (2 files)
+### 1. Database Migration
 
-### 1. `src/components/MobileBottomNav.tsx`
+Add both tables to the `supabase_realtime` publication so the database broadcasts changes:
 
-- Rename component to `MobileTopNav` (keep file name for minimal disruption)
-- Change positioning from `fixed bottom-0` to `sticky top-0` with appropriate z-index
-- Change `border-t-2` to `border-b` to match desktop nav styling
-- Remove the `bottom-nav` class
-- Adjust padding/sizing to be slightly more compact (matching the desktop nav bar style)
-- Keep horizontal scroll, fade indicators, and all 10 tabs as-is
-
-### 2. `src/pages/Index.tsx`
-
-- Remove `pb-20` bottom padding (was needed to prevent content hiding behind the fixed bottom nav)
-- Move the `MobileBottomNav` component from the bottom of the JSX to directly after the header (and before `<main>`)
-- Change the desktop nav from `hidden md:block` to just keeping both navs but showing the right one per breakpoint:
-  - Mobile nav: `md:hidden`
-  - Desktop nav: `hidden md:block` (unchanged)
-
-## Technical Details
-
-**MobileBottomNav.tsx positioning change:**
-```
-// Before
-className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t-2 border-border md:hidden bottom-nav relative"
-
-// After  
-className="sticky top-0 z-40 bg-card border-b border-border md:hidden"
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.facilities;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_spaces;
 ```
 
-**Index.tsx layout change:**
-```
-// Before
-<div className="min-h-screen bg-background pb-20 md:pb-0">
-  <header>...</header>
-  <nav className="hidden md:block">...</nav>  {/* desktop */}
-  <main>...</main>
-  <MobileBottomNav ... />  {/* at bottom */}
-</div>
+### 2. `src/hooks/useSupabaseVillage.ts`
 
-// After
-<div className="min-h-screen bg-background">
-  <header>...</header>
-  <MobileBottomNav ... />  {/* right after header, mobile only */}
-  <nav className="hidden md:block">...</nav>  {/* desktop */}
-  <main>...</main>
-</div>
+Add two more channel subscriptions alongside the existing ones (around line 376):
+
+```typescript
+supabase.channel('facilities-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, () => loadData()),
+supabase.channel('activity-spaces-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_spaces' }, () => loadData()),
 ```
 
-The sticky header and sticky mobile nav will stack naturally. Since the header is `sticky top-0 z-10` and the mobile nav needs to sit just below it, we will make the mobile nav non-sticky (just in normal document flow below the header) so it scrolls away with content -- matching how the desktop nav behaves.
+This matches the exact same pattern already used for the other 6 tables.
 
+## Result
+
+After this fix, any maintenance status change (marking broken, resolving issues, cleaning updates) on facilities and activity spaces will automatically appear on all open browsers without needing to refresh.
