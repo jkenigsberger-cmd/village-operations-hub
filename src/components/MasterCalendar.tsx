@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useVillage } from '@/context/VillageContext';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupStays } from '@/hooks/useGroupStays';
@@ -56,6 +57,7 @@ interface FilterState {
 }
 
 export const MasterCalendar: React.FC = () => {
+  const isMobile = useIsMobile();
   const { state, getFacilityReservations } = useVillage();
   const { groups } = useAdminGroups();
   const { allGroupStays } = useGroupStays();
@@ -335,7 +337,9 @@ export const MasterCalendar: React.FC = () => {
   const getDateLabel = (): string => {
     switch (viewMode) {
       case 'day':
-        return format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he });
+        return isMobile
+          ? format(selectedDate, "d בMMM yyyy", { locale: he })
+          : format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he });
       case 'week': {
         const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
         const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
@@ -362,7 +366,7 @@ export const MasterCalendar: React.FC = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <CalendarDays className="w-8 h-8 text-primary" />
-          <h2 className="text-2xl font-bold">לוח שנה כללי</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">לוח שנה כללי</h2>
         </div>
 
         {/* View mode tabs */}
@@ -384,9 +388,9 @@ export const MasterCalendar: React.FC = () => {
           
           <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="min-w-[200px] justify-start gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                <span className="capitalize">{getDateLabel()}</span>
+              <Button variant="outline" className="min-w-0 sm:min-w-[200px] justify-start gap-2 text-sm sm:text-base">
+                <CalendarIcon className="w-4 h-4 flex-shrink-0" />
+                <span className="capitalize truncate">{getDateLabel()}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -410,76 +414,69 @@ export const MasterCalendar: React.FC = () => {
         </div>
 
         {/* Filter buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-muted-foreground mr-2">
-            <Filter className="w-4 h-4 inline mr-1" />
-            סינון:
-          </span>
-          <Button
-            variant={filters.showNeighborhoods ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter('showNeighborhoods')}
-            className="gap-1"
-            style={{ backgroundColor: filters.showNeighborhoods ? EVENT_COLORS.NEIGHBORHOOD : undefined }}
-          >
-            <Tent className="w-4 h-4" />
-            לינה
-          </Button>
-          <Button
-            variant={filters.showFacilities ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter('showFacilities')}
-            className="gap-1"
-            style={{ backgroundColor: filters.showFacilities ? EVENT_COLORS.FACILITY : undefined }}
-          >
-            <Flame className="w-4 h-4" />
-            מרחבים
-          </Button>
-          <Button
-            variant={filters.showCheckIns ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter('showCheckIns')}
-            className="gap-1"
-            style={{ backgroundColor: filters.showCheckIns ? EVENT_COLORS.TENT_CHECKIN : undefined }}
-          >
-            <LogIn className="w-4 h-4" />
-            Check-in
-          </Button>
-          <Button
-            variant={filters.showCheckOuts ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter('showCheckOuts')}
-            className="gap-1"
-            style={{ backgroundColor: filters.showCheckOuts ? EVENT_COLORS.TENT_CHECKOUT : undefined }}
-          >
-            <LogOut className="w-4 h-4" />
-            Check-out
-          </Button>
-          <Button
-            variant={filters.showKitchen ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter('showKitchen')}
-            className="gap-1"
-            style={{ backgroundColor: filters.showKitchen ? EVENT_COLORS.KITCHEN : undefined }}
-          >
-            <ChefHat className="w-4 h-4" />
-            מטבח
-          </Button>
-          <Button
-            variant={filters.showDayUse ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter('showDayUse')}
-            className="gap-1"
-            style={{ backgroundColor: filters.showDayUse ? EVENT_COLORS.DAY_USE : undefined }}
-          >
-            <Sun className="w-4 h-4" />
-            פעילות יום
-          </Button>
-        </div>
+        {isMobile ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <Filter className="w-4 h-4" />
+                סינון
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="end">
+              <div className="flex flex-col gap-1">
+                {([
+                  { key: 'showNeighborhoods' as const, icon: Tent, label: 'לינה', color: EVENT_COLORS.NEIGHBORHOOD },
+                  { key: 'showFacilities' as const, icon: Flame, label: 'מרחבים', color: EVENT_COLORS.FACILITY },
+                  { key: 'showCheckIns' as const, icon: LogIn, label: 'Check-in', color: EVENT_COLORS.TENT_CHECKIN },
+                  { key: 'showCheckOuts' as const, icon: LogOut, label: 'Check-out', color: EVENT_COLORS.TENT_CHECKOUT },
+                  { key: 'showKitchen' as const, icon: ChefHat, label: 'מטבח', color: EVENT_COLORS.KITCHEN },
+                  { key: 'showDayUse' as const, icon: Sun, label: 'פעילות יום', color: EVENT_COLORS.DAY_USE },
+                ]).map(({ key, icon: Icon, label, color }) => (
+                  <Button
+                    key={key}
+                    variant={filters[key] ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleFilter(key)}
+                    className="gap-2 justify-start w-full"
+                    style={{ backgroundColor: filters[key] ? color : undefined }}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-muted-foreground mr-2">
+              <Filter className="w-4 h-4 inline mr-1" />
+              סינון:
+            </span>
+            <Button variant={filters.showNeighborhoods ? "default" : "outline"} size="sm" onClick={() => toggleFilter('showNeighborhoods')} className="gap-1" style={{ backgroundColor: filters.showNeighborhoods ? EVENT_COLORS.NEIGHBORHOOD : undefined }}>
+              <Tent className="w-4 h-4" /> לינה
+            </Button>
+            <Button variant={filters.showFacilities ? "default" : "outline"} size="sm" onClick={() => toggleFilter('showFacilities')} className="gap-1" style={{ backgroundColor: filters.showFacilities ? EVENT_COLORS.FACILITY : undefined }}>
+              <Flame className="w-4 h-4" /> מרחבים
+            </Button>
+            <Button variant={filters.showCheckIns ? "default" : "outline"} size="sm" onClick={() => toggleFilter('showCheckIns')} className="gap-1" style={{ backgroundColor: filters.showCheckIns ? EVENT_COLORS.TENT_CHECKIN : undefined }}>
+              <LogIn className="w-4 h-4" /> Check-in
+            </Button>
+            <Button variant={filters.showCheckOuts ? "default" : "outline"} size="sm" onClick={() => toggleFilter('showCheckOuts')} className="gap-1" style={{ backgroundColor: filters.showCheckOuts ? EVENT_COLORS.TENT_CHECKOUT : undefined }}>
+              <LogOut className="w-4 h-4" /> Check-out
+            </Button>
+            <Button variant={filters.showKitchen ? "default" : "outline"} size="sm" onClick={() => toggleFilter('showKitchen')} className="gap-1" style={{ backgroundColor: filters.showKitchen ? EVENT_COLORS.KITCHEN : undefined }}>
+              <ChefHat className="w-4 h-4" /> מטבח
+            </Button>
+            <Button variant={filters.showDayUse ? "default" : "outline"} size="sm" onClick={() => toggleFilter('showDayUse')} className="gap-1" style={{ backgroundColor: filters.showDayUse ? EVENT_COLORS.DAY_USE : undefined }}>
+              <Sun className="w-4 h-4" /> פעילות יום
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg text-sm">
+      <div className="hidden sm:flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: EVENT_COLORS.NEIGHBORHOOD }} />
           <span>🏕️ לינה</span>
