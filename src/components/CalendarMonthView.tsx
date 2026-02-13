@@ -129,7 +129,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
               key={dateStr}
               onClick={() => onDayClick(day)}
               className={cn(
-                "min-h-[80px] sm:min-h-[100px] border-r border-b border-border p-1 sm:p-2 cursor-pointer hover:bg-accent/50 transition-colors",
+                "min-h-[56px] sm:min-h-[100px] border-r border-b border-border p-1 sm:p-2 cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden",
                 !isCurrentMonth && "bg-muted/30 text-muted-foreground",
                 isCurrentDay && "bg-primary/10"
               )}

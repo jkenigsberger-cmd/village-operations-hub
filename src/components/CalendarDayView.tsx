@@ -285,7 +285,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                           }}
                         >
                           <Icon className="w-4 h-4 flex-shrink-0" />
-                          <div className="min-w-0">
+                          <div className="min-w-0 overflow-hidden">
                             <div className="font-semibold truncate">{event.title}</div>
                             <div className="text-xs opacity-90 truncate">
                               {event.startTime} - {event.endTime} • {event.groupName}

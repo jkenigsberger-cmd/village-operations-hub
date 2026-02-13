@@ -125,6 +125,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
 
   return (
     <div className="overflow-x-auto">
+      <div className="min-w-[600px]">
       {/* Header row with day names */}
       <div className="grid grid-cols-7 border-b border-border">
         {weekDays.map((day, index) => {
@@ -245,6 +246,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
