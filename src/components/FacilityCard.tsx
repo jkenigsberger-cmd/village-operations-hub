@@ -148,18 +148,18 @@ export const FacilityTile: React.FC<FacilityTileProps> = ({ facility, onClick })
     <button
       onClick={onClick}
       className={cn(
-        'tile p-4 text-left w-full border-2',
+        'tile p-2.5 sm:p-4 text-left w-full border-2',
         genderClass,
         needsAttention && 'border-destructive bg-destructive/5 animate-pulse-soft'
       )}
     >
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">{genderIcon}</span>
-        <div className="flex-1">
-          <h5 className="font-bold">{facility.label}</h5>
-          <div className="flex gap-2 mt-1">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span className="text-lg sm:text-2xl">{genderIcon}</span>
+        <div className="flex-1 min-w-0">
+          <h5 className="font-bold text-sm sm:text-base truncate">{facility.label}</h5>
+          <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
             <span className={cn(
-              'px-2 py-0.5 rounded-full text-sm font-medium',
+              'px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm font-medium',
               facility.cleaningStatus === 'CLEAN' && 'bg-status-clean',
               facility.cleaningStatus === 'NEEDS_CLEANING' && 'bg-status-dirty',
               facility.cleaningStatus === 'CLEANING_IN_PROGRESS' && 'bg-status-cleaning'
@@ -168,7 +168,7 @@ export const FacilityTile: React.FC<FacilityTileProps> = ({ facility, onClick })
             </span>
             {facility.workingStatus !== 'WORKING' && (
               <span className={cn(
-                'px-2 py-0.5 rounded-full text-sm font-medium',
+                'px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm font-medium',
                 'bg-status-broken'
               )}>
                 {facility.workingStatus === 'BROKEN' ? HE.status.broken : 
@@ -179,7 +179,7 @@ export const FacilityTile: React.FC<FacilityTileProps> = ({ facility, onClick })
           </div>
         </div>
         {facility.isAccessible && (
-          <Accessibility className="w-5 h-5 text-primary" />
+          <Accessibility className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
         )}
       </div>
     </button>

@@ -118,23 +118,23 @@ const Facilities = () => {
                 <button
                   onClick={() => setExpandedAreaId(isExpanded ? null : area.id)}
                   className={cn(
-                    'w-full p-6 flex items-center justify-between text-right',
+                    'w-full p-4 sm:p-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between text-right gap-2 sm:gap-3',
                     'hover:bg-muted/50 transition-colors',
                     isExpanded && 'border-b-2 border-border'
                   )}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                     {isExpanded ? (
-                      <ChevronUp className="w-8 h-8 text-muted-foreground" />
+                      <ChevronUp className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="w-8 h-8 text-muted-foreground" />
+                      <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     )}
-                    <span className="text-muted-foreground text-lg">
+                    <span className="text-muted-foreground text-sm sm:text-lg">
                       {stats.total} {HE.entities.facilities}
                     </span>
                     {stats.needsAttention > 0 && (
-                      <span className="flex items-center gap-2 px-4 py-2 bg-destructive/20 text-destructive rounded-xl font-semibold">
-                        <AlertTriangle className="w-5 h-5" />
+                      <span className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-2 bg-destructive/20 text-destructive rounded-xl font-semibold text-xs sm:text-base">
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
                         {stats.needsAttention} {HE.stats.needsAttention}
                       </span>
                     )}
@@ -145,12 +145,12 @@ const Facilities = () => {
                       if (match) {
                         return (
                           <div className="space-y-0.5">
-                            <h2 className="text-xl font-semibold">{match[1]}</h2>
+                            <h2 className="text-lg sm:text-xl font-semibold">{match[1]}</h2>
                             <p className="text-xs text-muted-foreground/70">{match[2]}</p>
                           </div>
                         );
                       }
-                      return <h2 className="text-xl font-semibold">{area.name}</h2>;
+                      return <h2 className="text-lg sm:text-xl font-semibold">{area.name}</h2>;
                     })()}
                     <p className="text-xs text-muted-foreground/60 mt-1">{area.description}</p>
                   </div>
@@ -158,7 +158,7 @@ const Facilities = () => {
 
                 {isExpanded && (
                   <div className="p-6 bg-muted/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                       {facilities.map((facility) => (
                         <div
                           key={facility.id}
