@@ -1,68 +1,51 @@
 
-# Fix: Facilities Page Mobile Layout
 
-## Problems Identified
+# Simple Password Gate for Pilot
 
-1. **Area header overflow**: The `flex justify-between` layout crams the area name (right), facility count, attention badge, and chevron (left) into one row. On mobile (~375px), the attention badge ("1 דורש תשומת לב") overlaps the area name text.
+## How It Works
 
-2. **Facility tiles grid**: Using `grid-cols-1` on mobile means each small tile takes the full width, creating a long vertical scroll. With 16 facilities, this is excessive.
+1. When someone opens the app, they see a clean login screen with the Hador Haba logo and a single password field
+2. They enter the shared password and click "Enter"
+3. If correct, they get full access to the app for **7 days** on that device
+4. After 7 days, they simply re-enter the same password and continue
+5. All data is always safe in the database -- the password gate only controls who can view/use the app
 
-## Solution
+## What the User Sees
 
-### 1. `src/pages/Facilities.tsx` - Responsive area header
+- Clean, branded screen with the farm logo
+- Single password field and an "Enter" button
+- Error message if wrong password
+- Works on both mobile and desktop
 
-- On mobile, stack the header content vertically: area name on top, stats row (count + attention badge + chevron) below
-- Reduce padding from `p-6` to `p-4` on mobile
-- Make attention badge text smaller on mobile
-- Change facility grid from `grid-cols-1` to `grid-cols-2` on mobile so tiles are compact side-by-side
-
-### 2. `src/components/FacilityCard.tsx` - Compact FacilityTile on mobile
-
-- Reduce padding from `p-4` to `p-3`
-- Make the gender icon smaller (`text-xl` instead of `text-2xl`)
-- Reduce font size of the label
-- Ensure status badges wrap properly and don't overflow
-
-## Files to Modify
+## What Gets Created/Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/Facilities.tsx` | Stack header vertically on mobile, 2-col grid for tiles, smaller padding |
-| `src/components/FacilityCard.tsx` | Compact FacilityTile: smaller padding, text, icons on mobile |
+| New backend function: `verify-password` | Receives a password, checks it against a stored secret, returns valid/invalid |
+| New secret: `APP_PASSWORD` | You will be asked to set your chosen password |
+| New component: `src/components/PasswordGate.tsx` | Full-screen password entry UI |
+| `src/App.tsx` | Wrap all routes with the PasswordGate component |
 
 ## Technical Details
 
-**Facilities.tsx - area header:**
-```
-// Before: single row that overflows
-<button className="w-full p-6 flex items-center justify-between text-right">
+**Backend function (`supabase/functions/verify-password/index.ts`):**
+- Receives `{ password: string }` via POST
+- Compares against a secret called `APP_PASSWORD`
+- Returns `{ valid: true/false }`
+- No auth header required (this IS the authentication)
+- CORS headers for browser access
 
-// After: stack on mobile, row on desktop
-<button className="w-full p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between text-right gap-3">
-  <div className="text-right">  {/* area name - always on top on mobile */}
-  <div className="flex items-center gap-3 sm:gap-4">  {/* stats row below */}
-```
+**PasswordGate component (`src/components/PasswordGate.tsx`):**
+- On mount, checks `localStorage` for `village_auth_token` and `village_auth_expiry`
+- If token exists and expiry is in the future, renders the app (children)
+- If not, shows the password screen
+- On correct password, stores a token and an expiry timestamp set to 7 days from now in `localStorage`
+- Displays the Hador Haba logo and a right-to-left (RTL) Hebrew UI
 
-**Facilities.tsx - facility grid:**
-```
-// Before
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+**App.tsx changes:**
+- Wrap the entire app content with `<PasswordGate>...</PasswordGate>`
 
-// After - 2 columns on mobile
-<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-```
+**Secret setup:**
+- You will be prompted to set the `APP_PASSWORD` secret with your chosen shared password
+- You can change it anytime without touching any code
 
-**FacilityCard.tsx - compact tile:**
-```
-// Before
-<button className="tile p-4 text-left w-full border-2">
-  <span className="text-2xl">{genderIcon}</span>
-  <h5 className="font-bold">{facility.label}</h5>
-
-// After
-<button className="tile p-3 sm:p-4 text-left w-full border-2">
-  <span className="text-lg sm:text-2xl">{genderIcon}</span>
-  <h5 className="font-bold text-sm sm:text-base">{facility.label}</h5>
-```
-
-Also wrap status badges with `flex-wrap` to prevent overflow in narrow 2-col cells.
