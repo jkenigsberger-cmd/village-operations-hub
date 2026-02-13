@@ -30,8 +30,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   allocationsCount = 0,
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t-2 border-border md:hidden bottom-nav">
-      <div className="flex justify-around items-center py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t-2 border-border md:hidden bottom-nav relative">
+      {/* Scroll fade indicators */}
+      <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-card to-transparent pointer-events-none z-10" />
+      <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-card to-transparent pointer-events-none z-10" />
+      <div className="flex overflow-x-auto scrollbar-hide items-center py-2 px-1 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.key;
@@ -45,7 +48,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               key={item.key}
               onClick={() => onSectionChange(item.key)}
               className={cn(
-                'flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all relative touch-target',
+                'flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all relative touch-target flex-shrink-0',
                 isActive
                   ? 'text-primary bg-primary/10'
                   : 'text-muted-foreground'
