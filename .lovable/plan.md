@@ -1,57 +1,50 @@
 
-# Fix: Surface Conflict Errors Clearly to Users
+
+# Block Group Save When Schedule Conflicts Exist
 
 ## Problem
-When saving a group with schedule items that conflict with existing reservations, the system:
-1. Correctly detects and blocks conflicting reservations (server-side RPC works)
-2. Shows toast warnings -- but immediately navigates away to `/admin/groups` (line 649), so the user never sees them
-3. The group is saved with schedule items that look like they were booked, but the actual reservations were silently skipped
+Currently the group is saved to the database first, and then the sync process detects conflicts. This means:
+- The group record contains schedule items that appear valid but have no matching reservations
+- Users see schedule items in the group that were never actually booked
+- This creates confusion about what is actually reserved
 
-The user thinks the reservation was created, but it was not.
+## Solution: Pre-validate Before Saving
 
-## Solution
+### 1. Add a pre-validation function in `groupSync.ts`
+Create a new `preValidateScheduleConflicts` function that:
+- Takes the group's schedule items (without needing a saved group)
+- For each bookable schedule item, queries `activity_reservations` for the same space + date
+- Runs the client-side conflict check (using existing `checkActivityReservationConflict`)
+- Excludes the current group's own synced reservations (so editing a group doesn't conflict with itself)
+- Returns the list of conflicts (same `SyncConflict[]` format)
 
-### 1. Stop navigating away when there are conflicts
-In `AdminGroupEdit.tsx`, when `syncResult.conflicts.length > 0`:
-- Do NOT call `navigate('/admin/groups')` immediately
-- Instead, stay on the page and show a persistent conflict summary
-- Mark the conflicting schedule items visually with red borders and inline error messages
+### 2. Call pre-validation before saving in `AdminGroupEdit.tsx`
+Change the save flow:
+- **Before** calling `addGroup` or `updateGroup`, run `preValidateScheduleConflicts`
+- If conflicts are found: populate `conflictErrors`, show the alert banner, scroll to schedule section, and **do not save**
+- If no conflicts: proceed with saving the group and then run `syncGroupToModules` as before
 
-### 2. Add conflict state tracking to schedule items
-- Add a `conflictErrors` state map (`Record<string, string>`) keyed by schedule item ID
-- After sync, populate this map with conflict messages for each failed item
-- Render inline error text below each conflicting schedule item: "תפוס בזמן הזה (כולל 15 דק׳ ניקיון). בחרו שעה אחרת."
-- Red border on the conflicting item's container
-
-### 3. Return item-level conflict info from syncGroupToModules
-- Update `SyncConflict` type in `groupSync.ts` to include the schedule item's `id` field
-- Pass the `item.id` through so `AdminGroupEdit` can map conflicts back to specific schedule items
-
-### 4. Show a persistent alert banner (not just a toast)
-- When conflicts exist after save, show an Alert component at the top of the schedule section:
-  "חלק מהשריונים לא נשמרו בגלל התנגשות בזמן. תקנו את הפריטים המסומנים ושמרו שוב."
-- Add a "חזור לרשימה" button so the user can still navigate away manually after reviewing
+### 3. Update toast message
+Change the conflict toast to: "לא ניתן לשמור – יש התנגשות בלוח הזמנים. תקנו את הפריטים המסומנים."
 
 ## Files to modify
 
 | File | Change |
 |---|---|
-| `src/lib/groupSync.ts` | Add `scheduleItemId` to `SyncConflict` interface; pass `item.id` when creating conflict entries |
-| `src/pages/AdminGroupEdit.tsx` | Add `conflictErrors` state; after sync, populate it and conditionally block navigation; render inline errors on conflicting items; show persistent alert banner |
+| `src/lib/groupSync.ts` | Add `preValidateScheduleConflicts(scheduleItems, groupName, groupId?)` function that checks conflicts without inserting anything |
+| `src/pages/AdminGroupEdit.tsx` | Move conflict check before the save call; block save entirely on conflicts; update toast wording |
 
 ## Technical Details
 
-**groupSync.ts changes:**
-- `SyncConflict` gets a new field: `scheduleItemId?: string`
-- In the loop at line 137, pass `item.id` to the conflict entry
+**groupSync.ts** -- new function:
+- Query existing `activity_reservations` for each bookable item's space_id + date
+- Use `checkActivityReservationConflict` from `reservationConflict.ts` for overlap detection
+- When editing an existing group, pass `excludeGroupId` so the group's own old reservations don't trigger false conflicts
+- Returns `SyncConflict[]` with `scheduleItemId` populated
 
-**AdminGroupEdit.tsx changes:**
-- New state: `const [conflictErrors, setConflictErrors] = useState<Record<string, string>>({});`
-- After `syncGroupToModules` returns, if conflicts exist:
-  - Build the error map from `syncResult.conflicts` using `scheduleItemId` as key
-  - Call `setConflictErrors(errorMap)`
-  - Do NOT call `navigate()`
-  - Show persistent alert
-- If no conflicts, navigate as before
-- In the schedule item render (around line 1197), check `conflictErrors[item.id]` and show red border + inline error text
-- Clear `conflictErrors` when user modifies a conflicting item (in `updateScheduleItem`)
+**AdminGroupEdit.tsx** -- save handler changes:
+- Before line 620 (the `dataToSave` construction), call `preValidateScheduleConflicts`
+- If conflicts exist: set `conflictErrors`, show error toast, return early (no save)
+- If no conflicts: save group, then sync as before
+- The existing conflict handling after sync remains as a safety net but should rarely trigger
+
