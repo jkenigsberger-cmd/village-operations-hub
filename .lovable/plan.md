@@ -1,51 +1,57 @@
 
+# Fix: Surface Conflict Errors Clearly to Users
 
-# Simple Password Gate for Pilot
+## Problem
+When saving a group with schedule items that conflict with existing reservations, the system:
+1. Correctly detects and blocks conflicting reservations (server-side RPC works)
+2. Shows toast warnings -- but immediately navigates away to `/admin/groups` (line 649), so the user never sees them
+3. The group is saved with schedule items that look like they were booked, but the actual reservations were silently skipped
 
-## How It Works
+The user thinks the reservation was created, but it was not.
 
-1. When someone opens the app, they see a clean login screen with the Hador Haba logo and a single password field
-2. They enter the shared password and click "Enter"
-3. If correct, they get full access to the app for **7 days** on that device
-4. After 7 days, they simply re-enter the same password and continue
-5. All data is always safe in the database -- the password gate only controls who can view/use the app
+## Solution
 
-## What the User Sees
+### 1. Stop navigating away when there are conflicts
+In `AdminGroupEdit.tsx`, when `syncResult.conflicts.length > 0`:
+- Do NOT call `navigate('/admin/groups')` immediately
+- Instead, stay on the page and show a persistent conflict summary
+- Mark the conflicting schedule items visually with red borders and inline error messages
 
-- Clean, branded screen with the farm logo
-- Single password field and an "Enter" button
-- Error message if wrong password
-- Works on both mobile and desktop
+### 2. Add conflict state tracking to schedule items
+- Add a `conflictErrors` state map (`Record<string, string>`) keyed by schedule item ID
+- After sync, populate this map with conflict messages for each failed item
+- Render inline error text below each conflicting schedule item: "תפוס בזמן הזה (כולל 15 דק׳ ניקיון). בחרו שעה אחרת."
+- Red border on the conflicting item's container
 
-## What Gets Created/Modified
+### 3. Return item-level conflict info from syncGroupToModules
+- Update `SyncConflict` type in `groupSync.ts` to include the schedule item's `id` field
+- Pass the `item.id` through so `AdminGroupEdit` can map conflicts back to specific schedule items
+
+### 4. Show a persistent alert banner (not just a toast)
+- When conflicts exist after save, show an Alert component at the top of the schedule section:
+  "חלק מהשריונים לא נשמרו בגלל התנגשות בזמן. תקנו את הפריטים המסומנים ושמרו שוב."
+- Add a "חזור לרשימה" button so the user can still navigate away manually after reviewing
+
+## Files to modify
 
 | File | Change |
-|------|--------|
-| New backend function: `verify-password` | Receives a password, checks it against a stored secret, returns valid/invalid |
-| New secret: `APP_PASSWORD` | You will be asked to set your chosen password |
-| New component: `src/components/PasswordGate.tsx` | Full-screen password entry UI |
-| `src/App.tsx` | Wrap all routes with the PasswordGate component |
+|---|---|
+| `src/lib/groupSync.ts` | Add `scheduleItemId` to `SyncConflict` interface; pass `item.id` when creating conflict entries |
+| `src/pages/AdminGroupEdit.tsx` | Add `conflictErrors` state; after sync, populate it and conditionally block navigation; render inline errors on conflicting items; show persistent alert banner |
 
 ## Technical Details
 
-**Backend function (`supabase/functions/verify-password/index.ts`):**
-- Receives `{ password: string }` via POST
-- Compares against a secret called `APP_PASSWORD`
-- Returns `{ valid: true/false }`
-- No auth header required (this IS the authentication)
-- CORS headers for browser access
+**groupSync.ts changes:**
+- `SyncConflict` gets a new field: `scheduleItemId?: string`
+- In the loop at line 137, pass `item.id` to the conflict entry
 
-**PasswordGate component (`src/components/PasswordGate.tsx`):**
-- On mount, checks `localStorage` for `village_auth_token` and `village_auth_expiry`
-- If token exists and expiry is in the future, renders the app (children)
-- If not, shows the password screen
-- On correct password, stores a token and an expiry timestamp set to 7 days from now in `localStorage`
-- Displays the Hador Haba logo and a right-to-left (RTL) Hebrew UI
-
-**App.tsx changes:**
-- Wrap the entire app content with `<PasswordGate>...</PasswordGate>`
-
-**Secret setup:**
-- You will be prompted to set the `APP_PASSWORD` secret with your chosen shared password
-- You can change it anytime without touching any code
-
+**AdminGroupEdit.tsx changes:**
+- New state: `const [conflictErrors, setConflictErrors] = useState<Record<string, string>>({});`
+- After `syncGroupToModules` returns, if conflicts exist:
+  - Build the error map from `syncResult.conflicts` using `scheduleItemId` as key
+  - Call `setConflictErrors(errorMap)`
+  - Do NOT call `navigate()`
+  - Show persistent alert
+- If no conflicts, navigate as before
+- In the schedule item render (around line 1197), check `conflictErrors[item.id]` and show red border + inline error text
+- Clear `conflictErrors` when user modifies a conflicting item (in `updateScheduleItem`)
