@@ -1075,25 +1075,28 @@ const AdminGroupEdit = () => {
                   <h5 className="text-sm font-medium text-muted-foreground">
                     פירוט חניכים לפי מגדר (אופציונלי)
                   </h5>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-sm font-medium">בנים</label>
                       <NumericInput
                         value={formData.boysCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
                         min={0}
-                        showStepper
+                        className="h-14 text-lg md:h-12 md:text-base"
                       />
                     </div>
-                    <div className="flex-1">
+                    <div className="space-y-1">
                       <label className="text-sm font-medium">בנות</label>
                       <NumericInput
                         value={formData.girlsCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
                         min={0}
-                        showStepper
+                        className="h-14 text-lg md:h-12 md:text-base"
                       />
                     </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground font-medium">
+                    סה"כ חניכים: {(formData.boysCount || 0) + (formData.girlsCount || 0)}
                   </div>
                   {/* Gender validation warning */}
                   {(formData.boysCount || formData.girlsCount) && (
