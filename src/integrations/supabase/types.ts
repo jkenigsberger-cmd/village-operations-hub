@@ -873,7 +873,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_activity_reservation_safe: {
+        Args: {
+          p_date: string
+          p_end_time: string
+          p_group_id?: string
+          p_group_name: string
+          p_notes?: string
+          p_reservation_id?: string
+          p_source?: string
+          p_space_id: string
+          p_start_time: string
+          p_status?: string
+        }
+        Returns: {
+          created_at: string
+          date: string
+          end_time: string
+          group_id: string
+          group_name: string
+          id: string
+          notes: string
+          source: string
+          space_id: string
+          start_time: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       allocation_type: "VIP_TENT" | "NEIGHBORHOOD" | "TENT"

@@ -7,7 +7,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { GroupRecord, MealPlanItem, ScheduleItem, SPACE_ID_MAP } from '@/types/adminGroups';
 import { MealType, SpecialDiets } from '@/types/kitchen';
-import { timeRangesOverlapWithGap } from '@/lib/timeUtils';
+import { createActivityReservationSafe } from '@/lib/reservationConflict';
 
 // Spaces that require booking (matching SPACE_ID_MAP keys)
 const BOOKABLE_SPACES = ['אוהל מועד', 'ממ״ד 1', 'ממ״ד 2', 'ממ״ד 4', 'ממ״ד 5', 'ממ״ד 6', 'ממ״ד 7', 'ממ״ד 8', 'חדר אוכל'];
@@ -134,13 +134,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
     );
 
     if (bookableScheduleItems.length > 0) {
-      // Fetch existing reservations for conflict detection
-      const { data: existingReservations } = await supabase
-        .from('activity_reservations')
-        .select('*');
-
-      const reservationsToInsert = [];
-
       for (const item of bookableScheduleItems) {
         const spaceId = SPACE_ID_MAP[item.location];
         if (!spaceId) {
@@ -148,61 +141,37 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
           continue;
         }
         
-        // Check for conflicts with existing reservations (excluding our own synced ones)
-        let hasConflict = false;
-        let conflictingGroup = '';
+        const itemEnd = item.endTime || item.startTime;
         
-        (existingReservations || []).forEach((res: any) => {
-          // Skip our own group's reservations
-          if (res.source === 'groupSync' && res.group_id === group.id) return;
-          
-          // Check if same space, same date, overlapping time (with 15-minute gap requirement)
-          if (res.space_id === spaceId && res.date === item.date) {
-            const resEnd = res.end_time || '23:59';
-            const itemEnd = item.endTime || '23:59';
-            
-            if (timeRangesOverlapWithGap(item.startTime, itemEnd, res.start_time, resEnd, RESERVATION_GAP_MINUTES)) {
-              hasConflict = true;
-              conflictingGroup = res.group_name || 'קבוצה אחרת';
-            }
-          }
-        });
-        
-        // Create reservation (with conflict status if applicable)
-        reservationsToInsert.push({
-          id: generateId(),
-          space_id: spaceId,
+        // Use server-side RPC for atomic conflict detection + insert
+        const rpcResult = await createActivityReservationSafe({
+          spaceId,
           date: item.date,
-          start_time: item.startTime,
-          end_time: item.endTime || item.startTime,
-          group_name: group.groupName,
-          notes: item.description || null,
+          startTime: item.startTime,
+          endTime: itemEnd,
+          groupName: group.groupName,
+          groupId: group.id,
+          notes: item.description || undefined,
           source: 'groupSync',
-          group_id: group.id,
-          status: hasConflict ? 'conflict' : 'confirmed',
+          status: 'confirmed',
         });
-        
-        if (hasConflict) {
+
+        if (rpcResult.success) {
+          result.spaceBookingsCreated++;
+        } else {
+          // RPC returned conflict
           result.conflicts.push({
             type: 'space',
             space: item.location,
             date: item.date,
             time: item.startTime,
-            existingGroup: conflictingGroup,
+            existingGroup: rpcResult.error || 'קבוצה אחרת',
           });
+          console.warn(`[GROUP SYNC] Conflict for ${item.location} on ${item.date} at ${item.startTime}: ${rpcResult.error}`);
         }
       }
 
-      if (reservationsToInsert.length > 0) {
-        const { error } = await supabase.from('activity_reservations').insert(reservationsToInsert);
-        if (error) {
-          console.error('[GROUP SYNC] Error creating space bookings:', error);
-          result.success = false;
-        } else {
-          result.spaceBookingsCreated = reservationsToInsert.length;
-          console.log(`[GROUP SYNC] Created ${result.spaceBookingsCreated} space bookings (${result.conflicts.length} conflicts)`);
-        }
-      }
+      console.log(`[GROUP SYNC] Created ${result.spaceBookingsCreated} space bookings (${result.conflicts.length} conflicts)`);
     }
 
     console.log(`[GROUP SYNC] Completed for: ${group.groupName}`);

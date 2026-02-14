@@ -453,23 +453,22 @@ export const useSupabaseVillage = () => {
     if (error) throw error;
   }, []);
 
-  // Add activity reservation
+  // Add activity reservation via server-side RPC (prevents double-booking)
   const addActivityReservation = useCallback(async (reservation: Omit<ActivityReservation, 'id' | 'createdAt'>) => {
-    const id = generateId();
-    const { error } = await supabase.from('activity_reservations').insert({
-      id,
-      space_id: reservation.spaceId,
-      date: reservation.date,
-      start_time: reservation.startTime,
-      end_time: reservation.endTime,
-      group_name: reservation.groupName,
-      notes: reservation.notes || null,
-      source: reservation.source || 'manual',
-      group_id: reservation.groupId || null,
-      status: reservation.status || 'confirmed'
+    const { data, error } = await supabase.rpc('create_activity_reservation_safe', {
+      p_space_id: reservation.spaceId,
+      p_date: reservation.date,
+      p_start_time: reservation.startTime,
+      p_end_time: reservation.endTime,
+      p_group_name: reservation.groupName,
+      p_group_id: reservation.groupId || null,
+      p_notes: reservation.notes || null,
+      p_source: reservation.source || 'manual',
+      p_status: reservation.status || 'confirmed',
+      p_reservation_id: null,
     });
     if (error) throw error;
-    return id;
+    return data?.[0]?.id || generateId();
   }, []);
 
   // Remove activity reservation

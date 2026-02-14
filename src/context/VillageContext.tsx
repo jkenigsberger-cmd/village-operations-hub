@@ -389,7 +389,7 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addActivityReservation = useCallback((reservation: Omit<ActivityReservation, 'id' | 'createdAt'>): boolean => {
     if (!state) return false;
 
-    // Check for overlapping reservations with 15-minute gap requirement
+    // Client-side pre-check for UX (server RPC is the real enforcement)
     const existingReservations = Object.values(state.activityReservations).filter(
       r => r.spaceId === reservation.spaceId && r.date === reservation.date
     );
@@ -398,13 +398,15 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newEnd = reservation.endTime;
 
     for (const existing of existingReservations) {
-      // Check if times overlap (including 15-minute gap requirement)
       if (timeRangesOverlapWithGap(newStart, newEnd, existing.startTime, existing.endTime, 15)) {
         return false; // Overlap detected - need 15 minute gap
       }
     }
 
-    addActivityReservationDb(reservation).catch(console.error);
+    // Use server-side RPC for atomic insert (handles concurrency)
+    addActivityReservationDb(reservation).catch((err) => {
+      console.error('Activity reservation conflict (server):', err.message);
+    });
     return true;
   }, [state, addActivityReservationDb]);
 
