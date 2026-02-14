@@ -27,9 +27,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subti
         <div className="container py-6">
           <BreadcrumbNav items={[{ label: 'הגדרות', path: '/settings' }, { label: 'ניהול' }]} />
           <div className="flex items-center gap-3">
-            <Settings className="w-10 h-10" />
+            <Settings className="w-8 h-8 md:w-10 md:h-10" />
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">{title}</h1>
+              <h1 className="text-2xl md:text-4xl font-bold">{title}</h1>
               {subtitle && <p className="text-muted-foreground text-lg mt-1">{subtitle}</p>}
             </div>
           </div>
