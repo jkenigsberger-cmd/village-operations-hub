@@ -75,7 +75,7 @@ const AdminGroups = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים">
+      <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים" section="groups">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
         </div>
@@ -163,7 +163,7 @@ const AdminGroups = () => {
   };
 
   return (
-    <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים">
+    <AdminLayout title="קבוצות / הזמנות" subtitle="ניהול קבוצות ולוחות זמנים" section="groups">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3 md:gap-4 flex-wrap">
           <h2 className="text-lg md:text-xl font-bold">רשימת קבוצות</h2>

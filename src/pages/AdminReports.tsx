@@ -88,7 +88,7 @@ const AdminReports = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout title="דוחות" subtitle="סיכום פיננסי">
+      <AdminLayout title="דוחות" subtitle="סיכום פיננסי" section="management">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
         </div>
@@ -99,7 +99,7 @@ const AdminReports = () => {
   const isPositive = reportData.netResult >= 0;
 
   return (
-    <AdminLayout title="דוחות" subtitle="סיכום פיננסי">
+    <AdminLayout title="דוחות" subtitle="סיכום פיננסי" section="management">
       {/* Date Range Filter */}
       <AdminDateRangeFilter
         selectedRange={dateRange}

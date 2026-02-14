@@ -123,7 +123,7 @@ const AdminIncome = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout title="הכנסות" subtitle="ניהול הכנסות ותקבולים">
+      <AdminLayout title="הכנסות" subtitle="ניהול הכנסות ותקבולים" section="management">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
         </div>
@@ -132,7 +132,7 @@ const AdminIncome = () => {
   }
 
   return (
-    <AdminLayout title="הכנסות" subtitle="ניהול הכנסות ותקבולים">
+    <AdminLayout title="הכנסות" subtitle="ניהול הכנסות ותקבולים" section="management">
       {/* Date Range Filter */}
       <AdminDateRangeFilter
         selectedRange={dateRange}

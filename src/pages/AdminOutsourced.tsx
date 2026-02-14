@@ -129,7 +129,7 @@ const AdminOutsourced = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout title="עובדים חיצוניים" subtitle="ניהול שעות עובדים חיצוניים">
+      <AdminLayout title="עובדים חיצוניים" subtitle="ניהול שעות עובדים חיצוניים" section="management">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
         </div>
@@ -138,7 +138,7 @@ const AdminOutsourced = () => {
   }
 
   return (
-    <AdminLayout title="עובדים חיצוניים" subtitle="ניהול שעות עובדים חיצוניים">
+    <AdminLayout title="עובדים חיצוניים" subtitle="ניהול שעות עובדים חיצוניים" section="management">
       {/* Date Range Filter */}
       <AdminDateRangeFilter
         selectedRange={dateRange}
