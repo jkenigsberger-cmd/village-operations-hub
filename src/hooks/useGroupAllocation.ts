@@ -446,7 +446,13 @@ export const useGroupAllocation = () => {
       .eq('neighborhood_id', neighborhoodId);
 
     for (const res of existingReservations || []) {
-      // Skip reservations for this group
+      // Primary: check if this group owns a matching allocation for this neighborhood
+      const isSelfByAllocation = allocations.some(
+        a => a.groupId === groupId && a.resourceId === neighborhoodId && a.allocationType === 'NEIGHBORHOOD'
+      );
+      if (isSelfByAllocation) continue;
+
+      // Fallback: also skip if group_name matches (backward compat)
       if (res.group_name === groupName) continue;
       
       // Check date overlap using hotel rule
