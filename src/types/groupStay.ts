@@ -22,5 +22,6 @@ export interface GroupStay {
   vipTents: GroupStayVipTent[];
   vipTentCount: number;
   staffCount: number; // declared staff from groups table
+  isAllocated: boolean; // true if at least one neighborhood reservation exists
   statusForDay?: 'sleeping' | 'check-in' | 'check-out';
 }
