@@ -5,7 +5,7 @@ import { useVillage } from '@/context/VillageContext';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { getLinkedRecordsDescription, cascadeDeleteGroupRecords } from '@/lib/groupLinkedRecords';
-import { syncGroupToModules, SyncResult } from '@/lib/groupSync';
+import { syncGroupToModules, SyncResult, preValidateScheduleConflicts } from '@/lib/groupSync';
 import { 
   GroupRecord, 
   GroupType,
@@ -592,6 +592,31 @@ const AdminGroupEdit = () => {
       return;
     }
 
+    // PRE-VALIDATE schedule conflicts BEFORE saving
+    const preSaveConflicts = await preValidateScheduleConflicts(
+      formData.scheduleItems,
+      formData.groupName,
+      isNew ? undefined : id,
+    );
+
+    if (preSaveConflicts.length > 0) {
+      const errorMap: Record<string, string> = {};
+      preSaveConflicts.forEach(conflict => {
+        if (conflict.scheduleItemId) {
+          errorMap[conflict.scheduleItemId] = `תפוס: ${conflict.space} ${conflict.date} ${conflict.time} (${conflict.existingGroup}). בחרו שעה אחרת.`;
+        }
+      });
+      setConflictErrors(errorMap);
+      toast.error('לא ניתן לשמור – יש התנגשות בלוח הזמנים. תקנו את הפריטים המסומנים.');
+      setTimeout(() => {
+        scheduleCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      return; // Block save entirely
+    }
+
+    // Clear any stale conflict errors
+    setConflictErrors({});
+
     // Determine assignmentStatus based on capacity check
     let assignmentStatus: AssignmentStatus = 'pending_allocation';
     const isDayUseGroup = formData.groupType === 'יום ללא לינה';
@@ -611,8 +636,8 @@ const AdminGroupEdit = () => {
       ...formData,
       vipTentConfigs,
       mealsPlan,
-      distributionPreference: isDayUseGroup ? undefined : distributionPreference, // Only for lodging groups
-      assignmentStatus: isDayUseGroup ? undefined : assignmentStatus, // Only for lodging groups
+      distributionPreference: isDayUseGroup ? undefined : distributionPreference,
+      assignmentStatus: isDayUseGroup ? undefined : assignmentStatus,
       remainingStaff: isNew ? staffCount : formData.remainingStaff,
       remainingParticipants: isNew ? participantCount : formData.remainingParticipants,
     };
@@ -1178,7 +1203,7 @@ const AdminGroupEdit = () => {
                   <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="flex items-center justify-between">
-                      <span>חלק מהשריונים לא נשמרו בגלל התנגשות בזמן. תקנו את הפריטים המסומנים ושמרו שוב.</span>
+                      <span>לא ניתן לשמור – יש התנגשות בלוח הזמנים. תקנו את הפריטים המסומנים.</span>
                       <Button variant="outline" size="sm" onClick={() => navigate('/admin/groups')} className="mr-2 whitespace-nowrap">
                         חזור לרשימה
                       </Button>
