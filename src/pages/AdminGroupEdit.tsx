@@ -1045,7 +1045,7 @@ const AdminGroupEdit = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">צוות (VIP)</label>
                     <NumericInput
-                      value={formData.staffCount || 0}
+                      value={formData.staffCount || (isNew ? undefined : 0)}
                       onChange={(val) => setFormData(prev => ({ 
                         ...prev, 
                         staffCount: Math.min(val, prev.pax),
@@ -1053,6 +1053,8 @@ const AdminGroupEdit = () => {
                       }))}
                       min={0}
                       max={formData.pax}
+                      placeholder="הכנס מספר"
+                      showStepper
                     />
                     <p className="text-xs text-muted-foreground">יוקצו לאוהלי VIP</p>
                   </div>
@@ -1078,17 +1080,21 @@ const AdminGroupEdit = () => {
                     <div className="space-y-1">
                       <label className="text-sm font-medium">בנים</label>
                       <NumericInput
-                        value={formData.boysCount ?? 0}
+                        value={formData.boysCount}
                         onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
                         min={0}
+                        placeholder="הכנס מספר"
+                        showStepper
                       />
                     </div>
                     <div className="flex-1">
                       <label className="text-sm font-medium">בנות</label>
                       <NumericInput
-                        value={formData.girlsCount ?? 0}
+                        value={formData.girlsCount}
                         onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
                         min={0}
+                        placeholder="הכנס מספר"
+                        showStepper
                       />
                     </div>
                   </div>
