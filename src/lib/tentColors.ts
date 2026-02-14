@@ -24,8 +24,8 @@ export function genderStroke(gender?: TentGender, hasReservation?: boolean): str
 }
 
 export const GENDER_LEGEND = [
-  { color: "hsl(40, 30%, 96%)", label: "Sin Asignar" },
-  { color: "hsl(330, 70%, 75%)", label: "♀ Femenino" },
-  { color: "hsl(210, 70%, 65%)", label: "♂ Masculino" },
-  { color: "hsl(270, 60%, 70%)", label: "👥 Mixto" },
+  { color: "hsl(40, 30%, 96%)", label: "לא משובץ" },
+  { color: "hsl(330, 70%, 75%)", label: "♀ נקבה" },
+  { color: "hsl(210, 70%, 65%)", label: "♂ זכר" },
+  { color: "hsl(270, 60%, 70%)", label: "מעורב" },
 ];
