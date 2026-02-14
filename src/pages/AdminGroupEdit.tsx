@@ -434,6 +434,7 @@ const AdminGroupEdit = () => {
   const [mealsPlan, setMealsPlan] = useState<MealPlanItem[]>([]);
   const [distributionPreference, setDistributionPreference] = useState<DistributionPreference | null>(null);
   const [conflictErrors, setConflictErrors] = useState<Record<string, string>>({});
+  const [newItemId, setNewItemId] = useState<string | null>(null);
   const scheduleCardRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
@@ -695,10 +696,13 @@ const AdminGroupEdit = () => {
   };
 
   const addScheduleItem = () => {
+    const newItem = emptyScheduleItem(formData.startDate);
     setFormData(prev => ({
       ...prev,
-      scheduleItems: [...prev.scheduleItems, emptyScheduleItem(prev.startDate)],
+      scheduleItems: [...prev.scheduleItems, newItem],
     }));
+    setNewItemId(newItem.id);
+    setTimeout(() => setNewItemId(null), 2500);
   };
 
   const updateScheduleItem = (itemId: string, updates: Partial<ScheduleItem>) => {
@@ -727,7 +731,10 @@ const AdminGroupEdit = () => {
 
   // Meal plan handlers
   const addMealPlanItem = () => {
-    setMealsPlan(prev => [...prev, emptyMealPlanItem(formData.startDate, formData.pax || 0)]);
+    const newItem = emptyMealPlanItem(formData.startDate, formData.pax || 0);
+    setMealsPlan(prev => [...prev, newItem]);
+    setNewItemId(newItem.id);
+    setTimeout(() => setNewItemId(null), 2500);
   };
 
   const updateMealPlanItem = (itemId: string, updates: Partial<MealPlanItem>) => {
@@ -1265,9 +1272,13 @@ const AdminGroupEdit = () => {
                   const hasDateError = invalidItemIds.has(item.id);
                   const conflictError = conflictErrors[item.id];
                   return (
-                    <div key={item.id} className={cn(
-                      "p-4 rounded-lg space-y-3",
-                      conflictError ? "bg-destructive/10 border-2 border-destructive" :
+                    <div 
+                      key={item.id} 
+                      ref={item.id === newItemId ? (el) => { el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } : undefined}
+                      className={cn(
+                        "p-4 rounded-lg space-y-3 transition-colors duration-[2000ms]",
+                        item.id === newItemId ? "bg-primary/20 ring-2 ring-primary/40" :
+                        conflictError ? "bg-destructive/10 border-2 border-destructive" :
                       (timeError || hasDateError) ? "bg-destructive/10 border-2 border-destructive/50" : "bg-muted/50"
                     )}>
                       {conflictError && (
@@ -1458,9 +1469,13 @@ const AdminGroupEdit = () => {
                 {mealsPlan.map((meal, index) => {
                   const hasMealDateError = invalidItemIds.has(meal.id);
                   return (
-                    <div key={meal.id} className={cn(
-                      "p-4 rounded-lg space-y-3",
-                      hasMealDateError ? "bg-destructive/10 border-2 border-destructive/50" : "bg-muted/50"
+                    <div 
+                      key={meal.id} 
+                      ref={meal.id === newItemId ? (el) => { el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } : undefined}
+                      className={cn(
+                        "p-4 rounded-lg space-y-3 transition-colors duration-[2000ms]",
+                        meal.id === newItemId ? "bg-primary/20 ring-2 ring-primary/40" :
+                        hasMealDateError ? "bg-destructive/10 border-2 border-destructive/50" : "bg-muted/50"
                     )}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-muted-foreground">ארוחה {index + 1}</span>
