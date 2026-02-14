@@ -101,16 +101,16 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     const neighborhood = state.neighborhoods[nId];
     if (!neighborhood) return;
 
-    const availability = neighborhoodAvailability[nId];
-    if (!availability?.available) {
-      toast.error(`השכונה תפוסה לקבוצה אחרת בתאריכים האלה: ${availability?.conflictingGroup || ''}`);
-      return;
-    }
-
-    // Check if already allocated to this group
+    // Check if already allocated to this group FIRST
     const existingAllocation = groupAllocations.find(a => a.resourceId === nId);
     if (existingAllocation) {
       toast.info('שכונה זו כבר שובצה לקבוצה');
+      return;
+    }
+
+    const availability = neighborhoodAvailability[nId];
+    if (!availability?.available) {
+      toast.error(`השכונה תפוסה לקבוצה אחרת בתאריכים האלה: ${availability?.conflictingGroup || ''}`);
       return;
     }
 
