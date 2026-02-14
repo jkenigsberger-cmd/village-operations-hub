@@ -7,7 +7,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { GroupRecord, MealPlanItem, ScheduleItem, SPACE_ID_MAP } from '@/types/adminGroups';
 import { MealType, SpecialDiets } from '@/types/kitchen';
-import { createActivityReservationSafe } from '@/lib/reservationConflict';
+import { createActivityReservationSafe, checkActivityReservationConflict } from '@/lib/reservationConflict';
 
 // Spaces that require booking (matching SPACE_ID_MAP keys)
 const BOOKABLE_SPACES = ['אוהל מועד', 'ממ״ד 1', 'ממ״ד 2', 'ממ״ד 4', 'ממ״ד 5', 'ממ״ד 6', 'ממ״ד 7', 'ממ״ד 8', 'חדר אוכל'];
@@ -183,6 +183,76 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
     result.success = false;
     return result;
   }
+};
+
+/**
+ * PRE-SAVE VALIDATION: Check for conflicts without saving anything.
+ * Call this BEFORE saving the group to prevent phantom schedule items.
+ */
+export const preValidateScheduleConflicts = async (
+  scheduleItems: ScheduleItem[],
+  groupName: string,
+  excludeGroupId?: string,
+): Promise<SyncConflict[]> => {
+  const conflicts: SyncConflict[] = [];
+
+  const bookableItems = scheduleItems.filter(item => BOOKABLE_SPACES.includes(item.location));
+  if (bookableItems.length === 0) return conflicts;
+
+  // Collect unique space+date pairs to batch-fetch reservations
+  const spaceIdDatePairs = new Map<string, Set<string>>();
+  for (const item of bookableItems) {
+    const spaceId = SPACE_ID_MAP[item.location];
+    if (!spaceId) continue;
+    if (!spaceIdDatePairs.has(spaceId)) spaceIdDatePairs.set(spaceId, new Set());
+    spaceIdDatePairs.get(spaceId)!.add(item.date);
+  }
+
+  // Fetch all relevant existing reservations in one query per space
+  const allReservations: Array<{
+    space_id: string; date: string; start_time: string; end_time: string;
+    group_name: string; id?: string; source?: string; group_id?: string;
+  }> = [];
+
+  for (const [spaceId, dates] of spaceIdDatePairs) {
+    const { data } = await supabase
+      .from('activity_reservations')
+      .select('space_id, date, start_time, end_time, group_name, id, source, group_id')
+      .eq('space_id', spaceId)
+      .in('date', Array.from(dates));
+
+    if (data) allReservations.push(...data);
+  }
+
+  // Check each bookable item for conflicts
+  for (const item of bookableItems) {
+    const spaceId = SPACE_ID_MAP[item.location];
+    if (!spaceId) continue;
+
+    const itemEnd = item.endTime || item.startTime;
+    const result = checkActivityReservationConflict(
+      spaceId,
+      item.date,
+      item.startTime,
+      itemEnd,
+      allReservations,
+      undefined,
+      excludeGroupId,
+    );
+
+    if (result.conflict) {
+      conflicts.push({
+        type: 'space',
+        space: item.location,
+        date: item.date,
+        time: item.startTime,
+        existingGroup: result.conflictingGroup || 'קבוצה אחרת',
+        scheduleItemId: item.id,
+      });
+    }
+  }
+
+  return conflicts;
 };
 
 /**
