@@ -836,12 +836,12 @@ const AdminGroupEdit = () => {
             {/* Group Type Selector */}
             <div className="p-4 bg-muted/50 rounded-lg space-y-3">
               <label className="text-sm font-medium">סוג קבוצה</label>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <Button
                   type="button"
                   variant={!isDayUse ? 'default' : 'outline'}
                   onClick={() => setFormData(prev => ({ ...prev, groupType: 'לינה' }))}
-                  className="flex-1"
+                  className="flex-1 whitespace-normal text-center h-auto py-3 text-sm"
                 >
                   <Users className="w-4 h-4 ml-2" />
                   לינה
@@ -854,7 +854,7 @@ const AdminGroupEdit = () => {
                     groupType: 'יום ללא לינה',
                     endDate: prev.startDate // Day-use is single day
                   }))}
-                  className="flex-1"
+                  className="flex-1 whitespace-normal text-center h-auto py-3 text-sm"
                 >
                   <Sun className="w-4 h-4 ml-2" />
                   פעילות יום ללא לינה
