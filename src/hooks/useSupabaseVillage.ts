@@ -1,5 +1,5 @@
 // @refresh reset - Force full refresh when this file changes
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VillageState, 
@@ -360,30 +360,48 @@ export const useSupabaseVillage = () => {
     loadData();
   }, [loadData]);
 
-  // Set up realtime subscriptions
+  // Track last realtime event for polling fallback
+  const lastRealtimeEvent = useRef<number>(Date.now());
+
+  // Set up realtime subscriptions with polling fallback
   useEffect(() => {
+    const onRealtimeChange = () => {
+      lastRealtimeEvent.current = Date.now();
+      loadData();
+    };
+
     const channels = [
       supabase.channel('tents-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tents' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tents' }, onRealtimeChange),
       supabase.channel('beds-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'beds' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'beds' }, onRealtimeChange),
       supabase.channel('daily-tasks-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_tasks' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_tasks' }, onRealtimeChange),
       supabase.channel('neighborhood-reservations-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'neighborhood_reservations' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'neighborhood_reservations' }, onRealtimeChange),
       supabase.channel('activity-reservations-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_reservations' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_reservations' }, onRealtimeChange),
       supabase.channel('facility-reservations-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'facility_reservations' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'facility_reservations' }, onRealtimeChange),
       supabase.channel('facilities-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, () => loadData()),
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, onRealtimeChange),
       supabase.channel('activity-spaces-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_spaces' }, () => loadData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_spaces' }, onRealtimeChange)
     ];
 
     channels.forEach(channel => channel.subscribe());
 
+    // Polling fallback: every 15s, poll if no realtime event in last 30s
+    const pollInterval = setInterval(() => {
+      const elapsed = Date.now() - lastRealtimeEvent.current;
+      if (elapsed > 30_000) {
+        console.log('[Village] Polling fallback triggered (no realtime event for 30s)');
+        loadData();
+      }
+    }, 15_000);
+
     return () => {
+      clearInterval(pollInterval);
       channels.forEach(channel => supabase.removeChannel(channel));
     };
   }, [loadData]);
