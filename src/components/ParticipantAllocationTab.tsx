@@ -11,11 +11,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Home, Lock, Check, Trash2 } from 'lucide-react';
+import { Home, Lock, Check, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResponsiveModal } from '@/components/ResponsiveModal';
 import { DistributionRequirementsPanel } from '@/components/DistributionRequirementsPanel';
-import { DistributionPreference } from '@/types/distributionPreference';
+import { DistributionPreference, VirtualTent } from '@/types/distributionPreference';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 interface ParticipantAllocationTabProps {
   group: GroupRecord;
@@ -43,6 +54,13 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
   // Remove confirmation state
   const [allocationToRemove, setAllocationToRemove] = useState<AllocationRecord | null>(null);
   const [removeModalOpen, setRemoveModalOpen] = useState(false);
+
+  // Feasibility warning state
+  const [feasibilityWarningOpen, setFeasibilityWarningOpen] = useState(false);
+  const [feasibilityData, setFeasibilityData] = useState<{
+    requestedSizes: number[];
+    availableCapacities: number[];
+  } | null>(null);
 
   const remainingParticipants = group.remainingParticipants ?? group.participantCount ?? (group.pax - (group.staffCount || 0));
 
@@ -107,19 +125,53 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     setModalOpen(true);
   };
 
-  const handleAssign = async () => {
+  // Feasibility check: compare requested tent sizes vs available tent capacities
+  const checkTentFeasibility = (neighborhoodId: NeighborhoodId): { feasible: boolean; requestedSizes: number[]; availableCapacities: number[] } => {
+    const pref = group.distributionPreference as DistributionPreference | null;
+    if (!pref?.tents || pref.tents.length === 0) {
+      return { feasible: true, requestedSizes: [], availableCapacities: [] };
+    }
+
+    const neighborhood = state.neighborhoods[neighborhoodId];
+    if (!neighborhood) return { feasible: true, requestedSizes: [], availableCapacities: [] };
+
+    // Get requested tent sizes (sorted descending for greedy match)
+    const requestedSizes = pref.tents.map(t => t.pax).sort((a, b) => b - a);
+
+    // Get available tent capacities (sorted descending)
+    const availableCapacities = neighborhood.tentIds
+      .map(tentId => state.tents[tentId]?.beds.length || 0)
+      .filter(c => c > 0)
+      .sort((a, b) => b - a);
+
+    // Greedy descending match: for each requested size, find a tent with capacity >= requested
+    const usedIndices = new Set<number>();
+    let feasible = true;
+
+    for (const reqSize of requestedSizes) {
+      let matched = false;
+      for (let i = 0; i < availableCapacities.length; i++) {
+        if (!usedIndices.has(i) && availableCapacities[i] >= reqSize) {
+          usedIndices.add(i);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        feasible = false;
+        break;
+      }
+    }
+
+    return { feasible, requestedSizes, availableCapacities };
+  };
+
+  const performAllocation = async () => {
     if (!selectedNeighborhood || bedsToAssign <= 0) return;
 
     const neighborhood = state.neighborhoods[selectedNeighborhood];
     if (!neighborhood) return;
 
-    // Validate beds count
-    if (bedsToAssign > remainingParticipants) {
-      toast.error(`לא ניתן לשבץ יותר מ-${remainingParticipants} חניכים`);
-      return;
-    }
-
-    // Add allocation (this now also creates neighborhood_reservation)
     const success = await addAllocation(
       group.id,
       'NEIGHBORHOOD',
@@ -134,12 +186,55 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
       toast.success(`${neighborhood.displayName} שובצה עם ${bedsToAssign} מיטות`);
       setModalOpen(false);
       setSelectedNeighborhood(null);
-      // Reload availability after allocation
       loadAvailability();
       onUpdate();
     } else {
       toast.error('השכונה תפוסה לקבוצה אחרת בתאריכים האלה');
     }
+  };
+
+  const handleAssign = async () => {
+    if (!selectedNeighborhood || bedsToAssign <= 0) return;
+
+    const neighborhood = state.neighborhoods[selectedNeighborhood];
+    if (!neighborhood) return;
+
+    // Validate beds count
+    if (bedsToAssign > remainingParticipants) {
+      toast.error(`לא ניתן לשבץ יותר מ-${remainingParticipants} חניכים`);
+      return;
+    }
+
+    // Run tent feasibility check
+    const { feasible, requestedSizes, availableCapacities } = checkTentFeasibility(selectedNeighborhood);
+
+    if (!feasible && requestedSizes.length > 0) {
+      setFeasibilityData({ requestedSizes, availableCapacities });
+      setFeasibilityWarningOpen(true);
+      return;
+    }
+
+    await performAllocation();
+  };
+
+  const handleFeasibilityOverride = async () => {
+    setFeasibilityWarningOpen(false);
+
+    // Log override to activity_log
+    if (selectedNeighborhood && feasibilityData) {
+      const neighborhood = state.neighborhoods[selectedNeighborhood];
+      const logId = Math.random().toString(36).substring(2, 11);
+      await supabase.from('activity_log').insert({
+        id: logId,
+        action: 'allocation_override',
+        entity_type: 'group',
+        entity_id: group.id,
+        details: `קבוצה: ${group.groupName} | שכונה: ${neighborhood?.displayName || selectedNeighborhood} | חלוקה מבוקשת: [${feasibilityData.requestedSizes.join(',')}] | קיבולת זמינה: [${feasibilityData.availableCapacities.join(',')}]`,
+      });
+    }
+
+    await performAllocation();
+    setFeasibilityData(null);
   };
 
   const handleRemoveAllocation = async () => {
@@ -348,6 +443,43 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
           </Button>
         </div>
       </ResponsiveModal>
+
+      {/* Tent Feasibility Warning Dialog */}
+      <AlertDialog open={feasibilityWarningOpen} onOpenChange={setFeasibilityWarningOpen}>
+        <AlertDialogContent className="max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              התראת שיבוץ
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-right">
+                <p>הקיבולת הכללית מספיקה, אך חלוקת האוהלים אינה תואמת לבקשה.</p>
+                {feasibilityData && (
+                  <div className="space-y-2 text-sm bg-muted/50 p-3 rounded-lg">
+                    <div>
+                      <span className="font-medium">חלוקה מבוקשת: </span>
+                      <span className="font-mono">[{feasibilityData.requestedSizes.join(', ')}]</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">קיבולת אוהלים זמינה: </span>
+                      <span className="font-mono">[{feasibilityData.availableCapacities.join(', ')}]</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2 sm:flex-row-reverse">
+            <AlertDialogAction onClick={handleFeasibilityOverride}>
+              להמשיך בכל זאת
+            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => { setFeasibilityWarningOpen(false); setFeasibilityData(null); }}>
+              חזור לשיבוץ
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
