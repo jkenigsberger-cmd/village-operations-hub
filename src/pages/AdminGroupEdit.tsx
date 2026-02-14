@@ -424,6 +424,10 @@ const AdminGroupEdit = () => {
   const [mealModalOpen, setMealModalOpen] = useState(false);
   const [choiceDialogOpen, setChoiceDialogOpen] = useState(false);
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
+  const [openScheduleDateId, setOpenScheduleDateId] = useState<string | null>(null);
+  const [openMealDateId, setOpenMealDateId] = useState<string | null>(null);
   const [capacityResult, setCapacityResult] = useState<CapacityCheckResult | null>(null);
   const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
   const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
@@ -867,7 +871,7 @@ const AdminGroupEdit = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{isDayUse ? 'תאריך הפעילות *' : 'תאריך הגעה *'}</label>
-                  <Popover>
+                  <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-right">
                         <Calendar className="ml-2 h-4 w-4" />
@@ -878,15 +882,18 @@ const AdminGroupEdit = () => {
                       <CalendarComponent
                         mode="single"
                         selected={parseISO(formData.startDate)}
-                        onSelect={(date) => date && setFormData(prev => {
-                          const newStartDate = format(date, 'yyyy-MM-dd');
-                          return { 
-                            ...prev, 
-                            startDate: newStartDate,
-                            // For day-use groups, end date always equals start date
-                            endDate: prev.groupType === 'יום ללא לינה' ? newStartDate : prev.endDate
-                          };
-                        })}
+                        onSelect={(date) => {
+                          if (!date) return;
+                          setFormData(prev => {
+                            const newStartDate = format(date, 'yyyy-MM-dd');
+                            return { 
+                              ...prev, 
+                              startDate: newStartDate,
+                              endDate: prev.groupType === 'יום ללא לינה' ? newStartDate : prev.endDate
+                            };
+                          });
+                          setStartDateOpen(false);
+                        }}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
                       />
@@ -898,7 +905,7 @@ const AdminGroupEdit = () => {
                 {!isDayUse && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium">תאריך עזיבה *</label>
-                    <Popover>
+                    <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-right">
                           <Calendar className="ml-2 h-4 w-4" />
@@ -909,10 +916,14 @@ const AdminGroupEdit = () => {
                         <CalendarComponent
                           mode="single"
                           selected={parseISO(formData.endDate)}
-                          onSelect={(date) => date && setFormData(prev => ({ 
-                            ...prev, 
-                            endDate: format(date, 'yyyy-MM-dd') 
-                          }))}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              endDate: format(date, 'yyyy-MM-dd') 
+                            }));
+                            setEndDateOpen(false);
+                          }}
                           initialFocus
                           className={cn("p-3 pointer-events-auto")}
                         />
@@ -1282,7 +1293,7 @@ const AdminGroupEdit = () => {
                           <label className={cn("text-xs", hasDateError ? "text-destructive font-medium" : "text-muted-foreground")}>
                             תאריך {hasDateError && '⚠️'}
                           </label>
-                          <Popover>
+                          <Popover open={openScheduleDateId === item.id} onOpenChange={(open) => setOpenScheduleDateId(open ? item.id : null)}>
                             <PopoverTrigger asChild>
                               <Button 
                                 variant="outline" 
@@ -1299,9 +1310,11 @@ const AdminGroupEdit = () => {
                               <CalendarComponent
                                 mode="single"
                                 selected={parseISO(item.date)}
-                                onSelect={(date) => date && updateScheduleItem(item.id, { 
-                                  date: format(date, 'yyyy-MM-dd') 
-                                })}
+                                onSelect={(date) => {
+                                  if (!date) return;
+                                  updateScheduleItem(item.id, { date: format(date, 'yyyy-MM-dd') });
+                                  setOpenScheduleDateId(null);
+                                }}
                                 initialFocus
                                 className={cn("p-3 pointer-events-auto")}
                               />
@@ -1466,7 +1479,7 @@ const AdminGroupEdit = () => {
                           <label className={cn("text-xs", hasMealDateError ? "text-destructive font-medium" : "text-muted-foreground")}>
                             תאריך {hasMealDateError && '⚠️'}
                           </label>
-                          <Popover>
+                          <Popover open={openMealDateId === meal.id} onOpenChange={(open) => setOpenMealDateId(open ? meal.id : null)}>
                             <PopoverTrigger asChild>
                               <Button 
                                 variant="outline" 
@@ -1483,9 +1496,11 @@ const AdminGroupEdit = () => {
                               <CalendarComponent
                                 mode="single"
                                 selected={parseISO(meal.date)}
-                                onSelect={(date) => date && updateMealPlanItem(meal.id, { 
-                                  date: format(date, 'yyyy-MM-dd') 
-                                })}
+                                onSelect={(date) => {
+                                  if (!date) return;
+                                  updateMealPlanItem(meal.id, { date: format(date, 'yyyy-MM-dd') });
+                                  setOpenMealDateId(null);
+                                }}
                                 initialFocus
                                 className={cn("p-3 pointer-events-auto")}
                               />
