@@ -808,18 +808,18 @@ const AdminGroupEdit = () => {
             { label: 'קבוצות', path: '/admin/groups' },
             { label: isNew ? 'קבוצה חדשה' : formData.groupName || 'עריכה' }
           ]} />
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-              <Users className="w-10 h-10" />
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+            <h1 className="text-2xl md:text-4xl font-bold flex items-center gap-3">
+              <Users className="w-8 h-8 md:w-10 md:h-10" />
               {isNew ? 'קבוצה חדשה' : 'עריכת קבוצה'}
             </h1>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/admin/groups')}>
-                ביטול
-              </Button>
-              <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors || hasDateCoherenceErrors}>
+            <div className="flex gap-2 w-full md:w-auto flex-row-reverse md:flex-row">
+              <Button size="lg" onClick={handleSave} disabled={hasScheduleErrors || hasDateCoherenceErrors} className="flex-1 md:flex-initial">
                 <Save className="w-5 h-5 ml-2" />
                 שמור
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/admin/groups')} className="flex-1 md:flex-initial">
+                ביטול
               </Button>
             </div>
           </div>

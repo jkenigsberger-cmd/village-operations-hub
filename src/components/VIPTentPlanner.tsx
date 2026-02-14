@@ -86,7 +86,7 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
         </CardTitle>
         
         {/* Summary */}
-        <div className="flex flex-wrap gap-4 text-sm mt-2">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 text-sm mt-2">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">נדרש:</span>
             <Badge variant="outline">{staffCount} מיטות</Badge>
@@ -103,12 +103,12 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
       <CardContent className="space-y-4">
         {/* Planned Configs Grid */}
         {vipTentConfigs.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {vipTentConfigs.map((config, index) => (
               <div 
                 key={config.id}
                 className={cn(
-                  "p-3 rounded-lg border-2 bg-background relative",
+                  "p-4 rounded-lg border-2 bg-background relative",
                   config.gender === 'female' && "border-pink-300 bg-pink-50/50 dark:bg-pink-950/20",
                   config.gender === 'male' && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20",
                   !config.gender && "border-border"
@@ -142,7 +142,7 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                         key={n} 
                         value={n.toString()}
                         size="sm"
-                        className="h-7 w-7 text-xs"
+                        className="h-8 w-8 text-sm md:h-7 md:w-7 md:text-xs"
                       >
                         {n}
                       </ToggleGroupItem>
