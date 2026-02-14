@@ -108,9 +108,32 @@ export const useGroupStays = () => {
       });
     });
 
+    // Ensure ALL lodging groups appear (even without allocations)
+    groups.forEach(group => {
+      if (archivedGroupNames.has(group.groupName)) return;
+      if (group.groupType === 'יום ללא לינה') return; // day-use handled separately
+      const key = `${group.id}-${group.startDate}-${group.endDate}`;
+      if (!stayMap.has(key)) {
+        stayMap.set(key, {
+          groupId: group.id,
+          groupName: group.groupName,
+          startDate: group.startDate,
+          endDate: group.endDate,
+          participantsTotal: group.participantCount || group.pax || 0,
+          staffTotal: 0,
+          boysCount: group.boysCount,
+          girlsCount: group.girlsCount,
+          neighborhoods: new Map(),
+          vipTents: new Map(),
+        });
+      }
+    });
+
     // Convert to array
     return Array.from(stayMap.entries()).map(([key, e]) => {
       const group = groupsById.get(e.groupId);
+      const hasNeighborhoods = e.neighborhoods.size > 0;
+      const hasVip = e.vipTents.size > 0;
       return {
         key,
         groupId: e.groupId,
@@ -125,6 +148,7 @@ export const useGroupStays = () => {
         vipTents: Array.from(e.vipTents.values()),
         vipTentCount: e.vipTents.size,
         staffCount: group?.staffCount || 0,
+        isAllocated: hasNeighborhoods || hasVip,
       };
     });
   }, [state, groups, archivedGroupNames, groupsByName, groupsById]);

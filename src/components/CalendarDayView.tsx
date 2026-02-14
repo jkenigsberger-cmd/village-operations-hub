@@ -179,7 +179,11 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                       <div className="text-muted-foreground text-xs">{event.groupName}</div>
                       <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3" />
-                        {event.location}
+                        {event.metadata?.isAllocated === false ? (
+                          <span className="text-red-500 font-semibold">לא שובץ עדיין</span>
+                        ) : (
+                          event.location
+                        )}
                       </div>
                     </div>
                   ))}
@@ -212,7 +216,11 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                       <div className="text-muted-foreground text-xs">{event.groupName}</div>
                       <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3" />
-                        {event.location}
+                        {event.metadata?.isAllocated === false ? (
+                          <span className="text-red-500 font-semibold">לא שובץ עדיין</span>
+                        ) : (
+                          event.location
+                        )}
                       </div>
                     </div>
                   ))}

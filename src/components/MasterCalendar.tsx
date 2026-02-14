@@ -211,15 +211,20 @@ export const MasterCalendar: React.FC = () => {
       });
     });
 
-    // 7. Unified lodging group arrival/departure from GroupStays
+    // 7. Unified lodging group arrival/departure from GroupStays (including unallocated)
     allGroupStays.forEach(stay => {
-      const nhoodLabel = stay.neighborhoods.length > 0
-        ? `שכונות: ${stay.neighborhoods.map(n => n.neighborhoodName).join(', ')}`
-        : '';
-      const vipLabel = stay.vipTentCount > 0
-        ? `VIP: ${stay.vipTentCount} (${stay.vipTents.map(t => t.tentNumber).join(', ')})`
-        : (stay.staffCount > 0 ? 'VIP: לא שובץ' : '');
-      const subtitle = [nhoodLabel, vipLabel].filter(Boolean).join(' | ');
+      let subtitle: string;
+      if (!stay.isAllocated) {
+        subtitle = 'לא שובץ עדיין';
+      } else {
+        const nhoodLabel = stay.neighborhoods.length > 0
+          ? `שכונות: ${stay.neighborhoods.map(n => n.neighborhoodName).join(', ')}`
+          : '';
+        const vipLabel = stay.vipTentCount > 0
+          ? `VIP: ${stay.vipTentCount} (${stay.vipTents.map(t => t.tentNumber).join(', ')})`
+          : (stay.staffCount > 0 ? 'VIP: לא שובץ' : '');
+        subtitle = [nhoodLabel, vipLabel].filter(Boolean).join(' | ');
+      }
 
       // Arrival event
       const group = groups.find(g => g.id === stay.groupId);
@@ -236,6 +241,7 @@ export const MasterCalendar: React.FC = () => {
           groupId: stay.groupId,
           pax: stay.participantsTotal + stay.staffTotal,
           isGroupArrival: true,
+          isAllocated: stay.isAllocated,
           neighborhoods: stay.neighborhoods,
           vipTents: stay.vipTents,
           vipTentCount: stay.vipTentCount,
@@ -256,6 +262,7 @@ export const MasterCalendar: React.FC = () => {
           groupId: stay.groupId,
           pax: stay.participantsTotal + stay.staffTotal,
           isGroupDeparture: true,
+          isAllocated: stay.isAllocated,
           neighborhoods: stay.neighborhoods,
           vipTents: stay.vipTents,
           vipTentCount: stay.vipTentCount,
