@@ -28,6 +28,7 @@ export interface SyncConflict {
   date: string;
   time: string;
   existingGroup: string;
+  scheduleItemId?: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -166,6 +167,7 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
             date: item.date,
             time: item.startTime,
             existingGroup: rpcResult.error || 'קבוצה אחרת',
+            scheduleItemId: item.id,
           });
           console.warn(`[GROUP SYNC] Conflict for ${item.location} on ${item.date} at ${item.startTime}: ${rpcResult.error}`);
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useVillage } from '@/context/VillageContext';
@@ -28,6 +28,7 @@ import { SleepingTentDistributionSection } from '@/components/SleepingTentDistri
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -428,6 +429,8 @@ const AdminGroupEdit = () => {
   const [vipTentConfigs, setVipTentConfigs] = useState<VIPTentConfig[]>([]);
   const [mealsPlan, setMealsPlan] = useState<MealPlanItem[]>([]);
   const [distributionPreference, setDistributionPreference] = useState<DistributionPreference | null>(null);
+  const [conflictErrors, setConflictErrors] = useState<Record<string, string>>({});
+  const scheduleCardRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<Omit<GroupRecord, 'id' | 'createdAt' | 'updatedAt'>>({
     groupName: '',
@@ -628,11 +631,24 @@ const AdminGroupEdit = () => {
       const syncResult = await syncGroupToModules(savedGroup);
       
       if (syncResult.conflicts.length > 0) {
-        // Show warning for each conflict
+        // Build error map from conflicts
+        const errorMap: Record<string, string> = {};
         syncResult.conflicts.forEach(conflict => {
-          toast.warning(`התנגשות בהזמנת מרחב: ${conflict.space} ${conflict.date} ${conflict.time} (${conflict.existingGroup})`);
+          if (conflict.scheduleItemId) {
+            errorMap[conflict.scheduleItemId] = `תפוס: ${conflict.space} ${conflict.date} ${conflict.time} (${conflict.existingGroup}). בחרו שעה אחרת.`;
+          }
         });
-        toast.success(`הקבוצה נשמרה. נוצרו ${syncResult.kitchenSlotsCreated} ארוחות, ${syncResult.spaceBookingsCreated} הזמנות מרחב (${syncResult.conflicts.length} התנגשויות)`);
+        setConflictErrors(errorMap);
+        
+        // Show persistent toast but do NOT navigate
+        toast.warning(`הקבוצה נשמרה, אך ${syncResult.conflicts.length} הזמנות מרחב לא נוצרו בגלל התנגשות. תקנו את הפריטים המסומנים ושמרו שוב.`);
+        
+        // Scroll to schedule section
+        setTimeout(() => {
+          scheduleCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+        
+        return; // Stay on page
       } else {
         const syncInfo = [];
         if (syncResult.kitchenSlotsCreated > 0) syncInfo.push(`${syncResult.kitchenSlotsCreated} ארוחות`);
@@ -663,6 +679,14 @@ const AdminGroupEdit = () => {
         item.id === itemId ? { ...item, ...updates } : item
       ),
     }));
+    // Clear conflict error when user modifies the item
+    setConflictErrors(prev => {
+      if (prev[itemId]) {
+        const { [itemId]: _, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
   };
 
   const removeScheduleItem = (itemId: string) => {
@@ -1123,7 +1147,7 @@ const AdminGroupEdit = () => {
         )}
 
         {/* Schedule Card (לו״ז) */}
-        <Card className={cn(!formData.startDate && "opacity-60")}>
+        <Card ref={scheduleCardRef} className={cn(!formData.startDate && "opacity-60")}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
@@ -1149,6 +1173,18 @@ const AdminGroupEdit = () => {
             )}
             {formData.startDate && (
               <>
+                {/* Conflict errors alert banner */}
+                {Object.keys(conflictErrors).length > 0 && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="flex items-center justify-between">
+                      <span>חלק מהשריונים לא נשמרו בגלל התנגשות בזמן. תקנו את הפריטים המסומנים ושמרו שוב.</span>
+                      <Button variant="outline" size="sm" onClick={() => navigate('/admin/groups')} className="mr-2 whitespace-nowrap">
+                        חזור לרשימה
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {/* Date coherence errors banner */}
                 {hasDateCoherenceErrors && (
                   <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
@@ -1191,11 +1227,19 @@ const AdminGroupEdit = () => {
                 {formData.scheduleItems.map((item, index) => {
                   const timeError = scheduleValidationErrors[item.id];
                   const hasDateError = invalidItemIds.has(item.id);
+                  const conflictError = conflictErrors[item.id];
                   return (
                     <div key={item.id} className={cn(
                       "p-4 rounded-lg space-y-3",
+                      conflictError ? "bg-destructive/10 border-2 border-destructive" :
                       (timeError || hasDateError) ? "bg-destructive/10 border-2 border-destructive/50" : "bg-muted/50"
                     )}>
+                      {conflictError && (
+                        <div className="flex items-center gap-2 text-destructive text-sm font-medium">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          {conflictError}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-muted-foreground">פריט {index + 1}</span>
                         <Button 
