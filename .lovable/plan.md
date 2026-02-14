@@ -1,50 +1,48 @@
 
 
-# Block Group Save When Schedule Conflicts Exist
+# Fix: Gender-Aware Automatic Tent Distribution
 
 ## Problem
-Currently the group is saved to the database first, and then the sync process detects conflicts. This means:
-- The group record contains schedule items that appear valid but have no matching reservations
-- Users see schedule items in the group that were never actually booked
-- This creates confusion about what is actually reserved
+When "הפרדה לפי מגדר" (gender separation) is toggled ON, the "חלק אוטומטית" (auto-distribute) button completely ignores gender. It distributes all participants evenly across tents and leaves every tent tagged as "מעורב" (MIXED). This defeats the purpose of the toggle.
 
-## Solution: Pre-validate Before Saving
+## Solution
+Rewrite the `autoDistribute` function in `SleepingTentDistributionSection.tsx` to be gender-aware:
 
-### 1. Add a pre-validation function in `groupSync.ts`
-Create a new `preValidateScheduleConflicts` function that:
-- Takes the group's schedule items (without needing a saved group)
-- For each bookable schedule item, queries `activity_reservations` for the same space + date
-- Runs the client-side conflict check (using existing `checkActivityReservationConflict`)
-- Excludes the current group's own synced reservations (so editing a group doesn't conflict with itself)
-- Returns the list of conflicts (same `SyncConflict[]` format)
+1. **When gender separation is OFF** -- keep current behavior (even split, no gender tags).
+2. **When gender separation is ON** (and `boysCount`/`girlsCount` are available):
+   - Calculate boys tents: `ceil(boysCount / capacity)` tents, distribute boys evenly across them, tag each as `BOYS`.
+   - Calculate girls tents: `ceil(girlsCount / capacity)` tents, distribute girls evenly across them, tag each as `GIRLS`.
+   - Combine into a single tent array (boys first, then girls), re-index sequentially.
+   - Total tent count = boys tents + girls tents.
 
-### 2. Call pre-validation before saving in `AdminGroupEdit.tsx`
-Change the save flow:
-- **Before** calling `addGroup` or `updateGroup`, run `preValidateScheduleConflicts`
-- If conflicts are found: populate `conflictErrors`, show the alert banner, scroll to schedule section, and **do not save**
-- If no conflicts: proceed with saving the group and then run `syncGroupToModules` as before
+### Example (from screenshot)
+- 25 participants: 10 boys, 15 girls, capacity 8
+- Boys: `ceil(10/8) = 2` tents -> 5, 5
+- Girls: `ceil(15/8) = 2` tents -> 8, 7
+- Result: 4 tents total, tents 1-2 tagged BOYS, tents 3-4 tagged GIRLS
 
-### 3. Update toast message
-Change the conflict toast to: "לא ניתן לשמור – יש התנגשות בלוח הזמנים. תקנו את הפריטים המסומנים."
-
-## Files to modify
+## File to modify
 
 | File | Change |
 |---|---|
-| `src/lib/groupSync.ts` | Add `preValidateScheduleConflicts(scheduleItems, groupName, groupId?)` function that checks conflicts without inserting anything |
-| `src/pages/AdminGroupEdit.tsx` | Move conflict check before the save call; block save entirely on conflicts; update toast wording |
+| `src/components/SleepingTentDistributionSection.tsx` | Rewrite `autoDistribute` (lines 149-172) to split by gender when `genderSeparation` is on and counts are available |
 
 ## Technical Details
 
-**groupSync.ts** -- new function:
-- Query existing `activity_reservations` for each bookable item's space_id + date
-- Use `checkActivityReservationConflict` from `reservationConflict.ts` for overlap detection
-- When editing an existing group, pass `excludeGroupId` so the group's own old reservations don't trigger false conflicts
-- Returns `SyncConflict[]` with `scheduleItemId` populated
+```text
+autoDistribute() {
+  if genderSeparation AND boysCount AND girlsCount:
+    boysTentCount = ceil(boysCount / capacity)
+    girlsTentCount = ceil(girlsCount / capacity)
+    
+    boysTents = distribute(boysCount, boysTentCount, gender=BOYS)
+    girlsTents = distribute(girlsCount, girlsTentCount, gender=GIRLS)
+    
+    allTents = [...boysTents, ...girlsTents]  // re-index 1..N
+    totalCount = boysTentCount + girlsTentCount
+  else:
+    // current logic (no gender tags)
+}
+```
 
-**AdminGroupEdit.tsx** -- save handler changes:
-- Before line 620 (the `dataToSave` construction), call `preValidateScheduleConflicts`
-- If conflicts exist: set `conflictErrors`, show error toast, return early (no save)
-- If no conflicts: save group, then sync as before
-- The existing conflict handling after sync remains as a safety net but should rarely trigger
-
+The `updatePreference` call at the end already handles recalculating `totalPax` and `isValid`, and the existing gender validation display will automatically show correct results.
