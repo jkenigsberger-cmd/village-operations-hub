@@ -150,16 +150,38 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
     if (participantCount <= 0) return;
     
     const capacity = localPreference.preferredTentCapacity || 8;
-    const tentCount = Math.ceil(participantCount / capacity);
-    const basePax = Math.floor(participantCount / tentCount);
-    const remainder = participantCount % tentCount;
-    
-    const tents: VirtualTent[] = [];
-    for (let i = 0; i < tentCount; i++) {
-      tents.push({
-        index: i + 1,
-        pax: basePax + (i < remainder ? 1 : 0),
-      });
+
+    // Helper: distribute `total` people across `count` tents evenly
+    const buildTents = (total: number, count: number, gender?: TentGender, startIndex = 1): VirtualTent[] => {
+      const base = Math.floor(total / count);
+      const rem = total % count;
+      const result: VirtualTent[] = [];
+      for (let i = 0; i < count; i++) {
+        result.push({
+          index: startIndex + i,
+          pax: base + (i < rem ? 1 : 0),
+          gender,
+        });
+      }
+      return result;
+    };
+
+    let tents: VirtualTent[];
+    let tentCount: number;
+
+    if (genderSeparation && boysCount && girlsCount) {
+      // Gender-aware distribution
+      const boysTentCount = Math.ceil(boysCount / capacity);
+      const girlsTentCount = Math.ceil(girlsCount / capacity);
+      tentCount = boysTentCount + girlsTentCount;
+
+      const boysTents = buildTents(boysCount, boysTentCount, 'BOYS', 1);
+      const girlsTents = buildTents(girlsCount, girlsTentCount, 'GIRLS', boysTentCount + 1);
+      tents = [...boysTents, ...girlsTents];
+    } else {
+      // Standard even distribution (no gender tags)
+      tentCount = Math.ceil(participantCount / capacity);
+      tents = buildTents(participantCount, tentCount);
     }
     
     updatePreference({
