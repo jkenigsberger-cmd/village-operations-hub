@@ -39,6 +39,11 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     setInputValue(value.toString());
   }, [value]);
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Auto-select all text so typing replaces the value instantly
+    e.target.select();
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     
@@ -98,6 +103,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
           value={inputValue}
           onChange={handleChange}
           onBlur={handleBlur}
+          onFocus={handleFocus}
           placeholder={placeholder}
           disabled={disabled}
           className="text-center"
@@ -124,6 +130,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
       value={inputValue}
       onChange={handleChange}
       onBlur={handleBlur}
+      onFocus={handleFocus}
       placeholder={placeholder}
       disabled={disabled}
       className={cn("", className)}

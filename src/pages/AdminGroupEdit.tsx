@@ -1053,6 +1053,7 @@ const AdminGroupEdit = () => {
                       }))}
                       min={0}
                       max={formData.pax}
+                      showStepper
                     />
                     <p className="text-xs text-muted-foreground">יוקצו לאוהלי VIP</p>
                   </div>
@@ -1081,6 +1082,7 @@ const AdminGroupEdit = () => {
                         value={formData.boysCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
                         min={0}
+                        showStepper
                       />
                     </div>
                     <div className="flex-1">
@@ -1089,6 +1091,7 @@ const AdminGroupEdit = () => {
                         value={formData.girlsCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
                         min={0}
+                        showStepper
                       />
                     </div>
                   </div>
