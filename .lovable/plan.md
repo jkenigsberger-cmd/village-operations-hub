@@ -1,48 +1,37 @@
 
 
-# Fix: Gender-Aware Automatic Tent Distribution
+# Fix: Wrong "Booked by Other Group" Message for Self-Allocated Neighborhoods
 
-## Problem
-When "הפרדה לפי מגדר" (gender separation) is toggled ON, the "חלק אוטומטית" (auto-distribute) button completely ignores gender. It distributes all participants evenly across tents and leaves every tent tagged as "מעורב" (MIXED). This defeats the purpose of the toggle.
+## Root Cause
 
-## Solution
-Rewrite the `autoDistribute` function in `SleepingTentDistributionSection.tsx` to be gender-aware:
+Two issues combine to produce the wrong error message:
 
-1. **When gender separation is OFF** -- keep current behavior (even split, no gender tags).
-2. **When gender separation is ON** (and `boysCount`/`girlsCount` are available):
-   - Calculate boys tents: `ceil(boysCount / capacity)` tents, distribute boys evenly across them, tag each as `BOYS`.
-   - Calculate girls tents: `ceil(girlsCount / capacity)` tents, distribute girls evenly across them, tag each as `GIRLS`.
-   - Combine into a single tent array (boys first, then girls), re-index sequentially.
-   - Total tent count = boys tents + girls tents.
+1. **Fragile self-exclusion**: `isNeighborhoodAvailableForGroup` identifies the group's own `neighborhood_reservations` by comparing `group_name` strings (line 450). The `neighborhood_reservations` table lacks a `group_id` column. If the group record hasn't loaded yet (race condition) or was renamed after the reservation was created, the name comparison fails -- and the group's own reservation looks like a conflict from "another group."
 
-### Example (from screenshot)
-- 25 participants: 10 boys, 15 girls, capacity 8
-- Boys: `ceil(10/8) = 2` tents -> 5, 5
-- Girls: `ceil(15/8) = 2` tents -> 8, 7
-- Result: 4 tents total, tents 1-2 tagged BOYS, tents 3-4 tagged GIRLS
+2. **Wrong check order in click handler**: `handleNeighborhoodClick` checks availability BEFORE checking if the neighborhood is already allocated to this group. So the misleading "booked by other group" error fires before the correct "already allocated" message has a chance.
 
-## File to modify
+## Fix
+
+### 1. `handleNeighborhoodClick` in `ParticipantAllocationTab.tsx`
+Swap the order of checks: check `existingAllocation` (is this neighborhood already allocated to this group?) FIRST, before checking availability. This ensures the correct message appears.
+
+### 2. `isNeighborhoodAvailableForGroup` in `useGroupAllocation.ts`
+Make self-exclusion robust by cross-referencing with the `allocations` table (which HAS `group_id`). Before treating a `neighborhood_reservation` as a conflict, check if there's an allocation record linking it to the current group. This eliminates reliance on fragile name matching.
+
+Logic change:
+```text
+for each neighborhood_reservation:
+  // Primary: check if this group owns a matching allocation for this neighborhood
+  if allocations has record with groupId=thisGroup AND resourceId=thisNeighborhood -> skip (self)
+  // Fallback: also skip if group_name matches (backward compat)
+  if res.group_name === groupName -> skip
+  // Otherwise, check date overlap -> conflict
+```
+
+## Files to modify
 
 | File | Change |
 |---|---|
-| `src/components/SleepingTentDistributionSection.tsx` | Rewrite `autoDistribute` (lines 149-172) to split by gender when `genderSeparation` is on and counts are available |
+| `src/components/ParticipantAllocationTab.tsx` | Move `existingAllocation` check before the availability check in `handleNeighborhoodClick` |
+| `src/hooks/useGroupAllocation.ts` | In `isNeighborhoodAvailableForGroup`, add allocation-based self-exclusion before the `group_name` check |
 
-## Technical Details
-
-```text
-autoDistribute() {
-  if genderSeparation AND boysCount AND girlsCount:
-    boysTentCount = ceil(boysCount / capacity)
-    girlsTentCount = ceil(girlsCount / capacity)
-    
-    boysTents = distribute(boysCount, boysTentCount, gender=BOYS)
-    girlsTents = distribute(girlsCount, girlsTentCount, gender=GIRLS)
-    
-    allTents = [...boysTents, ...girlsTents]  // re-index 1..N
-    totalCount = boysTentCount + girlsTentCount
-  else:
-    // current logic (no gender tags)
-}
-```
-
-The `updatePreference` call at the end already handles recalculating `totalPax` and `isValid`, and the existing gender validation display will automatically show correct results.
