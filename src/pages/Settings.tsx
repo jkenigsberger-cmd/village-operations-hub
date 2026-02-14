@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users, Cloud, Database } from 'lucide-react';
+import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users, Cloud, Database, Briefcase } from 'lucide-react';
 import { HE } from '@/lib/translations';
 import { importAllFromLocalStorage, hasLocalStorageData, clearLocalStorageData, ImportResult } from '@/lib/dataImport';
 
@@ -232,6 +232,24 @@ const Settings = () => {
           >
             <Users className="w-6 h-6" />
             ניהול קבוצות / הזמנות
+          </button>
+        </section>
+
+        {/* Management Section */}
+        <section className="tile border-primary/30 bg-primary/5">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Briefcase className="w-7 h-7" />
+            הנהלה
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            הכנסות, הוצאות, עובדים חיצוניים ודוחות
+          </p>
+          <button 
+            onClick={() => navigate('/admin/income')}
+            className="px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:bg-primary/90 flex items-center gap-2"
+          >
+            <Briefcase className="w-6 h-6" />
+            כניסה להנהלה
           </button>
         </section>
 

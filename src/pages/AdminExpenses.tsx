@@ -125,7 +125,7 @@ const AdminExpenses = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout title="הוצאות" subtitle="ניהול הוצאות">
+      <AdminLayout title="הוצאות" subtitle="ניהול הוצאות" section="management">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
         </div>
@@ -134,7 +134,7 @@ const AdminExpenses = () => {
   }
 
   return (
-    <AdminLayout title="הוצאות" subtitle="ניהול הוצאות">
+    <AdminLayout title="הוצאות" subtitle="ניהול הוצאות" section="management">
       {/* Date Range Filter */}
       <AdminDateRangeFilter
         selectedRange={dateRange}
