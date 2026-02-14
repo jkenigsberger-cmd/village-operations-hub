@@ -71,9 +71,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Empty schedule item with sensible defaults
-const emptyScheduleItem = (): ScheduleItem => ({
+const emptyScheduleItem = (defaultDate?: string): ScheduleItem => ({
   id: Math.random().toString(36).substring(2, 11),
-  date: format(new Date(), 'yyyy-MM-dd'),
+  date: defaultDate || format(new Date(), 'yyyy-MM-dd'),
   startTime: '09:00',
   endTime: '10:00',
   category: 'ACTIVITY',
@@ -82,9 +82,9 @@ const emptyScheduleItem = (): ScheduleItem => ({
 });
 
 // Empty meal plan item
-const emptyMealPlanItem = (): MealPlanItem => ({
+const emptyMealPlanItem = (defaultDate?: string): MealPlanItem => ({
   id: Math.random().toString(36).substring(2, 11),
-  date: format(new Date(), 'yyyy-MM-dd'),
+  date: defaultDate || format(new Date(), 'yyyy-MM-dd'),
   mealType: 'LUNCH',
   time: '13:00',
   location: 'DINING_HALL',
@@ -697,7 +697,7 @@ const AdminGroupEdit = () => {
   const addScheduleItem = () => {
     setFormData(prev => ({
       ...prev,
-      scheduleItems: [...prev.scheduleItems, emptyScheduleItem()],
+      scheduleItems: [...prev.scheduleItems, emptyScheduleItem(prev.startDate)],
     }));
   };
 
@@ -727,7 +727,7 @@ const AdminGroupEdit = () => {
 
   // Meal plan handlers
   const addMealPlanItem = () => {
-    setMealsPlan(prev => [...prev, emptyMealPlanItem()]);
+    setMealsPlan(prev => [...prev, emptyMealPlanItem(formData.startDate)]);
   };
 
   const updateMealPlanItem = (itemId: string, updates: Partial<MealPlanItem>) => {
