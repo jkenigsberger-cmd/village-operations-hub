@@ -1,25 +1,55 @@
 
 
-# Fix Group Type Buttons Overflow on Mobile
+# Split Admin Navigation into Two Sections
 
-## Problem
-The "סוג קבוצה" (Group Type) toggle buttons overflow on mobile. The "פעילות יום ללא לינה" button text is too long, causing it to get cut off or push outside the card boundary on small screens.
+## Overview
+Currently all 5 admin tabs (קבוצות, הכנסות, הוצאות, עובדים חיצוניים, דוחות) are crammed into one horizontal scrolling nav bar, which looks bad on mobile. The solution is to separate them into two distinct sections accessible from Settings.
 
-## Fix in `src/pages/AdminGroupEdit.tsx` (lines 839-861)
+## Changes
 
-### 1. Stack buttons vertically on mobile
-Change the button container from `flex gap-4` to `flex flex-col sm:flex-row gap-2 sm:gap-4` so the two buttons stack on phones and sit side-by-side on wider screens.
+### 1. Settings Page (`src/pages/Settings.tsx`)
+Add a second tile for "הנהלה" (Management) below the existing "ניהול קבוצות והזמנות" tile. This new tile will link to `/admin/income` (the first financial page) and include a description about finances, reports, and external workers.
 
-### 2. Reduce button text size on mobile
-Add `text-sm` to both buttons so the longer Hebrew text fits comfortably even when side-by-side on tablets.
+### 2. AdminLayout (`src/components/AdminLayout.tsx`)
+Make the nav items configurable by accepting a `section` prop (`"groups"` or `"management"`):
+- **groups section**: Shows only the "קבוצות / הזמנות" tab (single tab, no clutter)
+- **management section**: Shows הכנסות, הוצאות, עובדים חיצוניים, דוחות
 
-### 3. Allow text wrapping
-Add `whitespace-normal text-center` to the buttons so that if they are side-by-side, long text wraps instead of overflowing.
+The breadcrumb will also update accordingly:
+- Groups: הגדרות > קבוצות / הזמנות
+- Management: הגדרות > הנהלה
+
+The header icon will change per section (Users for groups, Settings/Briefcase for management).
+
+### 3. Page Updates
+- `AdminGroups.tsx`: Pass `section="groups"` to AdminLayout
+- `AdminIncome.tsx`, `AdminExpenses.tsx`, `AdminOutsourced.tsx`, `AdminReports.tsx`: Pass `section="management"` to AdminLayout
+
+### 4. No Route Changes
+All existing routes (`/admin/groups`, `/admin/income`, etc.) stay the same. Only the nav tabs shown within AdminLayout change based on context.
 
 ## Technical Details
 
-**File:** `src/pages/AdminGroupEdit.tsx`
-- Line 839: Change `<div className="flex gap-4">` to `<div className="flex flex-col sm:flex-row gap-2 sm:gap-4">`
-- Lines 840-861: Add `whitespace-normal text-center h-auto py-3` to both Button components to allow text wrapping and adequate height
+### File: `src/components/AdminLayout.tsx`
+- Add `section?: 'groups' | 'management'` prop to `AdminLayoutProps`
+- Define two separate nav item arrays:
+  - `groupNavItems`: just `[{ path: '/admin/groups', label: 'קבוצות / הזמנות', icon: Users }]`
+  - `managementNavItems`: `[income, expenses, outsourced, reports]`
+- Select the correct array based on `section` prop
+- Update breadcrumb label based on section
 
-No other files or logic affected.
+### File: `src/pages/Settings.tsx`
+- Add a new "הנהלה" section tile (with Briefcase icon from lucide) that navigates to `/admin/income`
+- Import `Briefcase` from lucide-react
+
+### Files: `AdminGroups.tsx`
+- Add `section="groups"` prop to `<AdminLayout>`
+
+### Files: `AdminIncome.tsx`, `AdminExpenses.tsx`, `AdminOutsourced.tsx`, `AdminReports.tsx`
+- Add `section="management"` prop to `<AdminLayout>`
+
+## Result
+- Settings page shows two clear entry points: "קבוצות / הזמנות" and "הנהלה"
+- Each section only shows its own relevant tabs in the nav bar
+- Mobile nav is no longer crowded -- groups page has just 1 tab, management has 4 tabs (much better than 5 all together)
+- No database or routing changes needed
