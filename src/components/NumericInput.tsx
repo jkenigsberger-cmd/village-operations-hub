@@ -5,7 +5,7 @@ import { Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NumericInputProps {
-  value: number;
+  value: number | undefined;
   onChange: (value: number) => void;
   min?: number;
   max?: number;
@@ -17,6 +17,7 @@ interface NumericInputProps {
 
 /**
  * A user-friendly numeric input that:
+ * - Supports undefined value (shows empty / placeholder)
  * - Allows empty state while editing (no forced leading zeros)
  * - Converts to proper number on blur
  * - Optional +/- stepper buttons
@@ -26,17 +27,19 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   onChange,
   min = 0,
   max,
-  placeholder = '0',
+  placeholder = 'הכנס מספר',
   className,
   disabled = false,
   showStepper = false,
 }) => {
   // Local string state for editing
-  const [inputValue, setInputValue] = useState<string>(value.toString());
+  const [inputValue, setInputValue] = useState<string>(
+    value !== undefined ? value.toString() : ''
+  );
 
   // Sync external value changes
   useEffect(() => {
-    setInputValue(value.toString());
+    setInputValue(value !== undefined ? value.toString() : '');
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
