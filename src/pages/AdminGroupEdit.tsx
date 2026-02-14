@@ -82,13 +82,13 @@ const emptyScheduleItem = (defaultDate?: string): ScheduleItem => ({
 });
 
 // Empty meal plan item
-const emptyMealPlanItem = (defaultDate?: string): MealPlanItem => ({
+const emptyMealPlanItem = (defaultDate?: string, defaultPax?: number): MealPlanItem => ({
   id: Math.random().toString(36).substring(2, 11),
   date: defaultDate || format(new Date(), 'yyyy-MM-dd'),
   mealType: 'LUNCH',
   time: '13:00',
   location: 'DINING_HALL',
-  pax: 0,
+  pax: defaultPax ?? 0,
 });
 
 // Validate schedule item time range
@@ -727,7 +727,7 @@ const AdminGroupEdit = () => {
 
   // Meal plan handlers
   const addMealPlanItem = () => {
-    setMealsPlan(prev => [...prev, emptyMealPlanItem(formData.startDate)]);
+    setMealsPlan(prev => [...prev, emptyMealPlanItem(formData.startDate, formData.pax || 0)]);
   };
 
   const updateMealPlanItem = (itemId: string, updates: Partial<MealPlanItem>) => {
