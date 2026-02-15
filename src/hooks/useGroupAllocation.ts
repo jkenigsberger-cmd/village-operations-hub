@@ -618,17 +618,12 @@ export const useGroupAllocation = () => {
     // Calculate beds being assigned
     const bedsBeingAssigned = configToAssign.bedsPlanned + (configToAssign.hasExtraBed ? 1 : 0);
     
-    // Dynamic check: compute remaining staff from actual assigned configs (source of truth)
+    // Compute remaining staff for display purposes (no blocking)
     const alreadyAssignedBeds = group.vipTentConfigs
-      .filter(c => c.assignedTentCode && c.id !== configId) // exclude the one being assigned now
+      .filter(c => c.assignedTentCode && c.id !== configId)
       .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
     const staffCount = group.staffCount ?? 0;
     const dynamicRemaining = staffCount - alreadyAssignedBeds;
-    
-    if (bedsBeingAssigned > dynamicRemaining) {
-      console.warn(`Not enough remaining staff for VIP assignment: need ${bedsBeingAssigned}, have ${dynamicRemaining} (staffCount=${staffCount}, alreadyAssigned=${alreadyAssignedBeds})`);
-      return false;
-    }
 
     // Update the config with the assigned tent code
     const updatedConfigs = group.vipTentConfigs.map(config =>
