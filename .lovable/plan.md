@@ -1,59 +1,60 @@
 
-# Fix: VIP Tent Unassignment Not Reflecting Immediately
+
+# Fix: Last VIP Config Cannot Be Assigned Due to Over-Strict Guard
 
 ## Problem
 
-When you unassign (delete) a VIP tent in the allocation page, the VIP tent grid and assigned configs list don't update immediately. You have to wait for the realtime subscription to eventually refresh the data.
+The last VIP config cannot be assigned to a tent. The error says:
+```
+Not enough remaining staff for VIP assignment: need 3, have 2 (staffCount=27, alreadyAssigned=25)
+```
+
+The group has `staffCount = 27` but the total planned beds across all 9 VIP configs sum to more than 27 (e.g., one config has an extra bed making the total 28). The dynamic guard correctly computes `27 - 25 = 2` remaining, but the last config needs 3 beds, so it gets blocked.
 
 ## Root Cause
 
-The `handleUpdate` callback in `GroupAllocation.tsx` only increments a `refreshKey` counter to force a remount of `VIPAllocationTab`. But the `group` prop passed to it comes from `groups.find(...)`, which still holds stale data because the realtime subscription hasn't fired yet. So the component remounts with the old group data.
-
-```text
-User clicks "Release tent"
-  -> unassignVIPConfig() writes to DB (async, completes)
-  -> onUpdate() called -> refreshKey++ -> VIPAllocationTab remounts
-  -> BUT groups array still has OLD data (realtime hasn't arrived yet)
-  -> Component shows stale state
-  -> ~1-2 seconds later, realtime fires, groups update, UI finally refreshes
-```
+The `remainingStaff` guard in `assignVIPConfig` prevents assignment when the total planned beds across all VIP configs exceeds `staffCount`. But the user explicitly created these configs -- if they added an extra bed, they intended for all configs to be assignable. The guard is too strict.
 
 ## Solution
 
-Two small changes:
+Remove the `remainingStaff` guard check entirely from `assignVIPConfig`. The only validation needed is whether the physical tent is available (not occupied by another group). The user already defined the configs they want -- the system should not second-guess the totals.
 
-### 1. `src/hooks/useAdminGroups.ts` -- Expose `loadData` as `refetchGroups`
+The `remainingStaff` field will still be updated for display purposes on the summary counters, but it will no longer block assignment.
 
-Add `loadData` to the returned object so callers can trigger an immediate data refetch:
+## Technical Change
 
+### File: `src/hooks/useGroupAllocation.ts` (lines 621-631)
+
+Remove the dynamic remaining check block and simplify:
+
+**Before:**
 ```typescript
-return {
-  groups, activeGroups, archivedGroups, isLoading,
-  addGroup, updateGroup, deleteGroup, getGroup,
-  getDayUseGroupsForDate, addLinkedSpaceReservation, addLinkedKitchenSlot,
-  archiveGroup, restoreGroup,
-  refetchGroups: loadData,  // <-- NEW
-};
+// Dynamic check: compute remaining staff from actual assigned configs
+const alreadyAssignedBeds = group.vipTentConfigs
+  .filter(c => c.assignedTentCode && c.id !== configId)
+  .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
+const staffCount = group.staffCount ?? 0;
+const dynamicRemaining = staffCount - alreadyAssignedBeds;
+
+if (bedsBeingAssigned > dynamicRemaining) {
+  console.warn(`Not enough remaining staff...`);
+  return false;
+}
 ```
 
-### 2. `src/pages/GroupAllocation.tsx` -- Await refetch before remounting
-
-Update `handleUpdate` to first refetch the groups data, then increment the key:
-
+**After:**
 ```typescript
-const { groups, updateGroup, refetchGroups } = useAdminGroups();
-
-const handleUpdate = async () => {
-  await refetchGroups();       // Wait for fresh data from DB
-  setRefreshKey(prev => prev + 1);  // Then remount with updated group
-};
+// Compute remaining staff for display purposes (no blocking)
+const alreadyAssignedBeds = group.vipTentConfigs
+  .filter(c => c.assignedTentCode && c.id !== configId)
+  .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
+const staffCount = group.staffCount ?? 0;
+const dynamicRemaining = staffCount - alreadyAssignedBeds;
 ```
 
-This ensures that by the time `VIPAllocationTab` remounts, the `group` prop already reflects the latest database state -- no waiting for the realtime subscription.
+The guard `if (bedsBeingAssigned > dynamicRemaining)` and its `console.warn` + `return false` are removed. The `dynamicRemaining` variable is kept since it is used on line 639 to compute `newRemainingStaff` for the counter display.
 
-## Files Changed
+### No other files change
 
-| File | Change |
-|------|--------|
-| `src/hooks/useAdminGroups.ts` | Expose `loadData` as `refetchGroups` in the return object |
-| `src/pages/GroupAllocation.tsx` | Destructure `refetchGroups`, make `handleUpdate` async and await the refetch before incrementing key |
+Only the guard logic in `assignVIPConfig` needs updating.
+
