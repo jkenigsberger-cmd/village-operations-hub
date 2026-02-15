@@ -1,30 +1,43 @@
 
-
-# Add Common Spaces & Meals Count to Daily Summary Tile
+# Add Detail Modal to Daily Summary Card
 
 ## What Changes
 
-Extend the `DailySummaryCard` to also show:
-- Number of **common space reservations** (activity reservations) for the selected date
-- Number of **meals** (kitchen time slots) for the selected date
+Make the Daily Summary tile clickable. When clicked, it opens a small informational modal/dialog showing detailed breakdowns for the selected date.
 
-The subtitle will become something like:
-`"12 אנשים · 3 קבוצות · 2 לנים · 4 חללים · 6 ארוחות"`
+## Modal Content
+
+The modal will display three sections with specific group-level details:
+
+**Header**: "סיכום יומי - {formatted date}"
+
+**Section 1 - Groups (קבוצות)**
+- List each active group by name, pax count, and type (lodging/day-only)
+- Subtotals: total groups, sleeping groups, day-only groups
+
+**Section 2 - People (אנשים)**
+- Total people on site
+- Sleeping tonight count
+- Day-only count
+- CHECK IN today (list group names arriving)
+- CHECK OUT today (list group names departing)
+
+**Section 3 - Operations (פעילות)**
+- Common spaces booked: count + list of space names/times
+- Meals scheduled: count + list of meal types/times
 
 ## Technical Changes
 
 ### File: `src/components/DailySummaryCard.tsx`
 
-1. Import `useKitchenData` from `@/hooks/useKitchenData` to get `getTimeSlotsForDate`
-2. Import `useVillage` from `@/context/VillageContext` to access `state.activityReservations`
-3. Inside the `useMemo`, calculate:
-   - **spacesUsed**: count of unique activity reservations where `date === dayStr`
-   - **mealsCount**: count of kitchen time slots for `dayStr` (using `getTimeSlotsForDate`)
-4. Add these two numbers to the subtitle string:
-   - `· {spacesUsed} חללים` (common spaces booked)
-   - `· {mealsCount} ארוחות` (meals scheduled)
+1. Add `useState` for modal open/close
+2. Expand `useMemo` to also return the actual group lists (not just counts): `activeGroups`, `sleepingGroups`, `dayOnlyGroups`, `checkInGroups`, `checkOutGroups`
+3. Get activity reservation details (space name, time) and kitchen slot details (meal type, time) for the list views
+4. Make the tile div clickable with `cursor-pointer hover:shadow-lg transition-all`
+5. Use the existing `ResponsiveModal` component (Dialog on desktop, Drawer on mobile) to show the detail view
+6. Inside the modal, render the three sections with simple list items -- group name, pax, type labels
+7. The modal is read-only, no actions or edit buttons
 
 ### No other files change
 
-The component already sits in the grid. We are only enriching the data it displays.
-
+The tile stays in the same grid position. Only the component itself gains click-to-open behavior and a detail modal.
