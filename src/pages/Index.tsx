@@ -490,12 +490,10 @@ const Index = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            </section>
 
-            {/* Daily Summary Card */}
-            <section className="mb-6 md:mb-10">
-              <DailySummaryCard selectedDate={new Date()} />
+                {/* Daily Summary Tile */}
+                <DailySummaryCard selectedDate={new Date()} />
+              </div>
             </section>
 
             {/* Pending Allocations Section */}
