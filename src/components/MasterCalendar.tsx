@@ -82,8 +82,12 @@ export const MasterCalendar: React.FC = () => {
 
     const events: CalendarEvent[] = [];
 
-    // 1. Neighborhood reservations (multi-day)
+    // Pre-compute group names that have unified GroupStay entries
+    const groupStayGroupNames = new Set(allGroupStays.map(gs => gs.groupName));
+
+    // 1. Neighborhood reservations (multi-day) -- skip groups handled by GroupStay
     Object.values(state.neighborhoodReservations || {}).forEach(reservation => {
+      if (groupStayGroupNames.has(reservation.groupName)) return;
       events.push({
         id: `neighborhood_${reservation.id}`,
         type: 'NEIGHBORHOOD',
@@ -145,7 +149,7 @@ export const MasterCalendar: React.FC = () => {
 
     // 4. Unified group stay events (replaces individual tent events + group arrival/departure)
     // Build a set of group names that have GroupStay entries to skip duplicate tent events
-    const groupStayGroupNames = new Set(allGroupStays.map(gs => gs.groupName));
+    // (groupStayGroupNames already computed above)
 
     // Individual tent check-in/check-out only for tents NOT belonging to a grouped stay
     Object.values(state.tents).forEach(tent => {
