@@ -1,32 +1,54 @@
 
 
-# Click-to-Enlarge Maintenance Cards
+# Separate Cleaning vs Maintenance and Fix Shower Visibility
 
-## What will change
+## Problem
 
-When you tap/click on any maintenance card in the Maintenance tab, it will open as a larger, centered modal overlay -- making the image, description, and details much easier to read. The "resolve" button will also be available inside the modal.
+1. The "Bathrooms" tab mixes cleaning and maintenance issues together, showing facilities that either need cleaning OR are broken. This is confusing because cleaning tasks should go to the **Housekeeping** team, while broken/maintenance issues should go to the **Maintenance** team.
 
-## Technical Details
+2. The "Bathrooms" tab only shows facilities that currently have issues -- if showers have no issues flagged, they don't appear, making it look like showers are missing entirely.
+
+## Solution
+
+### Remove the "Bathrooms" tab
+
+Since we already have dedicated **Housekeeping** and **Maintenance** tabs that properly separate these concerns, the "Bathrooms" tab is redundant. Remove it from the navigation and redirect its responsibilities:
+
+- Facilities needing **cleaning** (bathrooms, showers, common spaces) appear in the **Housekeeping** tab (already works this way)
+- Facilities needing **maintenance** (BROKEN/MAINTENANCE) appear in the **Maintenance** tab (already works this way)
+
+### Ensure showers appear alongside bathrooms in both tabs
+
+Currently the Housekeeping tab labels facility cleaning items generically as "Facilities". We'll split them into "Bathrooms" and "Showers" sub-sections so both are clearly visible.
+
+### Dashboard notification
+
+The overview "Facilities Alert" tile will continue to sum maintenance + housekeeping counts, linking to the appropriate section.
+
+## Technical Changes
 
 ### File: `src/pages/Index.tsx`
 
-1. **Add state** for the selected maintenance item:
-   - `expandedMaintenanceItem` -- stores the clicked card's data (facility, activity space, or VIP task) plus its type
-   - `setExpandedMaintenanceItem` -- setter to open/close the modal
+1. **Remove the `bathrooms` menu item** from the `menuItems` array (line ~271)
+2. **Remove the `facilitiesNeedingAttention` variable** (line ~228-230) since it's no longer used
+3. **Remove the entire `activeSection === 'bathrooms'` section** (lines ~766-799)
+4. **Remove the `bathroomsCount` prop** from the MobileBottomNav component call (line ~345)
+5. **In the Housekeeping section**: Split `facilitiesNeedingCleaning` into two sub-groups -- bathrooms (TOILET) and showers (SHOWER) -- so both appear with clear labels
 
-2. **Make each card clickable**: Wrap the three card types (bathroom/shower facilities, activity spaces, VIP tent tasks) with an `onClick` handler that sets the expanded item state. The "resolve" button inside the card will use `e.stopPropagation()` so it still works without opening the modal.
+### File: `src/components/MobileBottomNav.tsx`
 
-3. **Add a modal overlay** (reusing the same pattern from the Facilities page -- a fixed overlay with centered content):
-   - Shows the card's title, status, full-size image (not cropped to h-32), description/notes, and location
-   - Includes the same "resolve" button
-   - Close via X button or clicking the backdrop
-   - Responsive: full-screen on mobile, max-width centered card on desktop
+1. Remove the `bathrooms` entry from the nav items array
+2. Remove the `bathroomsCount` prop
 
-### Changes summary
+### Summary of changes
 
 | File | Change |
 |------|--------|
-| `src/pages/Index.tsx` | Add `expandedMaintenanceItem` state, onClick handlers on all 3 card types, and a detail modal overlay at the bottom of the maintenance section |
+| `src/pages/Index.tsx` | Remove bathrooms tab and its section; split facility cleaning items in Housekeeping into Bathrooms/Showers sub-sections |
+| `src/components/MobileBottomNav.tsx` | Remove bathrooms nav item and count prop |
 
-No new files or components needed -- the modal is simple enough to inline, matching the existing pattern used on the Facilities page.
+### Result
 
+- **Housekeeping tab**: Shows tents, bathrooms, showers, and common spaces that need cleaning -- clearly labeled
+- **Maintenance tab**: Shows bathrooms, showers, common spaces, and VIP facilities that are broken/need maintenance
+- **No more redundant "Bathrooms" tab** that mixed both concerns
