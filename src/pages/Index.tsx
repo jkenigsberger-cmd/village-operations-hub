@@ -109,6 +109,16 @@ const Index = () => {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
+  const [expandedMaintenanceItem, setExpandedMaintenanceItem] = useState<{
+    type: 'facility' | 'activitySpace' | 'vipTask';
+    title: string;
+    status: string;
+    statusLabel: string;
+    image?: string;
+    notes?: string;
+    location?: string;
+    onResolve: () => void;
+  } | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTentId, setSelectedTentId] = useState<string | null>(null);
   const [neighborhoodsSelectedDate, setNeighborhoodsSelectedDate] = useState<Date>(new Date());
@@ -809,7 +819,16 @@ const Index = () => {
                     <h3 className="text-xl font-semibold mb-4">{HE.nav.bathrooms}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {maintenanceItems.map((facility) =>
-                <div key={facility.id} className="tile border-destructive bg-destructive/5">
+                <div key={facility.id} className="tile border-destructive bg-destructive/5 cursor-pointer hover:shadow-lg transition-all"
+                  onClick={() => setExpandedMaintenanceItem({
+                    type: 'facility',
+                    title: facility.label,
+                    status: facility.workingStatus,
+                    statusLabel: facility.workingStatus === 'BROKEN' ? HE.status.broken : HE.status.maintenance,
+                    image: facility.maintenanceImage,
+                    notes: facility.maintenanceNotes,
+                    onResolve: () => { handleResolveMaintenance(facility.id); setExpandedMaintenanceItem(null); },
+                  })}>
                           <div className="flex items-center gap-3 mb-4">
                             <AlertTriangle className="w-6 h-6 text-destructive" />
                             <div>
@@ -825,17 +844,15 @@ const Index = () => {
                     src={facility.maintenanceImage}
                     alt="Issue"
                     className="w-full h-32 object-cover rounded-lg mb-3" />
-
                   }
                           
                           {facility.maintenanceNotes &&
-                  <p className="text-muted-foreground mb-4">{facility.maintenanceNotes}</p>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">{facility.maintenanceNotes}</p>
                   }
                           
                           <button
-                    onClick={() => handleResolveMaintenance(facility.id)}
+                    onClick={(e) => { e.stopPropagation(); handleResolveMaintenance(facility.id); }}
                     className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2">
-
                             <CheckCircle className="w-5 h-5" />
                             {HE.messages.taskCompleted}
                           </button>
@@ -851,7 +868,16 @@ const Index = () => {
                     <h3 className="text-xl font-semibold mb-4">{HE.nav.facilities}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {activitySpaceMaintenanceItems.map((space) =>
-                <div key={space.id} className="tile border-destructive bg-destructive/5">
+                <div key={space.id} className="tile border-destructive bg-destructive/5 cursor-pointer hover:shadow-lg transition-all"
+                  onClick={() => setExpandedMaintenanceItem({
+                    type: 'activitySpace',
+                    title: getActivitySpaceLabel(space),
+                    status: space.workingStatus || 'BROKEN',
+                    statusLabel: space.workingStatus === 'BROKEN' ? HE.status.broken : HE.status.maintenance,
+                    image: space.maintenanceImage,
+                    notes: space.maintenanceNotes,
+                    onResolve: () => { resolveActivitySpaceIssue(space.id); toast.success(HE.messages.taskCompleted); setExpandedMaintenanceItem(null); },
+                  })}>
                           <div className="flex items-center gap-3 mb-4">
                             <AlertTriangle className="w-6 h-6 text-destructive" />
                             <div>
@@ -867,20 +893,19 @@ const Index = () => {
                     src={space.maintenanceImage}
                     alt="Issue"
                     className="w-full h-32 object-cover rounded-lg mb-3" />
-
                   }
                           
                           {space.maintenanceNotes &&
-                  <p className="text-muted-foreground mb-4">{space.maintenanceNotes}</p>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">{space.maintenanceNotes}</p>
                   }
                           
                           <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       resolveActivitySpaceIssue(space.id);
                       toast.success(HE.messages.taskCompleted);
                     }}
                     className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2">
-
                             <CheckCircle className="w-5 h-5" />
                             {HE.messages.taskCompleted}
                           </button>
@@ -896,10 +921,25 @@ const Index = () => {
                     <h3 className="text-xl font-semibold mb-4">{HE.badges.vip} - {HE.nav.bathrooms}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {vipMaintenanceTasks.map((task) => {
-                  // Get the tent to show current status
                   const tent = task.entityId ? state.tents[task.entityId] : null;
                   return (
-                    <div key={task.id} className="tile border-vip bg-vip/5">
+                    <div key={task.id} className="tile border-vip bg-vip/5 cursor-pointer hover:shadow-lg transition-all"
+                      onClick={() => setExpandedMaintenanceItem({
+                        type: 'vipTask',
+                        title: task.title,
+                        status: 'BROKEN',
+                        statusLabel: task.description || '',
+                        image: task.maintenanceImage,
+                        location: tent ? `📍 ${tent.code}` : undefined,
+                        onResolve: () => {
+                          if (task.entityId && task.facilityType) {
+                            resolveTentFacilityIssue(task.entityId, task.facilityType);
+                          }
+                          removeDailyTask(task.id);
+                          toast.success(HE.messages.taskCompleted);
+                          setExpandedMaintenanceItem(null);
+                        },
+                      })}>
                             <div className="flex items-center gap-3 mb-4">
                               <Sparkles className="w-6 h-6 text-vip" />
                               <div>
@@ -908,16 +948,13 @@ const Index = () => {
                               </div>
                             </div>
                             
-                            {/* Show maintenance image if available */}
                             {task.maintenanceImage &&
                       <img
                         src={task.maintenanceImage}
                         alt="Issue"
                         className="w-full h-32 object-cover rounded-lg mb-3" />
-
                       }
                             
-                            {/* Show tent code for location context */}
                             {tent &&
                       <p className="text-sm text-muted-foreground mb-3">
                                 📍 {tent.code}
@@ -925,7 +962,8 @@ const Index = () => {
                       }
                             
                             <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (task.entityId && task.facilityType) {
                             resolveTentFacilityIssue(task.entityId, task.facilityType);
                           }
@@ -933,18 +971,63 @@ const Index = () => {
                           toast.success(HE.messages.taskCompleted);
                         }}
                         className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2">
-
                               <CheckCircle className="w-5 h-5" />
                               {HE.messages.taskCompleted}
                             </button>
                           </div>);
-
                 })}
                     </div>
                   </div>
             }
               </div>
           }
+
+          {/* Maintenance Detail Modal */}
+          {expandedMaintenanceItem && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setExpandedMaintenanceItem(null)}>
+              <div className="bg-background rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <button
+                      onClick={() => setExpandedMaintenanceItem(null)}
+                      className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
+                      ✕
+                    </button>
+                    <h2 className="text-2xl font-bold">{expandedMaintenanceItem.title}</h2>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <AlertTriangle className={`w-5 h-5 ${expandedMaintenanceItem.status === 'BROKEN' ? 'text-destructive' : 'text-yellow-600'}`} />
+                    <span className={`font-semibold ${expandedMaintenanceItem.status === 'BROKEN' ? 'text-destructive' : 'text-yellow-600'}`}>
+                      {expandedMaintenanceItem.statusLabel}
+                    </span>
+                  </div>
+
+                  {expandedMaintenanceItem.image && (
+                    <img
+                      src={expandedMaintenanceItem.image}
+                      alt="Issue"
+                      className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-muted" />
+                  )}
+
+                  {expandedMaintenanceItem.notes && (
+                    <p className="text-muted-foreground mb-4 text-lg">{expandedMaintenanceItem.notes}</p>
+                  )}
+
+                  {expandedMaintenanceItem.location && (
+                    <p className="text-muted-foreground mb-4">{expandedMaintenanceItem.location}</p>
+                  )}
+
+                  <button
+                    onClick={expandedMaintenanceItem.onResolve}
+                    className="w-full mt-4 px-6 py-4 bg-status-clean text-status-clean-foreground rounded-xl font-bold text-lg flex items-center justify-center gap-2">
+                    <CheckCircle className="w-6 h-6" />
+                    {HE.messages.taskCompleted}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           </section>
         }
 
