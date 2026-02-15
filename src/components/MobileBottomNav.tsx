@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon, Flame, ShowerHead, StickyNote } from 'lucide-react';
+import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon, Flame, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type MenuSection = 'overview' | 'calendar' | 'sleeping' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
+export type MenuSection = 'overview' | 'calendar' | 'sleeping' | 'allocations' | 'neighborhoods' | 'facilities' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 interface MobileBottomNavProps {
   activeSection: MenuSection;
@@ -10,7 +10,6 @@ interface MobileBottomNavProps {
   maintenanceCount?: number;
   housekeepingCount?: number;
   allocationsCount?: number;
-  bathroomsCount?: number;
   notesCount?: number;
 }
 
@@ -21,7 +20,6 @@ const navItems: { key: MenuSection; label: string; icon: React.ElementType }[] =
   { key: 'allocations', label: 'שיבוצים', icon: ClipboardList },
   { key: 'neighborhoods', label: 'שכונות', icon: Tent },
   { key: 'facilities', label: 'מתקנים', icon: Flame },
-  { key: 'bathrooms', label: 'שירותים', icon: ShowerHead },
   { key: 'maintenance', label: 'תחזוקה', icon: Wrench },
   { key: 'housekeeping', label: 'משק בית', icon: Sparkles },
   { key: 'notes', label: 'הערות', icon: StickyNote },
@@ -33,7 +31,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   maintenanceCount = 0,
   housekeepingCount = 0,
   allocationsCount = 0,
-  bathroomsCount = 0,
   notesCount = 0,
 }) => {
   return (
@@ -48,7 +45,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           const count = item.key === 'maintenance' ? maintenanceCount 
                       : item.key === 'housekeeping' ? housekeepingCount 
                       : item.key === 'allocations' ? allocationsCount
-                      : item.key === 'bathrooms' ? bathroomsCount
                       : item.key === 'notes' ? notesCount
                       : 0;
           
