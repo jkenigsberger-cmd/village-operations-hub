@@ -218,5 +218,6 @@ export const useAdminGroups = () => {
     groups, activeGroups, archivedGroups, isLoading,
     addGroup, updateGroup, deleteGroup, getGroup,
     getDayUseGroupsForDate, addLinkedSpaceReservation, addLinkedKitchenSlot, archiveGroup, restoreGroup,
+    refetchGroups: loadData,
   };
 };
