@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 const GroupAllocation: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { groups, updateGroup } = useAdminGroups();
+  const { groups, updateGroup, refetchGroups } = useAdminGroups();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const group = groups.find(g => g.id === id);
@@ -42,7 +42,8 @@ const GroupAllocation: React.FC = () => {
   }
 
   // Force re-render when group data changes
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    await refetchGroups();
     setRefreshKey(prev => prev + 1);
   };
 
