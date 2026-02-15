@@ -1,55 +1,59 @@
 
-
-# Fix VIP Allocation Bug: remainingStaff Drifts When Editing Group Configs
+# Fix: VIP Tent Unassignment Not Reflecting Immediately
 
 ## Problem
 
-When you create or edit a group and add/change VIP tent configs (especially adding extra beds), the `remainingStaff` counter stored in the database does not get recalculated. The allocation page then uses this stale counter to decide if you can assign a VIP config to a tent -- and blocks the assignment when the numbers don't match.
-
-**Example scenario:**
-- Group has `staffCount = 27`, 9 VIP configs each with 3 beds = 27 planned
-- You go back to the group edit form and toggle "extra bed" on one config, making it 3+1 = 4
-- Total planned is now 28, but `remainingStaff` is still based on the old calculation
-- When assigning the last config, the system says "Not enough remaining staff"
+When you unassign (delete) a VIP tent in the allocation page, the VIP tent grid and assigned configs list don't update immediately. You have to wait for the realtime subscription to eventually refresh the data.
 
 ## Root Cause
 
-Two issues work together:
+The `handleUpdate` callback in `GroupAllocation.tsx` only increments a `refreshKey` counter to force a remount of `VIPAllocationTab`. But the `group` prop passed to it comes from `groups.find(...)`, which still holds stale data because the realtime subscription hasn't fired yet. So the component remounts with the old group data.
 
-1. **AdminGroupEdit.tsx** (line 646): When saving an existing group, it uses the old stored `formData.remainingStaff` instead of recalculating from current configs
-2. **useGroupAllocation.ts** (lines 621-626): The `assignVIPConfig` function trusts the stored `remainingStaff` counter as absolute truth, rather than computing it dynamically from the actual assigned configs
+```text
+User clicks "Release tent"
+  -> unassignVIPConfig() writes to DB (async, completes)
+  -> onUpdate() called -> refreshKey++ -> VIPAllocationTab remounts
+  -> BUT groups array still has OLD data (realtime hasn't arrived yet)
+  -> Component shows stale state
+  -> ~1-2 seconds later, realtime fires, groups update, UI finally refreshes
+```
 
 ## Solution
 
-Fix both the save logic and the allocation check:
+Two small changes:
 
-### 1. `src/pages/AdminGroupEdit.tsx` -- Recalculate on save
+### 1. `src/hooks/useAdminGroups.ts` -- Expose `loadData` as `refetchGroups`
 
-When saving an existing group, compute `remainingStaff` dynamically:
+Add `loadData` to the returned object so callers can trigger an immediate data refetch:
 
+```typescript
+return {
+  groups, activeGroups, archivedGroups, isLoading,
+  addGroup, updateGroup, deleteGroup, getGroup,
+  getDayUseGroupsForDate, addLinkedSpaceReservation, addLinkedKitchenSlot,
+  archiveGroup, restoreGroup,
+  refetchGroups: loadData,  // <-- NEW
+};
 ```
-remainingStaff = staffCount - (sum of beds in already-assigned VIP configs)
+
+### 2. `src/pages/GroupAllocation.tsx` -- Await refetch before remounting
+
+Update `handleUpdate` to first refetch the groups data, then increment the key:
+
+```typescript
+const { groups, updateGroup, refetchGroups } = useAdminGroups();
+
+const handleUpdate = async () => {
+  await refetchGroups();       // Wait for fresh data from DB
+  setRefreshKey(prev => prev + 1);  // Then remount with updated group
+};
 ```
 
-This ensures that adding/removing extra beds or changing `bedsPlanned` in the edit form always produces a correct counter on save.
-
-### 2. `src/hooks/useGroupAllocation.ts` -- Dynamic check in assignVIPConfig
-
-Replace the stored-counter check with a live calculation:
-
-- Compute `alreadyAssignedBeds` = sum of `bedsPlanned + hasExtraBed` for configs that already have an `assignedTentCode`
-- `dynamicRemaining = staffCount - alreadyAssignedBeds`
-- Use `dynamicRemaining` for the guard check instead of `group.remainingStaff`
-- After assignment, set `remainingStaff = dynamicRemaining - bedsBeingAssigned`
-
-### 3. `src/hooks/useGroupAllocation.ts` -- Same fix in unassignVIPConfig
-
-After unassigning, recalculate `remainingStaff` from the updated configs rather than adding to the stored value. This prevents accumulation errors.
+This ensures that by the time `VIPAllocationTab` remounts, the `group` prop already reflects the latest database state -- no waiting for the realtime subscription.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/AdminGroupEdit.tsx` | Recalculate `remainingStaff` on save for existing groups based on assigned VIP configs |
-| `src/hooks/useGroupAllocation.ts` | Replace stored counter checks with dynamic calculation in both `assignVIPConfig` and `unassignVIPConfig` |
-
+| `src/hooks/useAdminGroups.ts` | Expose `loadData` as `refetchGroups` in the return object |
+| `src/pages/GroupAllocation.tsx` | Destructure `refetchGroups`, make `handleUpdate` async and await the refetch before incrementing key |
