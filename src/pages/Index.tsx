@@ -19,6 +19,7 @@ import { MasterCalendar } from '@/components/MasterCalendar';
 import { SleepingDashboard } from '@/components/SleepingDashboard';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { PendingAllocationCard } from '@/components/PendingAllocationCard';
+import { DailySummaryCard } from '@/components/DailySummaryCard';
 import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
 import { BOOKING_STATUS_COLORS, type BookingStatus } from '@/lib/bookingStatusColors';
 import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
@@ -490,6 +491,11 @@ const Index = () => {
                   </div>
                 </div>
               </div>
+            </section>
+
+            {/* Daily Summary Card */}
+            <section className="mb-6 md:mb-10">
+              <DailySummaryCard selectedDate={new Date()} />
             </section>
 
             {/* Pending Allocations Section */}
