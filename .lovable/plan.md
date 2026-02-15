@@ -1,36 +1,22 @@
 
-# Add Polling Fallback for Multi-Device Data Sync
+
+# Remove Polling Fallback
 
 ## Problem
-Maintenance data (and other village data) doesn't update across devices unless the page is manually refreshed. Realtime subscriptions can silently disconnect.
+The polling fallback we just added is causing disruptive auto-refreshes that interfere with normal usage.
 
 ## Solution
-Add a smart polling fallback alongside the existing realtime subscriptions in `useSupabaseVillage.ts`. This ensures every connected device stays up-to-date even if its realtime channel drops.
+Remove the polling interval and the `lastRealtimeEvent` ref from `src/hooks/useSupabaseVillage.ts`, reverting to pure realtime subscriptions only.
 
 ## Changes
 
-### File: `src/hooks/useSupabaseVillage.ts` (lines 363-389)
+### File: `src/hooks/useSupabaseVillage.ts`
 
-Update the realtime subscription `useEffect` block to add polling:
+1. Remove the `useRef` import addition (keep `useState, useEffect, useCallback` only)
+2. Remove the `lastRealtimeEvent` ref declaration
+3. Remove the `onRealtimeChange` wrapper function -- revert callbacks back to direct `() => loadData()` calls
+4. Remove the `setInterval` polling block
+5. Remove the `clearInterval(pollInterval)` from the cleanup
 
-1. Add a `useRef` to track the last time a realtime event was received
-2. Inside each realtime callback, update that ref timestamp (in addition to calling `loadData()`)
-3. Add a `setInterval` that polls `loadData()` every 15 seconds
-4. If a realtime event was received within the last 30 seconds, skip the poll (realtime is healthy)
-5. If no realtime event was received recently, execute the poll to catch up
-6. Clean up the interval on unmount alongside the existing channel cleanup
+This fully reverts the polling fallback while keeping all realtime subscriptions intact.
 
-### Logic summary:
-
-```text
-Realtime event --> loadData() + mark lastRealtimeEvent = now
-Every 15s poll --> if (now - lastRealtimeEvent > 30s) then loadData()
-Unmount --> clear interval + remove channels
-```
-
-This keeps network usage minimal when realtime is working (polls are skipped), but catches silent disconnections within 15 seconds. All devices benefit independently.
-
-### No other files changed
-- No UI changes
-- No database changes
-- No new dependencies
