@@ -1,42 +1,55 @@
 
 
-# Fix Daily Summary Card Subtitle Layout
+# Fix VIP Allocation Bug: remainingStaff Drifts When Editing Group Configs
 
 ## Problem
 
-The subtitle line on the tile is a single long string (`"12 אנשים · 3 קבוצות · 2 לנים · 4 חללים · 6 ארוחות"`) that can wrap awkwardly, causing numbers to separate from their labels -- especially on narrower screens.
+When you create or edit a group and add/change VIP tent configs (especially adding extra beds), the `remainingStaff` counter stored in the database does not get recalculated. The allocation page then uses this stale counter to decide if you can assign a VIP config to a tent -- and blocks the assignment when the numbers don't match.
+
+**Example scenario:**
+- Group has `staffCount = 27`, 9 VIP configs each with 3 beds = 27 planned
+- You go back to the group edit form and toggle "extra bed" on one config, making it 3+1 = 4
+- Total planned is now 28, but `remainingStaff` is still based on the old calculation
+- When assigning the last config, the system says "Not enough remaining staff"
+
+## Root Cause
+
+Two issues work together:
+
+1. **AdminGroupEdit.tsx** (line 646): When saving an existing group, it uses the old stored `formData.remainingStaff` instead of recalculating from current configs
+2. **useGroupAllocation.ts** (lines 621-626): The `assignVIPConfig` function trusts the stored `remainingStaff` counter as absolute truth, rather than computing it dynamically from the actual assigned configs
 
 ## Solution
 
-Replace the single `<p>` subtitle with a `flex flex-wrap` container of individual `<span>` elements, each containing one metric (number + label) as a non-breaking unit. A small dot separator sits between them.
+Fix both the save logic and the allocation check:
 
-## Technical Changes
+### 1. `src/pages/AdminGroupEdit.tsx` -- Recalculate on save
 
-### File: `src/components/DailySummaryCard.tsx`
+When saving an existing group, compute `remainingStaff` dynamically:
 
-**Line 74** -- Replace the subtitle `<p>` tag:
-
-From:
-```tsx
-<p className="text-sm text-muted-foreground">{subtitle}</p>
+```
+remainingStaff = staffCount - (sum of beds in already-assigned VIP configs)
 ```
 
-To:
-```tsx
-<div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">
-  <span className="whitespace-nowrap">{summary.totalPeople} אנשים</span>
-  <span>·</span>
-  <span className="whitespace-nowrap">{summary.totalGroups} קבוצות</span>
-  <span>·</span>
-  <span className="whitespace-nowrap">{summary.sleepingPeople} לנים</span>
-  <span>·</span>
-  <span className="whitespace-nowrap">{summary.spacesUsed} חללים</span>
-  <span>·</span>
-  <span className="whitespace-nowrap">{summary.mealsCount} ארוחות</span>
-</div>
-```
+This ensures that adding/removing extra beds or changing `bedsPlanned` in the edit form always produces a correct counter on save.
 
-Each metric pair (number + word) uses `whitespace-nowrap` so they never split across lines. The `flex-wrap` allows the whole row to wrap cleanly between metrics if the tile is narrow.
+### 2. `src/hooks/useGroupAllocation.ts` -- Dynamic check in assignVIPConfig
 
-The `subtitle` variable on line 58 can be removed since it will no longer be used.
+Replace the stored-counter check with a live calculation:
+
+- Compute `alreadyAssignedBeds` = sum of `bedsPlanned + hasExtraBed` for configs that already have an `assignedTentCode`
+- `dynamicRemaining = staffCount - alreadyAssignedBeds`
+- Use `dynamicRemaining` for the guard check instead of `group.remainingStaff`
+- After assignment, set `remainingStaff = dynamicRemaining - bedsBeingAssigned`
+
+### 3. `src/hooks/useGroupAllocation.ts` -- Same fix in unassignVIPConfig
+
+After unassigning, recalculate `remainingStaff` from the updated configs rather than adding to the stored value. This prevents accumulation errors.
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/pages/AdminGroupEdit.tsx` | Recalculate `remainingStaff` on save for existing groups based on assigned VIP configs |
+| `src/hooks/useGroupAllocation.ts` | Replace stored counter checks with dynamic calculation in both `assignVIPConfig` and `unassignVIPConfig` |
 
