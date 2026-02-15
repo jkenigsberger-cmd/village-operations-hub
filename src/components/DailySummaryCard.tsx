@@ -55,7 +55,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ selectedDate
     };
   }, [groups, dayStr, state.activityReservations, getTimeSlotsForDate]);
 
-  const subtitle = `${summary.totalPeople} אנשים · ${summary.totalGroups} קבוצות · ${summary.sleepingPeople} לנים · ${summary.spacesUsed} חללים · ${summary.mealsCount} ארוחות`;
+  
 
   const formattedDate = format(selectedDate, 'EEEE, d בMMMM', { locale: he });
 
@@ -71,7 +71,17 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ selectedDate
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold">סיכום יומי</h3>
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">
+              <span className="whitespace-nowrap">{summary.totalPeople} אנשים</span>
+              <span>·</span>
+              <span className="whitespace-nowrap">{summary.totalGroups} קבוצות</span>
+              <span>·</span>
+              <span className="whitespace-nowrap">{summary.sleepingPeople} לנים</span>
+              <span>·</span>
+              <span className="whitespace-nowrap">{summary.spacesUsed} חללים</span>
+              <span>·</span>
+              <span className="whitespace-nowrap">{summary.mealsCount} ארוחות</span>
+            </div>
           </div>
           <ChevronLeft className="w-5 h-5 text-muted-foreground" />
         </div>
