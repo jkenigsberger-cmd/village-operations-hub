@@ -1,64 +1,32 @@
 
 
-# Hide Checked-Out Groups from Allocation Tab
+# Click-to-Enlarge Maintenance Cards
 
-## Problem
+## What will change
 
-Groups that have already checked out (their `endDate` is in the past) still appear in the Sleeping/Allocation tab. Once a group has departed, there's no reason to keep showing it in the allocation view.
+When you tap/click on any maintenance card in the Maintenance tab, it will open as a larger, centered modal overlay -- making the image, description, and details much easier to read. The "resolve" button will also be available inside the modal.
 
-## Solution
+## Technical Details
 
-Add a date filter to `getSleepingGroups` in `src/lib/allocationStatus.ts` to exclude groups whose `endDate` is strictly before today.
+### File: `src/pages/Index.tsx`
 
-## Technical Change
+1. **Add state** for the selected maintenance item:
+   - `expandedMaintenanceItem` -- stores the clicked card's data (facility, activity space, or VIP task) plus its type
+   - `setExpandedMaintenanceItem` -- setter to open/close the modal
 
-### File: `src/lib/allocationStatus.ts` (function `getSleepingGroups`, line 111-114)
+2. **Make each card clickable**: Wrap the three card types (bathroom/shower facilities, activity spaces, VIP tent tasks) with an `onClick` handler that sets the expanded item state. The "resolve" button inside the card will use `e.stopPropagation()` so it still works without opening the modal.
 
-**Before:**
-```typescript
-export function getSleepingGroups(groups: GroupRecord[]): GroupRecord[] {
-  return groups.filter(g => 
-    g.groupType !== 'יום ללא לינה' && !g.isArchived
-  );
-}
-```
+3. **Add a modal overlay** (reusing the same pattern from the Facilities page -- a fixed overlay with centered content):
+   - Shows the card's title, status, full-size image (not cropped to h-32), description/notes, and location
+   - Includes the same "resolve" button
+   - Close via X button or clicking the backdrop
+   - Responsive: full-screen on mobile, max-width centered card on desktop
 
-**After:**
-```typescript
-export function getSleepingGroups(groups: GroupRecord[]): GroupRecord[] {
-  const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  return groups.filter(g => 
-    g.groupType !== 'יום ללא לינה' && !g.isArchived && g.endDate >= todayStr
-  );
-}
-```
-
-This uses the existing "Hotel Rule" logic: a group is still relevant on its checkout day (`endDate === today`) since checkout happens during that day. Only groups whose `endDate` is strictly before today are hidden.
-
-Similarly, update `groupNeedsAllocation` to also skip past groups from the notification section:
-
-### Same file, function `groupNeedsAllocation` (line 93-105)
-
-Add the same date check so checked-out groups don't appear in the "Pending Allocation" notifications on the overview tab either.
-
-```typescript
-export function groupNeedsAllocation(
-  group: GroupRecord,
-  allocations: AllocationRecord[]
-): boolean {
-  if (group.groupType === 'יום ללא לינה') return false;
-  if (group.isArchived) return false;
-  const todayStr = new Date().toISOString().split('T')[0];
-  if (group.endDate < todayStr) return false;
-  
-  const status = computeAllocationStatus(group, allocations);
-  return status.status !== 'fully_allocated';
-}
-```
-
-## Files Changed
+### Changes summary
 
 | File | Change |
 |------|--------|
-| `src/lib/allocationStatus.ts` | Add `endDate >= today` filter to `getSleepingGroups` and `groupNeedsAllocation` |
+| `src/pages/Index.tsx` | Add `expandedMaintenanceItem` state, onClick handlers on all 3 card types, and a detail modal overlay at the bottom of the maintenance section |
+
+No new files or components needed -- the modal is simple enough to inline, matching the existing pattern used on the Facilities page.
 
