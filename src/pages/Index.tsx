@@ -43,7 +43,7 @@ import {
   Loader2,
   Home,
   Flame,
-  ShowerHead,
+  
   StickyNote,
   AlertTriangle,
   Wrench,
@@ -224,10 +224,8 @@ const Index = () => {
 
   // Get all facilities organized by type
   const allFacilities = Object.values(state.facilities);
-  const bathroomFacilities = allFacilities.filter((f) => f.type === 'TOILET' || f.type === 'SHOWER');
-  const facilitiesNeedingAttention = bathroomFacilities.filter(
-    (f) => f.cleaningStatus === 'NEEDS_CLEANING' || f.workingStatus === 'BROKEN'
-  );
+
+  // Maintenance items - facilities that are broken or need maintenance
 
   // Maintenance items - facilities that are broken or need maintenance
   const maintenanceItems = allFacilities.filter(
@@ -268,7 +266,6 @@ const Index = () => {
   { key: 'allocations', label: HE.nav.allocations, icon: ClipboardList, count: groupsNeedingAllocation.length > 0 ? groupsNeedingAllocation.length : undefined },
   { key: 'neighborhoods', label: HE.nav.neighborhoods, icon: Tent },
   { key: 'facilities', label: HE.nav.facilities, icon: Flame },
-  { key: 'bathrooms', label: HE.nav.bathrooms, icon: ShowerHead, count: facilitiesNeedingAttention.length },
   { key: 'maintenance', label: HE.nav.maintenance, icon: Wrench, count: totalMaintenanceCount },
   { key: 'housekeeping', label: HE.nav.housekeeping, icon: Sparkles, count: totalHousekeepingItems },
   { key: 'notes', label: HE.nav.notes, icon: StickyNote }];
@@ -341,8 +338,7 @@ const Index = () => {
         onSectionChange={setActiveSection}
         maintenanceCount={totalMaintenanceCount}
         housekeepingCount={totalHousekeepingItems}
-        allocationsCount={groupsNeedingAllocation.length}
-        bathroomsCount={facilitiesNeedingAttention.length} />
+        allocationsCount={groupsNeedingAllocation.length} />
 
       {/* Navigation Menu - Desktop only */}
       <nav className="bg-card border-b border-border hidden md:block">
@@ -763,40 +759,6 @@ const Index = () => {
           </section>
         }
 
-        {/* Bathrooms Section */}
-        {activeSection === 'bathrooms' &&
-        <section>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold flex items-center gap-3">
-                <ShowerHead className="w-8 h-8" />
-                {HE.nav.bathrooms}
-              </h2>
-              <button
-              onClick={() => navigate('/facilities')}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold">
-
-                {HE.actions.viewAll}
-              </button>
-            </div>
-            
-            {facilitiesNeedingAttention.length === 0 ?
-          <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
-                <p className="text-xl font-medium">{HE.messages.allFacilitiesWorking}</p>
-              </div> :
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {facilitiesNeedingAttention.map((facility) =>
-            <FacilityTile
-              key={facility.id}
-              facility={facility}
-              onClick={() => setSelectedFacility(facility)} />
-
-            )}
-              </div>
-          }
-          </section>
-        }
 
         {/* Maintenance Section */}
         {activeSection === 'maintenance' &&
@@ -1085,19 +1047,35 @@ const Index = () => {
                   </div>
             }
 
-                {/* Facilities */}
-                {facilitiesNeedingCleaning.length > 0 &&
+                {/* Bathrooms (Toilets) */}
+                {facilitiesNeedingCleaning.filter(f => f.type === 'TOILET').length > 0 &&
             <div>
                     <h3 className="text-xl font-semibold mb-4">
-                      {HE.entities.facilities} ({facilitiesNeedingCleaning.length})
+                      {HE.entities.toilet} ({facilitiesNeedingCleaning.filter(f => f.type === 'TOILET').length})
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {facilitiesNeedingCleaning.map((facility) =>
+                      {facilitiesNeedingCleaning.filter(f => f.type === 'TOILET').map((facility) =>
                 <FacilityTile
                   key={facility.id}
                   facility={facility}
                   onClick={() => setSelectedFacility(facility)} />
+                )}
+                    </div>
+                  </div>
+            }
 
+                {/* Showers */}
+                {facilitiesNeedingCleaning.filter(f => f.type === 'SHOWER').length > 0 &&
+            <div>
+                    <h3 className="text-xl font-semibold mb-4">
+                      {HE.entities.shower} ({facilitiesNeedingCleaning.filter(f => f.type === 'SHOWER').length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {facilitiesNeedingCleaning.filter(f => f.type === 'SHOWER').map((facility) =>
+                <FacilityTile
+                  key={facility.id}
+                  facility={facility}
+                  onClick={() => setSelectedFacility(facility)} />
                 )}
                     </div>
                   </div>
