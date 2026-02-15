@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useKitchenData } from '@/hooks/useKitchenData';
+import { useVillage } from '@/context/VillageContext';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Users } from 'lucide-react';
@@ -10,6 +12,8 @@ interface DailySummaryCardProps {
 
 export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ selectedDate }) => {
   const { groups } = useAdminGroups();
+  const { getTimeSlotsForDate } = useKitchenData();
+  const { state } = useVillage();
   const dayStr = format(selectedDate, 'yyyy-MM-dd');
 
   const summary = useMemo(() => {
@@ -25,14 +29,19 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ selectedDate
     const totalPeople = allToday.reduce((sum, g) => sum + (g.pax || 0), 0);
     const sleepingPeople = sleepingGroups.reduce((sum, g) => sum + (g.pax || 0), 0);
 
+    const spacesUsed = Object.values(state.activityReservations).filter(r => r.date === dayStr).length;
+    const mealsCount = getTimeSlotsForDate(dayStr).length;
+
     return {
       totalGroups: allToday.length,
       totalPeople,
       sleepingPeople,
+      spacesUsed,
+      mealsCount,
     };
-  }, [groups, dayStr]);
+  }, [groups, dayStr, state.activityReservations, getTimeSlotsForDate]);
 
-  const subtitle = `${summary.totalPeople} אנשים · ${summary.totalGroups} קבוצות · ${summary.sleepingPeople} לנים`;
+  const subtitle = `${summary.totalPeople} אנשים · ${summary.totalGroups} קבוצות · ${summary.sleepingPeople} לנים · ${summary.spacesUsed} חללים · ${summary.mealsCount} ארוחות`;
 
   return (
     <div className="tile p-6 border-r-4 border-indigo-500">
