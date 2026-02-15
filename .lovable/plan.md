@@ -1,60 +1,52 @@
 
 
-# Fix: Last VIP Config Cannot Be Assigned Due to Over-Strict Guard
+# Fix: Deduplicate Group Cards in Master Calendar
 
 ## Problem
 
-The last VIP config cannot be assigned to a tent. The error says:
-```
-Not enough remaining staff for VIP assignment: need 3, have 2 (staffCount=27, alreadyAssigned=25)
-```
+On February 17th (and any day with lodging groups), the calendar shows up to 4 cards for the same group:
+- 1 card per neighborhood reservation (e.g., 2 neighborhoods = 2 cards)
+- 1 arrival card from the unified GroupStay
+- 1 departure card from the unified GroupStay (if applicable)
 
-The group has `staffCount = 27` but the total planned beds across all 9 VIP configs sum to more than 27 (e.g., one config has an extra bed making the total 28). The dynamic guard correctly computes `27 - 25 = 2` remaining, but the last config needs 3 beds, so it gets blocked.
-
-## Root Cause
-
-The `remainingStaff` guard in `assignVIPConfig` prevents assignment when the total planned beds across all VIP configs exceeds `staffCount`. But the user explicitly created these configs -- if they added an extra bed, they intended for all configs to be assignable. The guard is too strict.
+These are redundant because the GroupStay arrival/departure cards already display the neighborhood names, VIP tents, and pax count in their subtitle.
 
 ## Solution
 
-Remove the `remainingStaff` guard check entirely from `assignVIPConfig`. The only validation needed is whether the physical tent is available (not occupied by another group). The user already defined the configs they want -- the system should not second-guess the totals.
-
-The `remainingStaff` field will still be updated for display purposes on the summary counters, but it will no longer block assignment.
+Skip generating individual `NEIGHBORHOOD` events (Section 1 in MasterCalendar) for groups that already have a unified GroupStay entry. This is the same pattern already used for individual tent check-in/check-out events (Section 4, line 152).
 
 ## Technical Change
 
-### File: `src/hooks/useGroupAllocation.ts` (lines 621-631)
+### File: `src/components/MasterCalendar.tsx`
 
-Remove the dynamic remaining check block and simplify:
+In the `allEvents` memo, filter out neighborhood reservations whose `groupName` already appears in the `groupStayGroupNames` set (which is already computed on line 148).
 
-**Before:**
+**Before (lines 86-105):**
 ```typescript
-// Dynamic check: compute remaining staff from actual assigned configs
-const alreadyAssignedBeds = group.vipTentConfigs
-  .filter(c => c.assignedTentCode && c.id !== configId)
-  .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
-const staffCount = group.staffCount ?? 0;
-const dynamicRemaining = staffCount - alreadyAssignedBeds;
-
-if (bedsBeingAssigned > dynamicRemaining) {
-  console.warn(`Not enough remaining staff...`);
-  return false;
-}
+// 1. Neighborhood reservations (multi-day)
+Object.values(state.neighborhoodReservations || {}).forEach(reservation => {
+  events.push({ ... });
+});
 ```
 
 **After:**
 ```typescript
-// Compute remaining staff for display purposes (no blocking)
-const alreadyAssignedBeds = group.vipTentConfigs
-  .filter(c => c.assignedTentCode && c.id !== configId)
-  .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
-const staffCount = group.staffCount ?? 0;
-const dynamicRemaining = staffCount - alreadyAssignedBeds;
+// 1. Neighborhood reservations (multi-day) -- skip groups handled by GroupStay
+Object.values(state.neighborhoodReservations || {}).forEach(reservation => {
+  if (groupStayGroupNames.has(reservation.groupName)) return; // already shown in unified arrival/departure
+  events.push({ ... });
+});
 ```
 
-The guard `if (bedsBeingAssigned > dynamicRemaining)` and its `console.warn` + `return false` are removed. The `dynamicRemaining` variable is kept since it is used on line 639 to compute `newRemainingStaff` for the counter display.
+One additional ordering change: move the `groupStayGroupNames` set computation (currently line 148) to before Section 1, so it is available for the neighborhood filter.
 
-### No other files change
+### Result
 
-Only the guard logic in `assignVIPConfig` needs updating.
+Each group will appear at most twice on any given day: once for arrival (check-in day) and once for departure (check-out day). The neighborhood and VIP details are already visible in the subtitle of those cards.
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/MasterCalendar.tsx` | Move `groupStayGroupNames` set computation earlier; add skip condition for neighborhood reservations belonging to grouped stays |
 
