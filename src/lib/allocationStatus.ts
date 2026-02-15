@@ -99,6 +99,8 @@ export function groupNeedsAllocation(
   
   // Archived groups don't show in notifications
   if (group.isArchived) return false;
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (group.endDate < todayStr) return false;
   
   const status = computeAllocationStatus(group, allocations);
   return status.status !== 'fully_allocated';
@@ -109,7 +111,8 @@ export function groupNeedsAllocation(
  * These always appear in the allocations view, regardless of status.
  */
 export function getSleepingGroups(groups: GroupRecord[]): GroupRecord[] {
+  const todayStr = new Date().toISOString().split('T')[0];
   return groups.filter(g => 
-    g.groupType !== 'יום ללא לינה' && !g.isArchived
+    g.groupType !== 'יום ללא לינה' && !g.isArchived && g.endDate >= todayStr
   );
 }
