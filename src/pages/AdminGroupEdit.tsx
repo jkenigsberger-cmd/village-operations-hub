@@ -643,7 +643,7 @@ const AdminGroupEdit = () => {
       mealsPlan,
       distributionPreference: isDayUseGroup ? undefined : distributionPreference,
       assignmentStatus: isDayUseGroup ? undefined : assignmentStatus,
-      remainingStaff: isNew ? staffCount : formData.remainingStaff,
+      remainingStaff: isNew ? staffCount : (staffCount - vipTentConfigs.filter(c => c.assignedTentCode).reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0)),
       remainingParticipants: isNew ? participantCount : formData.remainingParticipants,
     };
 

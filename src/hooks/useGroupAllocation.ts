@@ -615,13 +615,18 @@ export const useGroupAllocation = () => {
     const tentAvailable = availability.find(t => t.tentCode === tentCode)?.available;
     if (!tentAvailable) return false;
 
-    // Calculate beds being assigned (for decrementing remainingStaff)
+    // Calculate beds being assigned
     const bedsBeingAssigned = configToAssign.bedsPlanned + (configToAssign.hasExtraBed ? 1 : 0);
     
-    // Check if we have enough remaining staff
-    const currentRemainingStaff = group.remainingStaff ?? group.staffCount ?? 0;
-    if (bedsBeingAssigned > currentRemainingStaff) {
-      console.warn('Not enough remaining staff for VIP assignment');
+    // Dynamic check: compute remaining staff from actual assigned configs (source of truth)
+    const alreadyAssignedBeds = group.vipTentConfigs
+      .filter(c => c.assignedTentCode && c.id !== configId) // exclude the one being assigned now
+      .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
+    const staffCount = group.staffCount ?? 0;
+    const dynamicRemaining = staffCount - alreadyAssignedBeds;
+    
+    if (bedsBeingAssigned > dynamicRemaining) {
+      console.warn(`Not enough remaining staff for VIP assignment: need ${bedsBeingAssigned}, have ${dynamicRemaining} (staffCount=${staffCount}, alreadyAssigned=${alreadyAssignedBeds})`);
       return false;
     }
 
@@ -630,8 +635,8 @@ export const useGroupAllocation = () => {
       config.id === configId ? { ...config, assignedTentCode: tentCode } : config
     );
 
-    // Decrement remainingStaff (VIP uses staff count, not participants)
-    const newRemainingStaff = currentRemainingStaff - bedsBeingAssigned;
+    // Compute remainingStaff from source of truth after assignment
+    const newRemainingStaff = dynamicRemaining - bedsBeingAssigned;
 
     await updateGroup(groupId, { 
       vipTentConfigs: updatedConfigs,
@@ -677,9 +682,12 @@ export const useGroupAllocation = () => {
       config.id === configId ? { ...config, assignedTentCode: undefined } : config
     );
 
-    // Restore remainingStaff
-    const currentRemainingStaff = group.remainingStaff ?? 0;
-    const newRemainingStaff = currentRemainingStaff + bedsBeingFreed;
+    // Recalculate remainingStaff from source of truth after unassignment
+    const staffCount = group.staffCount ?? 0;
+    const remainingAssignedBeds = updatedConfigs
+      .filter(c => c.assignedTentCode)
+      .reduce((sum, c) => sum + c.bedsPlanned + (c.hasExtraBed ? 1 : 0), 0);
+    const newRemainingStaff = staffCount - remainingAssignedBeds;
 
     await updateGroup(groupId, { 
       vipTentConfigs: updatedConfigs,
