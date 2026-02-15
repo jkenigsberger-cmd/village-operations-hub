@@ -1,43 +1,42 @@
 
-# Add Detail Modal to Daily Summary Card
 
-## What Changes
+# Fix Daily Summary Card Subtitle Layout
 
-Make the Daily Summary tile clickable. When clicked, it opens a small informational modal/dialog showing detailed breakdowns for the selected date.
+## Problem
 
-## Modal Content
+The subtitle line on the tile is a single long string (`"12 אנשים · 3 קבוצות · 2 לנים · 4 חללים · 6 ארוחות"`) that can wrap awkwardly, causing numbers to separate from their labels -- especially on narrower screens.
 
-The modal will display three sections with specific group-level details:
+## Solution
 
-**Header**: "סיכום יומי - {formatted date}"
-
-**Section 1 - Groups (קבוצות)**
-- List each active group by name, pax count, and type (lodging/day-only)
-- Subtotals: total groups, sleeping groups, day-only groups
-
-**Section 2 - People (אנשים)**
-- Total people on site
-- Sleeping tonight count
-- Day-only count
-- CHECK IN today (list group names arriving)
-- CHECK OUT today (list group names departing)
-
-**Section 3 - Operations (פעילות)**
-- Common spaces booked: count + list of space names/times
-- Meals scheduled: count + list of meal types/times
+Replace the single `<p>` subtitle with a `flex flex-wrap` container of individual `<span>` elements, each containing one metric (number + label) as a non-breaking unit. A small dot separator sits between them.
 
 ## Technical Changes
 
 ### File: `src/components/DailySummaryCard.tsx`
 
-1. Add `useState` for modal open/close
-2. Expand `useMemo` to also return the actual group lists (not just counts): `activeGroups`, `sleepingGroups`, `dayOnlyGroups`, `checkInGroups`, `checkOutGroups`
-3. Get activity reservation details (space name, time) and kitchen slot details (meal type, time) for the list views
-4. Make the tile div clickable with `cursor-pointer hover:shadow-lg transition-all`
-5. Use the existing `ResponsiveModal` component (Dialog on desktop, Drawer on mobile) to show the detail view
-6. Inside the modal, render the three sections with simple list items -- group name, pax, type labels
-7. The modal is read-only, no actions or edit buttons
+**Line 74** -- Replace the subtitle `<p>` tag:
 
-### No other files change
+From:
+```tsx
+<p className="text-sm text-muted-foreground">{subtitle}</p>
+```
 
-The tile stays in the same grid position. Only the component itself gains click-to-open behavior and a detail modal.
+To:
+```tsx
+<div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">
+  <span className="whitespace-nowrap">{summary.totalPeople} אנשים</span>
+  <span>·</span>
+  <span className="whitespace-nowrap">{summary.totalGroups} קבוצות</span>
+  <span>·</span>
+  <span className="whitespace-nowrap">{summary.sleepingPeople} לנים</span>
+  <span>·</span>
+  <span className="whitespace-nowrap">{summary.spacesUsed} חללים</span>
+  <span>·</span>
+  <span className="whitespace-nowrap">{summary.mealsCount} ארוחות</span>
+</div>
+```
+
+Each metric pair (number + word) uses `whitespace-nowrap` so they never split across lines. The `flex-wrap` allows the whole row to wrap cleanly between metrics if the tile is narrow.
+
+The `subtitle` variable on line 58 can be removed since it will no longer be used.
+
