@@ -1379,11 +1379,11 @@ const Index = () => {
             
             <div className="space-y-8">
               {/* Maintenance Items */}
-              {(maintenanceItems.length > 0 || vipMaintenanceTasks.length > 0) &&
+              {(maintenanceItems.length > 0 || activitySpaceMaintenanceItems.length > 0 || vipMaintenanceTasks.length > 0) &&
             <div>
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Wrench className="w-5 h-5" />
-                    {HE.nav.maintenance} ({maintenanceItems.length + vipMaintenanceTasks.length})
+                    {HE.nav.maintenance} ({totalMaintenanceCount})
                   </h3>
                   <button
                 onClick={() => setActiveSection('maintenance')}
