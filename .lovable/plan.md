@@ -1,39 +1,35 @@
 
-
-# Restore Bathrooms & Showers Tab in Dashboard
+# Sort Facilities Numerically Within Each Area Group
 
 ## What will change
 
-A dedicated "שירותים ומקלחות" (Bathrooms & Showers) tab will be added back to the dashboard navigation, giving quick access to view and manage all bathroom and shower facilities. This restores the tab that was previously removed.
+On the Bathrooms & Showers page (`/facilities`), facilities within each area group will be sorted in ascending numeric order (small to big). The area groups themselves stay in their current order.
 
-## Approach
+For example, if an area has facilities labeled "תא 13", "תא 4", "מקלחת 1", "מקלחת 12", they will be sorted as: 1, 4, 12, 13.
 
-The tab will navigate to the existing `/facilities` page (which already has the full bathrooms/showers management UI with area expansion, status toggles, and report issue flow). This keeps the dashboard clean and avoids duplicating the facility management logic.
+## Technical Details
 
-## Technical Changes
+### File: `src/pages/Facilities.tsx`
 
-### 1. Add `MenuSection` type variant
+**Line 114** -- After mapping `facilityIds` to facility objects, sort them by extracting the numeric portion from `facility.label`:
 
-**File: `src/components/MobileBottomNav.tsx`**
+```typescript
+// Before:
+const facilities = area.facilityIds.map(id => state.facilities[id]).filter(Boolean);
 
-- Add `'bathrooms'` to the `MenuSection` type union
-- Add a nav item `{ key: 'bathrooms', label: 'שירותים', icon: Bath }` to the `navItems` array (positioned after `'facilities'`)
+// After:
+const facilities = area.facilityIds
+  .map(id => state.facilities[id])
+  .filter(Boolean)
+  .sort((a, b) => {
+    const numA = parseInt(a.label.match(/\d+/)?.[0] || '0', 10);
+    const numB = parseInt(b.label.match(/\d+/)?.[0] || '0', 10);
+    return numA - numB;
+  });
+```
 
-### 2. Add menu item to desktop navigation
-
-**File: `src/pages/Index.tsx`**
-
-- Add `{ key: 'bathrooms', label: HE.nav.bathrooms, icon: Bath }` to the `menuItems` array (after `'facilities'`)
-- Add a handler in the section change logic: when `'bathrooms'` is selected, navigate to `/facilities`
-
-### 3. Handle navigation
-
-**File: `src/pages/Index.tsx`**
-
-- In the `setActiveSection` handler or via an `useEffect`, detect when `activeSection` becomes `'bathrooms'` and call `navigate('/facilities')` to open the dedicated facilities page
+Also apply the same sort in `getAreaStats` (line 74) for consistency, though it only affects counting so it is optional.
 
 | File | Change |
 |------|--------|
-| `src/components/MobileBottomNav.tsx` | Add `'bathrooms'` to MenuSection type; add nav item with Bath icon |
-| `src/pages/Index.tsx` | Add bathrooms menu item; navigate to `/facilities` when selected |
-
+| `src/pages/Facilities.tsx` | Sort facilities array numerically by label after mapping from `facilityIds` (line 114) |
