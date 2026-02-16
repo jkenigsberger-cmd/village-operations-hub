@@ -16,6 +16,7 @@ import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
 import { BOOKING_STATUS_COLORS, getBookingStatus } from '@/lib/bookingStatusColors';
 
 import { Badge } from '@/components/ui/badge';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { NeighborhoodId, Tent } from '@/types/village';
 import { 
   Search, 
@@ -240,11 +241,14 @@ const Neighborhood = () => {
         <div className="container py-3 md:py-6">
           <BreadcrumbNav items={[{ label: neighborhood.displayName }]} />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
-            <div>
-              <h1 className="text-2xl md:text-4xl font-bold">{neighborhood.displayName}</h1>
-              {neighborhood.description && (
-                <p className="text-muted-foreground text-sm md:text-lg mt-1 hidden sm:block">{neighborhood.description}</p>
-              )}
+            <div className="flex items-start gap-3 flex-1">
+              <div>
+                <h1 className="text-2xl md:text-4xl font-bold">{neighborhood.displayName}</h1>
+                {neighborhood.description && (
+                  <p className="text-muted-foreground text-sm md:text-lg mt-1 hidden sm:block">{neighborhood.description}</p>
+                )}
+              </div>
+              <GlobalSearch />
             </div>
             
             {/* Stats */}

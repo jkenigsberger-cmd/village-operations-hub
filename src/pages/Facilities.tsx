@@ -9,6 +9,7 @@ import { Loader2, Bath, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-rea
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { HE } from '@/lib/translations';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 const Facilities = () => {
   const { areaId } = useParams<{ areaId?: string }>();
@@ -96,13 +97,18 @@ const Facilities = () => {
       <header className="bg-card border-b-2 border-border">
         <div className="container py-6">
           <BreadcrumbNav items={[{ label: HE.nav.bathrooms }]} />
-          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-            <Bath className="w-10 h-10" />
-            {HE.pages.bathroomsShowers}
-          </h1>
-          <p className="text-muted-foreground text-lg mt-2">
-            ניהול ניקיון, מצב והזמנות לכל המתקנים
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+                <Bath className="w-10 h-10" />
+                {HE.pages.bathroomsShowers}
+              </h1>
+              <p className="text-muted-foreground text-lg mt-2">
+                ניהול ניקיון, מצב והזמנות לכל המתקנים
+              </p>
+            </div>
+            <GlobalSearch />
+          </div>
         </div>
       </header>
 
