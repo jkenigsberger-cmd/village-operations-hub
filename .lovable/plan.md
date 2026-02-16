@@ -1,26 +1,35 @@
 
-# Remove Housekeeping from the "התראת מתקנים" Dashboard Tile
 
-## What will change
+# Fix: Include Common Spaces in Facilities Alert Detail View
 
-The "התראת מתקנים" (Facilities Alert) tile on the dashboard overview and its detail section will only show **maintenance** items (broken/needs repair). Housekeeping (cleaning) notifications will be removed from this tile since they belong in the dedicated Housekeeping tab.
+## Problem
 
-## Technical Changes
+The "התראת מתקנים" dashboard tile badge correctly counts common space (activity space) maintenance issues via `totalMaintenanceCount`, but when you click into the detail view, the condition on line 1382 only checks for `maintenanceItems` (bathrooms/showers) and `vipMaintenanceTasks` -- it completely ignores `activitySpaceMaintenanceItems`. So if a bunker or dining hall is broken, you see the red badge but the detail section appears empty.
+
+## Fix
 
 ### File: `src/pages/Index.tsx`
 
-1. **Dashboard tile (lines 460-482)**: Remove `totalHousekeepingItems` from the count and condition -- only use `totalMaintenanceCount`
+**Line 1382** -- Add `activitySpaceMaintenanceItems` to the display condition:
+```
+// Before:
+{(maintenanceItems.length > 0 || vipMaintenanceTasks.length > 0) &&
 
-2. **Subtitle text (line 474)**: Change from `HE.stats.maintenanceHousekeeping` ("תחזוקה ומשק בית") to just maintenance-related text (e.g., `HE.nav.maintenance`)
+// After:
+{(maintenanceItems.length > 0 || activitySpaceMaintenanceItems.length > 0 || vipMaintenanceTasks.length > 0) &&
+```
 
-3. **Facilities-alert detail section (lines 1397-1411)**: Remove the entire Housekeeping sub-section that shows housekeeping count and "View All" button
+**Line 1386** -- Include activity spaces in the count:
+```
+// Before:
+{HE.nav.maintenance} ({maintenanceItems.length + vipMaintenanceTasks.length})
 
-### File: `src/lib/translations.ts`
+// After:
+{HE.nav.maintenance} ({totalMaintenanceCount})
+```
 
-No changes needed -- the existing `HE.nav.maintenance` label can be reused for the subtitle.
-
-### Summary
+These are two small line changes in the same file. No new components or files needed.
 
 | File | Change |
 |------|--------|
-| `src/pages/Index.tsx` | Remove housekeeping count from facilities alert tile badge and condition; remove housekeeping sub-section from facilities-alert detail view; update subtitle to maintenance-only |
+| `src/pages/Index.tsx` | Add `activitySpaceMaintenanceItems` to the condition on line 1382; use `totalMaintenanceCount` in the count display on line 1386 |
