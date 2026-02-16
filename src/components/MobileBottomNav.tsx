@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon, Flame, StickyNote } from 'lucide-react';
+import { Home, CalendarDays, Tent, Sparkles, Wrench, ClipboardList, Moon, Flame, StickyNote, Bath } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type MenuSection = 'overview' | 'calendar' | 'sleeping' | 'allocations' | 'neighborhoods' | 'facilities' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
+export type MenuSection = 'overview' | 'calendar' | 'sleeping' | 'allocations' | 'neighborhoods' | 'facilities' | 'bathrooms' | 'maintenance' | 'housekeeping' | 'notes' | 'facilities-alert' | 'check-ins' | 'check-outs' | 'needs-cleaning';
 
 interface MobileBottomNavProps {
   activeSection: MenuSection;
@@ -20,6 +20,7 @@ const navItems: { key: MenuSection; label: string; icon: React.ElementType }[] =
   { key: 'allocations', label: 'שיבוצים', icon: ClipboardList },
   { key: 'neighborhoods', label: 'שכונות', icon: Tent },
   { key: 'facilities', label: 'מתקנים', icon: Flame },
+  { key: 'bathrooms', label: 'שירותים', icon: Bath },
   { key: 'maintenance', label: 'תחזוקה', icon: Wrench },
   { key: 'housekeeping', label: 'משק בית', icon: Sparkles },
   { key: 'notes', label: 'הערות', icon: StickyNote },
