@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { CalendarEvent } from '@/types/village';
+import { DayCapacity } from '@/hooks/useCalendarCapacity';
 import { 
   format, 
   startOfWeek, 
@@ -24,6 +25,7 @@ interface CalendarWeekViewProps {
   selectedDate: Date;
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
+  getCapacityForDate: (date: Date | string) => DayCapacity;
 }
 
 const getEventIcon = (type: CalendarEvent['type']) => {
@@ -40,7 +42,8 @@ const getEventIcon = (type: CalendarEvent['type']) => {
 export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({ 
   selectedDate, 
   events,
-  onDayClick 
+  onDayClick,
+  getCapacityForDate
 }) => {
   // Get all days of the week
   const weekDays = useMemo(() => {
@@ -128,10 +131,11 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
       <div className="min-w-[600px]">
       {/* Header row with day names */}
       <div className="grid grid-cols-7 border-b border-border">
-        {weekDays.map((day, index) => {
+        {weekDays.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayEvents = eventsByDay[dateStr] || [];
           const isCurrentDay = isToday(day);
+          const cap = getCapacityForDate(day);
 
           return (
             <div 
@@ -149,6 +153,14 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                 isCurrentDay && "text-primary"
               )}>
                 {format(day, 'd')}
+              </div>
+              <div className="flex items-center justify-center gap-2 text-[10px] mt-1 text-muted-foreground">
+                <span className={cn(cap.participantsOverCapacity && "text-destructive font-bold")}>
+                  🛏️{cap.participantsFree}
+                </span>
+                <span className={cn(cap.vipOverCapacity && "text-destructive font-bold")}>
+                  ⭐{cap.vipFree}
+                </span>
               </div>
             </div>
           );
