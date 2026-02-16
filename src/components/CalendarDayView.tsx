@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { CalendarEvent } from '@/types/village';
+import { DayCapacity } from '@/hooks/useCalendarCapacity';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,8 @@ import {
   Users,
   Clock,
   MapPin,
-  ChefHat
+  ChefHat,
+  Star
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -20,6 +22,7 @@ interface CalendarDayViewProps {
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
   onGroupEventClick?: (event: CalendarEvent) => void;
+  getCapacityForDate: (date: Date | string) => DayCapacity;
 }
 
 // Hours to display (6:00 - 22:00)
@@ -47,7 +50,7 @@ const getContrastColor = (hslColor: string): string => {
   return 'white';
 };
 
-export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, events, onEventClick, onGroupEventClick }) => {
+export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, events, onEventClick, onGroupEventClick, getCapacityForDate }) => {
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
   // Separate all-day events (check-ins, check-outs, neighborhoods) from timed events
@@ -105,6 +108,8 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
   const checkIns = allDayEvents.filter(e => e.type === 'TENT_CHECKIN');
   const checkOuts = allDayEvents.filter(e => e.type === 'TENT_CHECKOUT');
 
+  const cap = getCapacityForDate(selectedDate);
+
   return (
     <div className="flex flex-col lg:flex-row min-h-[600px]">
       {/* Sidebar with all-day events */}
@@ -116,6 +121,50 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
           <p className="text-sm text-muted-foreground capitalize">
             {format(selectedDate, "MMMM yyyy", { locale: he })}
           </p>
+        </div>
+
+        {/* Capacity card */}
+        <div className="p-4 border-b border-border">
+          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <Tent className="w-4 h-4" />
+            קיבולת לינה
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Participants */}
+            <div className={cn(
+              "rounded-lg p-3 border",
+              cap.participantsOverCapacity ? "border-destructive bg-destructive/10" : "bg-muted/50"
+            )}>
+              <div className="text-xs text-muted-foreground mb-1">🛏️ חניכים</div>
+              <div className={cn("text-2xl font-bold", cap.participantsOverCapacity && "text-destructive")}>
+                {cap.participantsFree}
+                <span className="text-xs font-normal text-muted-foreground mr-1">פנוי</span>
+              </div>
+              {cap.participantsOverCapacity && (
+                <span className="text-[10px] bg-destructive text-destructive-foreground rounded px-1 py-0.5">חריגה</span>
+              )}
+              <div className="text-[10px] text-muted-foreground mt-1">
+                לנים: {cap.participantsSleeping} · קיבולת: {cap.participantsCapacity}
+              </div>
+            </div>
+            {/* VIP */}
+            <div className={cn(
+              "rounded-lg p-3 border",
+              cap.vipOverCapacity ? "border-destructive bg-destructive/10" : "bg-muted/50"
+            )}>
+              <div className="text-xs text-muted-foreground mb-1">⭐ צוות (VIP)</div>
+              <div className={cn("text-2xl font-bold", cap.vipOverCapacity && "text-destructive")}>
+                {cap.vipFree}
+                <span className="text-xs font-normal text-muted-foreground mr-1">פנוי</span>
+              </div>
+              {cap.vipOverCapacity && (
+                <span className="text-[10px] bg-destructive text-destructive-foreground rounded px-1 py-0.5">חריגה</span>
+              )}
+              <div className="text-[10px] text-muted-foreground mt-1">
+                לנים: {cap.vipSleeping} · קיבולת: {cap.vipCapacity}
+              </div>
+            </div>
+          </div>
         </div>
 
         <ScrollArea className="h-[200px] lg:h-[500px]">

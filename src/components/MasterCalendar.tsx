@@ -5,6 +5,7 @@ import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useGroupStays } from '@/hooks/useGroupStays';
 import { CalendarEvent, CalendarEventType, getActivitySpaceLabel } from '@/types/village';
 import { useKitchenData } from '@/hooks/useKitchenData';
+import { useCalendarCapacity } from '@/hooks/useCalendarCapacity';
 import { kitchenSlotsToCalendarEvents, KITCHEN_EVENT_COLOR } from '@/lib/kitchenCalendarEvents';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
@@ -62,6 +63,7 @@ export const MasterCalendar: React.FC = () => {
   const { groups } = useAdminGroups();
   const { allGroupStays } = useGroupStays();
   const { state: kitchenState } = useKitchenData();
+  const { getCapacityForDate } = useCalendarCapacity();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -522,6 +524,7 @@ export const MasterCalendar: React.FC = () => {
             events={filteredEvents}
             onEventClick={handleEventClick}
             onGroupEventClick={handleGroupEventClick}
+            getCapacityForDate={getCapacityForDate}
           />
         )}
         {viewMode === 'week' && (
@@ -532,6 +535,7 @@ export const MasterCalendar: React.FC = () => {
               setSelectedDate(date);
               setViewMode('day');
             }}
+            getCapacityForDate={getCapacityForDate}
           />
         )}
         {viewMode === 'month' && (
@@ -542,6 +546,7 @@ export const MasterCalendar: React.FC = () => {
               setSelectedDate(date);
               setViewMode('day');
             }}
+            getCapacityForDate={getCapacityForDate}
           />
         )}
       </div>

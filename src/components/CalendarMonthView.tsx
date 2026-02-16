@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { CalendarEvent } from '@/types/village';
+import { DayCapacity } from '@/hooks/useCalendarCapacity';
 import { 
   format, 
   startOfMonth, 
@@ -26,6 +27,7 @@ interface CalendarMonthViewProps {
   selectedDate: Date;
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
+  getCapacityForDate: (date: Date | string) => DayCapacity;
 }
 
 // Event type dot colors
@@ -42,7 +44,8 @@ const DOT_COLORS: Record<string, string> = {
 export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({ 
   selectedDate, 
   events,
-  onDayClick 
+  onDayClick,
+  getCapacityForDate
 }) => {
   // Get all days to display (including days from prev/next month to fill the grid)
   const calendarDays = useMemo(() => {
@@ -134,13 +137,32 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                 isCurrentDay && "bg-primary/10"
               )}
             >
-              {/* Day number */}
-              <div className={cn(
-                "text-sm font-medium mb-1",
-                isCurrentDay && "text-primary font-bold"
-              )}>
-                {format(day, 'd')}
-              </div>
+              {/* Day number + capacity */}
+              {(() => {
+                const cap = isCurrentMonth ? getCapacityForDate(day) : null;
+                return (
+                  <>
+                    <div className={cn(
+                      "text-sm font-medium",
+                      isCurrentDay && "text-primary font-bold"
+                    )}>
+                      {format(day, 'd')}
+                    </div>
+                    {cap && (
+                      <div className="text-[10px] leading-tight mt-0.5 space-y-0">
+                        <div className={cn("flex items-center gap-0.5", cap.participantsOverCapacity && "text-red-500 font-bold")}>
+                          🛏️ <span>פנוי: {cap.participantsFree}</span>
+                          {cap.participantsOverCapacity && <span className="text-[8px] bg-red-500 text-white rounded px-0.5">חריגה</span>}
+                        </div>
+                        <div className={cn("flex items-center gap-0.5", cap.vipOverCapacity && "text-red-500 font-bold")}>
+                          ⭐ <span>פנוי: {cap.vipFree}</span>
+                          {cap.vipOverCapacity && <span className="text-[8px] bg-red-500 text-white rounded px-0.5">חריגה</span>}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Event indicators */}
               <div className="space-y-1">
