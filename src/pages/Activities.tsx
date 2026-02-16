@@ -24,6 +24,7 @@ import {
   Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { getReservationSpan, isHourInReservation, isReservationStartHour } from '@/lib/timeUtils';
 
 // Generate consistent color for group names
@@ -251,13 +252,18 @@ const Activities = () => {
       <header className="bg-card border-b-2 border-border">
         <div className="container py-6">
           <BreadcrumbNav items={[{ label: 'מתקנים משותפים' }]} />
-          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-            <CalendarDays className="w-10 h-10" />
-            מתקנים משותפים
-          </h1>
-          <p className="text-muted-foreground text-lg mt-2">
-            ניהול הזמנות, ניקיון ותחזוקה
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+                <CalendarDays className="w-10 h-10" />
+                מתקנים משותפים
+              </h1>
+              <p className="text-muted-foreground text-lg mt-2">
+                ניהול הזמנות, ניקיון ותחזוקה
+              </p>
+            </div>
+            <GlobalSearch />
+          </div>
         </div>
       </header>
 
