@@ -111,7 +111,14 @@ const Facilities = () => {
           {facilityAreas.map((area) => {
             const stats = getAreaStats(area.id);
             const isExpanded = expandedAreaId === area.id;
-            const facilities = area.facilityIds.map(id => state.facilities[id]).filter(Boolean);
+            const facilities = area.facilityIds
+              .map(id => state.facilities[id])
+              .filter(Boolean)
+              .sort((a, b) => {
+                const numA = parseInt(a.label.match(/\d+/)?.[0] || '0', 10);
+                const numB = parseInt(b.label.match(/\d+/)?.[0] || '0', 10);
+                return numA - numB;
+              });
 
             return (
               <div key={area.id} className="tile p-0 overflow-hidden">
