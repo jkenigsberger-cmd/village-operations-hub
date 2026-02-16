@@ -32,7 +32,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subti
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="bg-card border-b-2 border-border">
         <div className="container py-6">
-          <BreadcrumbNav items={[{ label: 'הגדרות', path: '/settings' }, { label: breadcrumbLabel }]} />
+          <BreadcrumbNav items={[{ label: 'הנהלה-הזמנות', path: '/settings' }, { label: breadcrumbLabel }]} />
           <div className="flex items-center gap-3">
             <HeaderIcon className="w-8 h-8 md:w-10 md:h-10" />
             <div>
