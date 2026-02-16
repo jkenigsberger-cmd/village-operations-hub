@@ -1,35 +1,45 @@
 
-# Sort Facilities Numerically Within Each Area Group
+# Add Global Search to All Standalone Pages
 
 ## What will change
 
-On the Bathrooms & Showers page (`/facilities`), facilities within each area group will be sorted in ascending numeric order (small to big). The area groups themselves stay in their current order.
+The search button (magnifying glass icon) that currently exists only on the main dashboard will be added to the header of every standalone page: **Facilities** (Bathrooms & Showers), **Activities** (Common Spaces), and **Neighborhood** pages. This means you can search for any tent, bathroom, shower, or activity space from anywhere in the app without navigating back to the dashboard first.
 
-For example, if an area has facilities labeled "תא 13", "תא 4", "מקלחת 1", "מקלחת 12", they will be sorted as: 1, 4, 12, 13.
+The existing search engine and its index will be reused -- no changes to how search works, just making it accessible everywhere.
 
 ## Technical Details
 
-### File: `src/pages/Facilities.tsx`
-
-**Line 114** -- After mapping `facilityIds` to facility objects, sort them by extracting the numeric portion from `facility.label`:
-
-```typescript
-// Before:
-const facilities = area.facilityIds.map(id => state.facilities[id]).filter(Boolean);
-
-// After:
-const facilities = area.facilityIds
-  .map(id => state.facilities[id])
-  .filter(Boolean)
-  .sort((a, b) => {
-    const numA = parseInt(a.label.match(/\d+/)?.[0] || '0', 10);
-    const numB = parseInt(b.label.match(/\d+/)?.[0] || '0', 10);
-    return numA - numB;
-  });
-```
-
-Also apply the same sort in `getAreaStats` (line 74) for consistency, though it only affects counting so it is optional.
+### Files to modify
 
 | File | Change |
 |------|--------|
-| `src/pages/Facilities.tsx` | Sort facilities array numerically by label after mapping from `facilityIds` (line 114) |
+| `src/pages/Facilities.tsx` | Import `GlobalSearch` and add it to the page header, next to the title |
+| `src/pages/Activities.tsx` | Import `GlobalSearch` and add it to the page header |
+| `src/pages/Neighborhood.tsx` | Import `GlobalSearch` and add it to the page header |
+
+### Implementation
+
+For each page, add the `GlobalSearch` component in the header area. The search button will be placed at the top-right of the header (in RTL layout, top-left visually) so it is always accessible.
+
+**Example for Facilities.tsx (same pattern for the others):**
+
+```typescript
+import { GlobalSearch } from '@/components/GlobalSearch';
+```
+
+Then in the header section, wrap the title row in a flex container with the search button:
+
+```tsx
+<div className="flex items-start justify-between">
+  <div>
+    <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+      <Bath className="w-10 h-10" />
+      {HE.pages.bathroomsShowers}
+    </h1>
+    <p className="text-muted-foreground text-lg mt-2">...</p>
+  </div>
+  <GlobalSearch />
+</div>
+```
+
+No changes are needed to the `GlobalSearch` component itself or the search index -- it already indexes tents, facilities, and activity spaces and navigates to the correct page with focus parameters.
