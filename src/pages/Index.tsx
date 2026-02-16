@@ -106,6 +106,13 @@ const Index = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Navigate to facilities page when bathrooms tab is selected
+  useEffect(() => {
+    if (activeSection === 'bathrooms') {
+      navigate('/facilities');
+    }
+  }, [activeSection, navigate]);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
@@ -266,6 +273,7 @@ const Index = () => {
   { key: 'allocations', label: HE.nav.allocations, icon: ClipboardList, count: groupsNeedingAllocation.length > 0 ? groupsNeedingAllocation.length : undefined },
   { key: 'neighborhoods', label: HE.nav.neighborhoods, icon: Tent },
   { key: 'facilities', label: HE.nav.facilities, icon: Flame },
+  { key: 'bathrooms', label: HE.nav.bathrooms, icon: Bath },
   { key: 'maintenance', label: HE.nav.maintenance, icon: Wrench, count: totalMaintenanceCount },
   { key: 'housekeeping', label: HE.nav.housekeeping, icon: Sparkles, count: totalHousekeepingItems },
   { key: 'notes', label: HE.nav.notes, icon: StickyNote }];
