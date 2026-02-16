@@ -463,7 +463,7 @@ const Index = () => {
 
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                  totalMaintenanceCount + totalHousekeepingItems > 0 ?
+                  totalMaintenanceCount > 0 ?
                   'bg-destructive/20 text-destructive' :
                   'bg-muted text-muted-foreground'}`
                   }>
@@ -471,11 +471,11 @@ const Index = () => {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-xl font-bold">{HE.stats.facilitiesAlert}</h3>
-                      <p className="text-sm text-muted-foreground">{HE.stats.maintenanceHousekeeping}</p>
+                      <p className="text-sm text-muted-foreground">{HE.nav.maintenance}</p>
                     </div>
-                    {totalMaintenanceCount + totalHousekeepingItems > 0 &&
+                    {totalMaintenanceCount > 0 &&
                   <span className="px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground font-bold text-lg">
-                        {totalMaintenanceCount + totalHousekeepingItems}
+                        {totalMaintenanceCount}
                       </span>
                   }
                   </div>
@@ -1394,21 +1394,6 @@ const Index = () => {
                 </div>
             }
 
-              {/* Housekeeping Items */}
-              {totalHousekeepingItems > 0 &&
-            <div>
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    {HE.nav.housekeeping} ({totalHousekeepingItems})
-                  </h3>
-                  <button
-                onClick={() => setActiveSection('housekeeping')}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold">
-
-                    {HE.actions.viewAll}
-                  </button>
-                </div>
-            }
             </div>
           </section>
         }
