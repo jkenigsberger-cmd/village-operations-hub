@@ -1,67 +1,34 @@
 
-# Auto-Clear Maintenance Data When Issue is Resolved
+# Clean Up Old Maintenance Data
 
 ## Problem
 
-When a facility (bathroom/shower) or activity space is set back to "WORKING" status, the maintenance photo and description (תיאור) remain attached. They should be automatically erased when the issue is resolved.
+The fix to auto-clear maintenance data when setting status to "WORKING" only works going forward. There are **18 records** (13 facilities + 5 activity spaces) that already have leftover maintenance photos and descriptions from before the fix.
 
-## Root Cause
+## What will change
 
-In `src/pages/Facilities.tsx`, the `onWorkingChange` handler calls `updateFacilityWorkingStatus()` which only updates the status field. It does not clear `maintenanceImage` or `maintenanceNotes`. The correct function `resolveFacilityIssue()` (which clears everything) exists but is not being used here.
+A one-time data cleanup will erase all old maintenance images and notes from facilities and activity spaces that are currently marked as "WORKING" (תקין). This affects:
 
-## Changes
+**Facilities (13):** תא 33, תא 19, תא 39, מקלחת 2, מקלחת 5, מקלחת 1, תא 41, מקלחת 3, תא 17, תא 35, מקלחת 6, תא 34, מקלחת 7
 
-### File: `src/pages/Facilities.tsx`
+**Activity spaces (5):** ממ"ד 6, ממ"ד 2, חדר אוכל, אוהל מועד, ממ"ד 4
 
-**Line 218-220** -- When working status changes to `WORKING`, call `resolveFacilityIssue` instead of `updateFacilityWorkingStatus`, and also clear the local state for maintenance fields:
+## Technical Details
 
-```typescript
-onWorkingChange={(status) => {
-  if (status === 'WORKING') {
-    resolveFacilityIssue(selectedFacility.id);
-    setSelectedFacility({ 
-      ...selectedFacility, 
-      workingStatus: status, 
-      maintenanceImage: undefined, 
-      maintenanceNotes: undefined 
-    });
-  } else {
-    updateFacilityWorkingStatus(selectedFacility.id, status);
-    setSelectedFacility({ ...selectedFacility, workingStatus: status });
-  }
-}}
+Two data update queries will be run:
+
+```sql
+-- Clear leftover maintenance data from facilities marked WORKING
+UPDATE facilities 
+SET maintenance_image = NULL, maintenance_notes = NULL 
+WHERE working_status = 'WORKING' 
+  AND (maintenance_image IS NOT NULL OR maintenance_notes IS NOT NULL);
+
+-- Clear leftover maintenance data from activity spaces marked WORKING
+UPDATE activity_spaces 
+SET maintenance_image = NULL, maintenance_notes = NULL 
+WHERE working_status = 'WORKING' 
+  AND (maintenance_image IS NOT NULL OR maintenance_notes IS NOT NULL);
 ```
 
-Also need to import `resolveFacilityIssue` from `useVillage()` if not already imported.
-
-### File: `src/context/VillageContext.tsx`
-
-**Line 312-314** -- As a safety net, update `updateFacilityWorkingStatus` itself to automatically clear maintenance data when status changes to `WORKING`:
-
-```typescript
-const updateFacilityWorkingStatus = useCallback((facilityId: string, workingStatus: WorkingStatus) => {
-  if (workingStatus === 'WORKING') {
-    updateFacility(facilityId, { 
-      workingStatus, 
-      maintenanceNotes: undefined, 
-      maintenanceImage: undefined 
-    }).catch(console.error);
-  } else {
-    updateFacility(facilityId, { workingStatus }).catch(console.error);
-  }
-}, [updateFacility]);
-```
-
-Similarly, **line 417-433** -- update `updateActivitySpaceStatus` to clear maintenance data when `workingStatus` changes to `WORKING`:
-
-```typescript
-if (workingStatus === 'WORKING') {
-  updates.maintenanceNotes = undefined;
-  updates.maintenanceImage = undefined;
-}
-```
-
-| File | Change |
-|------|--------|
-| `src/pages/Facilities.tsx` | Use `resolveFacilityIssue` when status returns to WORKING; clear local state for maintenance fields |
-| `src/context/VillageContext.tsx` | Safety net: `updateFacilityWorkingStatus` and `updateActivitySpaceStatus` auto-clear maintenance data on WORKING |
+No code changes are needed -- the previous fix already ensures this won't happen again going forward.
