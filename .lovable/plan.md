@@ -1,26 +1,67 @@
 
-# Rename "הגדרות" to "הנהלה-הזמנות"
+# Auto-Clear Maintenance Data When Issue is Resolved
 
-## What will change
+## Problem
 
-The Settings button and page title will be renamed from "הגדרות" (Settings) to "הנהלה-הזמנות" (Management-Bookings) across the entire app.
+When a facility (bathroom/shower) or activity space is set back to "WORKING" status, the maintenance photo and description (תיאור) remain attached. They should be automatically erased when the issue is resolved.
 
-## Technical Details
+## Root Cause
 
-### 1. Update translation strings
+In `src/pages/Facilities.tsx`, the `onWorkingChange` handler calls `updateFacilityWorkingStatus()` which only updates the status field. It does not clear `maintenanceImage` or `maintenanceNotes`. The correct function `resolveFacilityIssue()` (which clears everything) exists but is not being used here.
 
-**File: `src/lib/translations.ts`**
+## Changes
 
-| Key | Before | After |
-|-----|--------|-------|
-| `nav.settings` | `'הגדרות'` | `'הנהלה-הזמנות'` |
-| `pages.settings` | `'הגדרות'` | `'הנהלה-הזמנות'` |
-| `pages.settingsData` | `'הגדרות ונתונים'` | `'הנהלה-הזמנות'` |
+### File: `src/pages/Facilities.tsx`
 
-### 2. Update hardcoded breadcrumb
+**Line 218-220** -- When working status changes to `WORKING`, call `resolveFacilityIssue` instead of `updateFacilityWorkingStatus`, and also clear the local state for maintenance fields:
 
-**File: `src/components/AdminLayout.tsx`** (line 35)
+```typescript
+onWorkingChange={(status) => {
+  if (status === 'WORKING') {
+    resolveFacilityIssue(selectedFacility.id);
+    setSelectedFacility({ 
+      ...selectedFacility, 
+      workingStatus: status, 
+      maintenanceImage: undefined, 
+      maintenanceNotes: undefined 
+    });
+  } else {
+    updateFacilityWorkingStatus(selectedFacility.id, status);
+    setSelectedFacility({ ...selectedFacility, workingStatus: status });
+  }
+}}
+```
 
-Change the breadcrumb label from `'הגדרות'` to `'הנהלה-הזמנות'`.
+Also need to import `resolveFacilityIssue` from `useVillage()` if not already imported.
 
-No other files need changes since `Index.tsx` and `Settings.tsx` already reference `HE.nav.settings` and `HE.pages.settingsData` from translations.
+### File: `src/context/VillageContext.tsx`
+
+**Line 312-314** -- As a safety net, update `updateFacilityWorkingStatus` itself to automatically clear maintenance data when status changes to `WORKING`:
+
+```typescript
+const updateFacilityWorkingStatus = useCallback((facilityId: string, workingStatus: WorkingStatus) => {
+  if (workingStatus === 'WORKING') {
+    updateFacility(facilityId, { 
+      workingStatus, 
+      maintenanceNotes: undefined, 
+      maintenanceImage: undefined 
+    }).catch(console.error);
+  } else {
+    updateFacility(facilityId, { workingStatus }).catch(console.error);
+  }
+}, [updateFacility]);
+```
+
+Similarly, **line 417-433** -- update `updateActivitySpaceStatus` to clear maintenance data when `workingStatus` changes to `WORKING`:
+
+```typescript
+if (workingStatus === 'WORKING') {
+  updates.maintenanceNotes = undefined;
+  updates.maintenanceImage = undefined;
+}
+```
+
+| File | Change |
+|------|--------|
+| `src/pages/Facilities.tsx` | Use `resolveFacilityIssue` when status returns to WORKING; clear local state for maintenance fields |
+| `src/context/VillageContext.tsx` | Safety net: `updateFacilityWorkingStatus` and `updateActivitySpaceStatus` auto-clear maintenance data on WORKING |
