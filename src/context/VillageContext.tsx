@@ -310,7 +310,11 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [updateFacility]);
 
   const updateFacilityWorkingStatus = useCallback((facilityId: string, workingStatus: WorkingStatus) => {
-    updateFacility(facilityId, { workingStatus }).catch(console.error);
+    if (workingStatus === 'WORKING') {
+      updateFacility(facilityId, { workingStatus, maintenanceNotes: undefined, maintenanceImage: undefined }).catch(console.error);
+    } else {
+      updateFacility(facilityId, { workingStatus }).catch(console.error);
+    }
   }, [updateFacility]);
 
   const updateFacilityNotes = useCallback((facilityId: string, notes: string) => {
@@ -419,9 +423,15 @@ export const VillageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const space = state.activitySpaces[spaceId];
     if (!space) return;
 
-    const updates: Partial<{cleaningStatus: CleaningStatus; workingStatus: WorkingStatus; cleaningNotes: string | undefined}> = {};
+    const updates: Partial<{cleaningStatus: CleaningStatus; workingStatus: WorkingStatus; cleaningNotes: string | undefined; maintenanceNotes: string | undefined; maintenanceImage: string | undefined}> = {};
     if (cleaningStatus !== undefined) updates.cleaningStatus = cleaningStatus;
-    if (workingStatus !== undefined) updates.workingStatus = workingStatus;
+    if (workingStatus !== undefined) {
+      updates.workingStatus = workingStatus;
+      if (workingStatus === 'WORKING') {
+        updates.maintenanceNotes = undefined;
+        updates.maintenanceImage = undefined;
+      }
+    }
     // Clear cleaning notes when marking as clean, otherwise set if provided
     if (cleaningStatus === 'CLEAN') {
       updates.cleaningNotes = undefined;
