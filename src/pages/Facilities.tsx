@@ -22,6 +22,7 @@ const Facilities = () => {
     updateFacilityWorkingStatus,
     updateFacilityNotes,
     reportFacilityIssue,
+    resolveFacilityIssue,
   } = useVillage();
 
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(areaId || null);
@@ -216,8 +217,13 @@ const Facilities = () => {
                     setSelectedFacility({ ...selectedFacility, cleaningStatus: status });
                   }}
                   onWorkingChange={(status) => {
-                    updateFacilityWorkingStatus(selectedFacility.id, status);
-                    setSelectedFacility({ ...selectedFacility, workingStatus: status });
+                    if (status === 'WORKING') {
+                      resolveFacilityIssue(selectedFacility.id);
+                      setSelectedFacility({ ...selectedFacility, workingStatus: status, maintenanceImage: undefined, maintenanceNotes: undefined });
+                    } else {
+                      updateFacilityWorkingStatus(selectedFacility.id, status);
+                      setSelectedFacility({ ...selectedFacility, workingStatus: status });
+                    }
                   }}
                   onNotesChange={(notes) => {
                     updateFacilityNotes(selectedFacility.id, notes);
