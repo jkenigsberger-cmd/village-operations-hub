@@ -15,6 +15,7 @@ export type TentNode = {
   doubleTentId?: string;
   gender?: TentGender;
   hasReservation?: boolean; // Whether tent has active reservation (group name or dates)
+  hasExtraBed?: boolean; // Whether tent has +1 extra bed from VIP config
 };
 
 // Gender-based colors for tent fill - only when tent has reservation

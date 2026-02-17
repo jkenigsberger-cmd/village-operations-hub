@@ -11,6 +11,7 @@ interface TentCardProps {
   summary: TentSummary;
   to: string;
   showGrouped?: boolean;
+  hasExtraBed?: boolean;
 }
 
 // Gender color styles - only apply when tent has an active reservation
@@ -47,7 +48,7 @@ const getGenderBadge = (gender?: TentGender, hasReservation?: boolean) => {
   }
 };
 
-export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) => {
+export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped, hasExtraBed }) => {
   // Determine if tent has an active reservation using hotel-logic date check
   const today = format(new Date(), 'yyyy-MM-dd');
   const hasReservation = !!(
@@ -96,6 +97,11 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
           {summary.isVIP && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-vip text-vip-foreground rounded-full text-xs font-semibold">
               <Sparkles className="w-3 h-3" />
+            </span>
+          )}
+          {hasExtraBed && (
+            <span className="inline-flex items-center px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
+              +1
             </span>
           )}
           {summary.isAccessible && (

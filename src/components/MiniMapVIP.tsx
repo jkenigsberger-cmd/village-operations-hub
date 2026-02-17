@@ -8,6 +8,7 @@ export type MiniVIPTentNode = {
   onClick: () => void;
   gender?: TentGender;
   hasReservation?: boolean;
+  hasExtraBed?: boolean;
 };
 
 function MiniVIPTentIcon({ x, y, fill, stroke, label }: { 
@@ -110,6 +111,17 @@ export default function MiniMapVIP({ nodes, onMapClick }: MiniMapVIPProps) {
               stroke={stroke}
               label={node.code} 
             />
+            {node.hasExtraBed && (
+              <text
+                x={pos.x + 16}
+                y={pos.y - 10}
+                fontSize="6"
+                fontWeight="700"
+                fill="hsl(30, 80%, 45%)"
+              >
+                +1
+              </text>
+            )}
           </g>
         );
       })}

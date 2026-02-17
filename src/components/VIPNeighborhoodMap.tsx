@@ -224,6 +224,12 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
                 stroke={stroke}
                 label={node.code} 
               />
+              {node.hasExtraBed && (
+                <g transform={`translate(${pos.x + 30},${pos.y - 25})`}>
+                  <rect x="-10" y="-8" width="20" height="14" rx="3" fill="hsl(30, 80%, 50%)" />
+                  <text x="0" y="3" textAnchor="middle" fontSize="9" fontWeight="700" fill="white">+1</text>
+                </g>
+              )}
             </g>
           );
         })}

@@ -164,6 +164,20 @@ const Neighborhood = () => {
     }));
   }, [filteredTents, groupByDouble, hasDoubleTents]);
 
+  // Build a lookup of tent code -> hasExtraBed from all overlapping VIP groups
+  const extraBedByTentCode = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    if (!isVIPNeighborhood) return map;
+    overlappingVIPGroups.forEach(g => {
+      (g.vipTentConfigs || []).forEach(config => {
+        if (config.assignedTentCode && config.hasExtraBed) {
+          map[config.assignedTentCode] = true;
+        }
+      });
+    });
+    return map;
+  }, [overlappingVIPGroups, isVIPNeighborhood]);
+
   // Map nodes for NeighborhoodMap
   const mapNodes: TentNode[] = useMemo(() => {
     return filteredTents.map(({ tent, summary }) => {
@@ -204,9 +218,10 @@ const Neighborhood = () => {
         doubleTentId: tent.doubleTentId,
         gender: tent.gender,
         hasReservation,
+        hasExtraBed: !!extraBedByTentCode[tent.code],
       };
     });
-  }, [filteredTents]);
+  }, [filteredTents, extraBedByTentCode]);
 
   if (isLoading || !state) {
     return (
@@ -478,6 +493,7 @@ const Neighborhood = () => {
                 <TentCard
                   summary={summary}
                   to="#"
+                  hasExtraBed={!!extraBedByTentCode[tent.code]}
                 />
               </div>
             ))}

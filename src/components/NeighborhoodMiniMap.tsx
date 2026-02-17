@@ -15,6 +15,7 @@ interface NeighborhoodMiniMapProps {
   summary: NeighborhoodSummary;
   onTentClick: (tentId: string) => void;
   bookingPax?: number;
+  extraBedTentCodes?: Record<string, boolean>;
 }
 
 function getTentType(tent: Tent): "SIMPLE" | "DOUBLE" | "WHITE" {
@@ -29,7 +30,8 @@ export default function NeighborhoodMiniMap({
   tents, 
   summary,
   onTentClick,
-  bookingPax 
+  bookingPax,
+  extraBedTentCodes 
 }: NeighborhoodMiniMapProps) {
   const navigate = useNavigate();
   const isVIP = neighborhoodId === 'VIP';
@@ -69,8 +71,9 @@ export default function NeighborhoodMiniMap({
         const today = format(new Date(), 'yyyy-MM-dd');
         return !!(tent.checkInDate && tent.checkOutDate && tent.groupName && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
       })(),
+      hasExtraBed: !!extraBedTentCodes?.[tent.code],
     }));
-  }, [tents, isVIP, onTentClick]);
+  }, [tents, isVIP, onTentClick, extraBedTentCodes]);
 
   const displayedOccupied = Math.max(summary.occupiedBeds, bookingPax ?? 0);
   const occupancyPercent = summary.totalBeds > 0 

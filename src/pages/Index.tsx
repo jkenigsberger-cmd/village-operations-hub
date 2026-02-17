@@ -138,6 +138,21 @@ const Index = () => {
   // GOAL 2: Get ALL sleeping groups for allocations view
   const sleepingGroups = useMemo(() => getSleepingGroups(groups), [groups]);
 
+  // Compute extra bed tent codes from all active groups' VIP configs
+  const extraBedTentCodes = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    groups.forEach(g => {
+      if (g.startDate > todayStr || g.endDate < todayStr) return;
+      (g.vipTentConfigs || []).forEach(config => {
+        if (config.assignedTentCode && config.hasExtraBed) {
+          map[config.assignedTentCode] = true;
+        }
+      });
+    });
+    return map;
+  }, [groups]);
+
   // GOAL 2: Groups that need allocation (for notifications)
   const groupsNeedingAllocation = useMemo(() => {
     return groups.filter((g) => groupNeedsAllocation(g, allocations));
@@ -597,6 +612,7 @@ const Index = () => {
                       summary={summary}
                       onTentClick={(tentId) => setSelectedTentId(tentId)}
                       bookingPax={booking?.totalPax}
+                      extraBedTentCodes={id === 'VIP' ? extraBedTentCodes : undefined}
                     />
                   </div>
                 );
