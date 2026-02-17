@@ -404,6 +404,34 @@ export const useGroupAllocation = () => {
       }
     }
     
+    // For VIP_TENT allocations, also clean the physical tent
+    if (allocation.allocationType === 'VIP_TENT') {
+      // Find tent by resourceId (tent id) or by code from resourceLabel (e.g. "VIP 83")
+      let tentId = allocation.resourceId;
+      if (state && !state.tents[tentId]) {
+        // Try to find by code
+        const codeMatch = allocation.resourceLabel.match(/\d+/);
+        if (codeMatch) {
+          const found = Object.values(state.tents).find(t => t.code === `VIP ${codeMatch[0]}`);
+          if (found) tentId = found.id;
+        }
+      }
+
+      // Clear tent metadata
+      await updateTentGroupName(tentId, null);
+      await updateTentDates(tentId, null, null);
+      await updateTentGender(tentId, 'MIXED');
+
+      // Reset all beds in this tent to FREE
+      if (state?.tents[tentId]) {
+        for (const bed of state.tents[tentId].beds) {
+          if (bed.status === 'RESERVED' || bed.status === 'OCCUPIED') {
+            await setTentReservedBeds(tentId, bed.id, 'FREE');
+          }
+        }
+      }
+    }
+
     if (group) {
       // Restore remaining counts
       if (allocation.allocationType === 'VIP_TENT') {
@@ -419,7 +447,7 @@ export const useGroupAllocation = () => {
 
     // Optimistic update
     setAllocations(prev => prev.filter(a => a.id !== allocationId));
-  }, [allocations, groups, updateGroup]);
+  }, [allocations, groups, updateGroup, state, updateTentGroupName, updateTentDates, updateTentGender, setTentReservedBeds]);
 
   // Get allocations for a group
   const getGroupAllocations = useCallback((groupId: string) => {

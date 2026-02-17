@@ -186,7 +186,7 @@ const Neighborhood = () => {
       // Check if tent has active reservation using hotel-logic date check
       const today = format(new Date(), 'yyyy-MM-dd');
       const hasReservation = !!(
-        tent.checkInDate && tent.checkOutDate &&
+        tent.checkInDate && tent.checkOutDate && tent.groupName &&
         getBookingStatus(tent.checkInDate, tent.checkOutDate, today)
       );
 
