@@ -1,32 +1,27 @@
 
 
-# Fix: "+1 Extra Bed" Badge Not Showing on VIP Tents
+# Move "+1 Extra Bed" Badge to a Distinct Position on TentCard
 
-## Root Cause
+## Problem
+The "+1" badge on the TentCard is grouped with other small badges (VIP sparkle, accessibility, bathroom, gender) in the top-right corner, making it hard to distinguish.
 
-The `assignedTentCode` stored in `vipTentConfigs` is just the number (e.g. `"86"`, `"89"`), but `tent.code` in the tents table is prefixed with "VIP " (e.g. `"VIP 86"`, `"VIP 89"`).
+## Solution
+Move the "+1" badge out of the badges row and place it as a **floating absolute-positioned badge** in the **top-left corner** of the card, similar to a notification dot. This makes it immediately stand out and not get confused with the other feature badges.
 
-The lookup in `Neighborhood.tsx` does `extraBedByTentCode[tent.code]`, which tries to find key `"VIP 86"` but the map only has key `"86"`. So it always returns `undefined` and the badge never renders.
+## Changes
 
-The same mismatch applies in `Index.tsx` (homepage mini-map).
+### File: `src/components/TentCard.tsx`
 
-## Fix
+1. Add `relative` to the card's outer `<Link>` className (needed for absolute positioning of the badge)
+2. Remove the `hasExtraBed` badge from the badges `<div>` (lines 102-106)
+3. Add a new floating "+1" badge as a direct child of the `<Link>`, positioned at the top-left corner using `absolute -top-2 -left-2`:
 
-**File: `src/pages/Neighborhood.tsx`** (line ~173)
-
-When building the `extraBedByTentCode` map, prefix the key with `"VIP "`:
-
-```typescript
-// Before:
-map[config.assignedTentCode] = true;
-
-// After:
-map[`VIP ${config.assignedTentCode}`] = true;
+```tsx
+{hasExtraBed && (
+  <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-white text-xs font-bold shadow-md border-2 border-white">
+    +1
+  </span>
+)}
 ```
 
-**File: `src/pages/Index.tsx`**
-
-Apply the same prefix fix in the equivalent `extraBedByTentCode` builder on the homepage.
-
-This is a one-line fix in each file. No other changes needed -- the rest of the chain (TentCard badge, VIPNeighborhoodMap badge, MiniMapVIP badge) already works correctly once the lookup keys match.
-
+This creates a bold, circular floating badge that is clearly separated from other indicators.
