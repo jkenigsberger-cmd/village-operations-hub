@@ -423,13 +423,7 @@ export const useGroupAllocation = () => {
       await updateTentGender(tentId, 'MIXED');
 
       // Reset all beds in this tent to FREE
-      if (state?.tents[tentId]) {
-        for (const bed of state.tents[tentId].beds) {
-          if (bed.status === 'RESERVED' || bed.status === 'OCCUPIED') {
-            await setTentReservedBeds(tentId, bed.id, 'FREE');
-          }
-        }
-      }
+      await setTentReservedBeds(tentId, 0);
     }
 
     if (group) {
