@@ -51,7 +51,7 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped }) 
   // Determine if tent has an active reservation using hotel-logic date check
   const today = format(new Date(), 'yyyy-MM-dd');
   const hasReservation = !!(
-    summary.checkInDate && summary.checkOutDate &&
+    summary.checkInDate && summary.checkOutDate && summary.groupName &&
     getBookingStatus(summary.checkInDate, summary.checkOutDate, today)
   );
 

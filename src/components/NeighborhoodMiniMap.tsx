@@ -52,7 +52,7 @@ export default function NeighborhoodMiniMap({
       gender: tent.gender,
       hasReservation: (() => {
         const today = format(new Date(), 'yyyy-MM-dd');
-        return !!(tent.checkInDate && tent.checkOutDate && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
+        return !!(tent.checkInDate && tent.checkOutDate && tent.groupName && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
       })(),
     }));
   }, [tents, isVIP, onTentClick]);
@@ -67,7 +67,7 @@ export default function NeighborhoodMiniMap({
       gender: tent.gender,
       hasReservation: (() => {
         const today = format(new Date(), 'yyyy-MM-dd');
-        return !!(tent.checkInDate && tent.checkOutDate && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
+        return !!(tent.checkInDate && tent.checkOutDate && tent.groupName && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
       })(),
     }));
   }, [tents, isVIP, onTentClick]);
