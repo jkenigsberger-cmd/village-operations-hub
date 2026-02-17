@@ -1,53 +1,32 @@
 
 
-# Show "+1 Extra Bed" Indicator on VIP Neighborhood Tents
+# Fix: "+1 Extra Bed" Badge Not Showing on VIP Tents
 
-## Problem
-When a VIP tent config has the "+1 extra bed" (מיטה נוספת) toggle enabled, there is no visual indication of this on the VIP neighborhood map, mini-map, or tent cards. Staff can't tell which physical tents have been requested with an extra bed.
+## Root Cause
 
-## How It Will Work
+The `assignedTentCode` stored in `vipTentConfigs` is just the number (e.g. `"86"`, `"89"`), but `tent.code` in the tents table is prefixed with "VIP " (e.g. `"VIP 86"`, `"VIP 89"`).
 
-The `hasExtraBed` flag already exists in `VIPTentConfig` and is linked to a physical tent via `assignedTentCode`. We will:
+The lookup in `Neighborhood.tsx` does `extraBedByTentCode[tent.code]`, which tries to find key `"VIP 86"` but the map only has key `"86"`. So it always returns `undefined` and the badge never renders.
 
-1. Look up assigned VIP configs for each tent and pass `hasExtraBed` through to the display components
-2. Show a small "+1" badge on the map icons, mini-map icons, and tent cards for tents that have the extra bed flag
+The same mismatch applies in `Index.tsx` (homepage mini-map).
 
-## Changes
+## Fix
 
-### 1. Add `hasExtraBed` to `TentNode` type
-**File:** `src/components/NeighborhoodMap.tsx`
+**File: `src/pages/Neighborhood.tsx`** (line ~173)
 
-Add an optional `hasExtraBed?: boolean` field to the `TentNode` type so map components can receive this info.
+When building the `extraBedByTentCode` map, prefix the key with `"VIP "`:
 
-### 2. Pass `hasExtraBed` from Neighborhood page
-**File:** `src/pages/Neighborhood.tsx`
+```typescript
+// Before:
+map[config.assignedTentCode] = true;
 
-When building `mapNodes`, look up the current group's `vipTentConfigs` to find if the config assigned to each tent has `hasExtraBed: true`. Pass it as a prop on each `TentNode`.
+// After:
+map[`VIP ${config.assignedTentCode}`] = true;
+```
 
-### 3. Show "+1" badge on VIP map tent icons
-**File:** `src/components/VIPNeighborhoodMap.tsx`
+**File: `src/pages/Index.tsx`**
 
-When `node.hasExtraBed` is true, render a small "+1" text or badge next to the tent icon on the SVG map.
+Apply the same prefix fix in the equivalent `extraBedByTentCode` builder on the homepage.
 
-### 4. Show "+1" badge on VIP mini-map tent icons
-**File:** `src/components/MiniMapVIP.tsx`
+This is a one-line fix in each file. No other changes needed -- the rest of the chain (TentCard badge, VIPNeighborhoodMap badge, MiniMapVIP badge) already works correctly once the lookup keys match.
 
-Same as above but scaled down for the mini-map. A small "+1" indicator near the tent.
-
-### 5. Show "+1" badge on TentCard
-**File:** `src/components/TentCard.tsx`
-
-Add a small badge (like the existing VIP sparkle or gender badges) showing "+1" when the tent has an extra bed assigned.
-
-### 6. Also update `MiniVIPTentNode` type
-**File:** `src/components/MiniMapVIP.tsx`
-
-Add `hasExtraBed?: boolean` to the `MiniVIPTentNode` type.
-
-## Visual Result
-
-- **Map view:** Each VIP tent with +1 will show a small orange/amber "+1" label below or beside the tent number
-- **Grid view (TentCard):** A small "+1" badge appears alongside existing badges (VIP sparkle, gender)
-- **Mini-map:** A tiny "+1" near the tent icon
-
-No database or schema changes needed -- this is purely a UI display feature reading existing data.
