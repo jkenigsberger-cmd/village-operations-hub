@@ -67,12 +67,17 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped, ha
     <Link 
       to={to}
       className={cn(
-        'tile flex flex-col gap-2 md:gap-3 animate-slide-up transition-all min-h-[100px]',
+        'relative tile flex flex-col gap-2 md:gap-3 animate-slide-up transition-all min-h-[100px]',
         getGenderStyles(summary.gender, hasReservation),
         summary.isVIP && !hasReservation && 'border-vip/50 bg-gradient-to-br from-card to-vip/10',
         summary.cleaningStatus === 'NEEDS_CLEANING' && 'border-status-dirty'
       )}
     >
+      {hasExtraBed && (
+        <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-white text-xs font-bold shadow-md border-2 border-white">
+          +1
+        </span>
+      )}
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -97,11 +102,6 @@ export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped, ha
           {summary.isVIP && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-vip text-vip-foreground rounded-full text-xs font-semibold">
               <Sparkles className="w-3 h-3" />
-            </span>
-          )}
-          {hasExtraBed && (
-            <span className="inline-flex items-center px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
-              +1
             </span>
           )}
           {summary.isAccessible && (
