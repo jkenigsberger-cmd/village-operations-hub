@@ -1,34 +1,55 @@
 
-# Clean Up Old Maintenance Data
+# Fix: Tents Always Return to Neutral When Group Leaves
 
 ## Problem
 
-The fix to auto-clear maintenance data when setting status to "WORKING" only works going forward. There are **18 records** (13 facilities + 5 activity spaces) that already have leftover maintenance photos and descriptions from before the fix.
+When a VIP tent allocation is removed (or a group is unassigned), the physical tent record in the database sometimes retains stale `check_in_date`, `check_out_date`, and `gender` fields even though the `group_name` is cleared. This causes "ghost" colors on the neighborhood map.
 
-## What will change
+**Current stale data:** VIP 81 has dates (2026-02-17 to 2026-02-18) and gender (FEMALE) but no group_name.
 
-A one-time data cleanup will erase all old maintenance images and notes from facilities and activity spaces that are currently marked as "WORKING" (תקין). This affects:
+## What Will Change
 
-**Facilities (13):** תא 33, תא 19, תא 39, מקלחת 2, מקלחת 5, מקלחת 1, תא 41, מקלחת 3, תא 17, תא 35, מקלחת 6, תא 34, מקלחת 7
+### 1. Fix `removeAllocation` for VIP tents (code fix)
 
-**Activity spaces (5):** ממ"ד 6, ממ"ד 2, חדר אוכל, אוהל מועד, ממ"ד 4
+**File:** `src/hooks/useGroupAllocation.ts`
 
-## Technical Details
+The `removeAllocation` function currently handles NEIGHBORHOOD allocations (clears neighborhood_reservations) but does nothing to the physical tent when a VIP_TENT allocation is removed. We will add tent cleanup logic:
 
-Two data update queries will be run:
+- Find the tent by `resourceId` or `resourceLabel`
+- Clear `group_name`, `check_in_date`, `check_out_date`, `gender`
+- Reset reserved beds to FREE
+- Also clear `vip_tent_configs` entry for the group
 
-```sql
--- Clear leftover maintenance data from facilities marked WORKING
-UPDATE facilities 
-SET maintenance_image = NULL, maintenance_notes = NULL 
-WHERE working_status = 'WORKING' 
-  AND (maintenance_image IS NOT NULL OR maintenance_notes IS NOT NULL);
+### 2. Harden `hasReservation` check (code fix)
 
--- Clear leftover maintenance data from activity spaces marked WORKING
-UPDATE activity_spaces 
-SET maintenance_image = NULL, maintenance_notes = NULL 
-WHERE working_status = 'WORKING' 
-  AND (maintenance_image IS NOT NULL OR maintenance_notes IS NOT NULL);
+**Files:** `src/pages/Neighborhood.tsx`, `src/components/NeighborhoodMiniMap.tsx`, `src/components/TentCard.tsx`
+
+Currently `hasReservation` only checks for valid dates. We will also require `groupName` to be present:
+
+```
+hasReservation = !!(
+  tent.checkInDate && tent.checkOutDate && tent.groupName &&
+  getBookingStatus(...)
+)
 ```
 
-No code changes are needed -- the previous fix already ensures this won't happen again going forward.
+This acts as a safety net so even if stale dates remain, no colors appear without an assigned group.
+
+### 3. Clean up existing stale data (data fix)
+
+Run a one-time database update to clear VIP 81's orphaned fields:
+
+```sql
+UPDATE tents
+SET check_in_date = NULL, check_out_date = NULL, gender = 'MIXED'
+WHERE is_vip = true
+  AND group_name IS NULL
+  AND (check_in_date IS NOT NULL OR check_out_date IS NOT NULL);
+```
+
+## Summary
+
+- **2 code files** modified (useGroupAllocation.ts + Neighborhood.tsx and related)
+- **1 data cleanup** query
+- No database schema changes
+- All future tent releases (via unassign, remove allocation, or group delete) will fully reset the tent to neutral
