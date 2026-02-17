@@ -1,55 +1,53 @@
 
-# Fix: Tents Always Return to Neutral When Group Leaves
+
+# Show "+1 Extra Bed" Indicator on VIP Neighborhood Tents
 
 ## Problem
+When a VIP tent config has the "+1 extra bed" (מיטה נוספת) toggle enabled, there is no visual indication of this on the VIP neighborhood map, mini-map, or tent cards. Staff can't tell which physical tents have been requested with an extra bed.
 
-When a VIP tent allocation is removed (or a group is unassigned), the physical tent record in the database sometimes retains stale `check_in_date`, `check_out_date`, and `gender` fields even though the `group_name` is cleared. This causes "ghost" colors on the neighborhood map.
+## How It Will Work
 
-**Current stale data:** VIP 81 has dates (2026-02-17 to 2026-02-18) and gender (FEMALE) but no group_name.
+The `hasExtraBed` flag already exists in `VIPTentConfig` and is linked to a physical tent via `assignedTentCode`. We will:
 
-## What Will Change
+1. Look up assigned VIP configs for each tent and pass `hasExtraBed` through to the display components
+2. Show a small "+1" badge on the map icons, mini-map icons, and tent cards for tents that have the extra bed flag
 
-### 1. Fix `removeAllocation` for VIP tents (code fix)
+## Changes
 
-**File:** `src/hooks/useGroupAllocation.ts`
+### 1. Add `hasExtraBed` to `TentNode` type
+**File:** `src/components/NeighborhoodMap.tsx`
 
-The `removeAllocation` function currently handles NEIGHBORHOOD allocations (clears neighborhood_reservations) but does nothing to the physical tent when a VIP_TENT allocation is removed. We will add tent cleanup logic:
+Add an optional `hasExtraBed?: boolean` field to the `TentNode` type so map components can receive this info.
 
-- Find the tent by `resourceId` or `resourceLabel`
-- Clear `group_name`, `check_in_date`, `check_out_date`, `gender`
-- Reset reserved beds to FREE
-- Also clear `vip_tent_configs` entry for the group
+### 2. Pass `hasExtraBed` from Neighborhood page
+**File:** `src/pages/Neighborhood.tsx`
 
-### 2. Harden `hasReservation` check (code fix)
+When building `mapNodes`, look up the current group's `vipTentConfigs` to find if the config assigned to each tent has `hasExtraBed: true`. Pass it as a prop on each `TentNode`.
 
-**Files:** `src/pages/Neighborhood.tsx`, `src/components/NeighborhoodMiniMap.tsx`, `src/components/TentCard.tsx`
+### 3. Show "+1" badge on VIP map tent icons
+**File:** `src/components/VIPNeighborhoodMap.tsx`
 
-Currently `hasReservation` only checks for valid dates. We will also require `groupName` to be present:
+When `node.hasExtraBed` is true, render a small "+1" text or badge next to the tent icon on the SVG map.
 
-```
-hasReservation = !!(
-  tent.checkInDate && tent.checkOutDate && tent.groupName &&
-  getBookingStatus(...)
-)
-```
+### 4. Show "+1" badge on VIP mini-map tent icons
+**File:** `src/components/MiniMapVIP.tsx`
 
-This acts as a safety net so even if stale dates remain, no colors appear without an assigned group.
+Same as above but scaled down for the mini-map. A small "+1" indicator near the tent.
 
-### 3. Clean up existing stale data (data fix)
+### 5. Show "+1" badge on TentCard
+**File:** `src/components/TentCard.tsx`
 
-Run a one-time database update to clear VIP 81's orphaned fields:
+Add a small badge (like the existing VIP sparkle or gender badges) showing "+1" when the tent has an extra bed assigned.
 
-```sql
-UPDATE tents
-SET check_in_date = NULL, check_out_date = NULL, gender = 'MIXED'
-WHERE is_vip = true
-  AND group_name IS NULL
-  AND (check_in_date IS NOT NULL OR check_out_date IS NOT NULL);
-```
+### 6. Also update `MiniVIPTentNode` type
+**File:** `src/components/MiniMapVIP.tsx`
 
-## Summary
+Add `hasExtraBed?: boolean` to the `MiniVIPTentNode` type.
 
-- **2 code files** modified (useGroupAllocation.ts + Neighborhood.tsx and related)
-- **1 data cleanup** query
-- No database schema changes
-- All future tent releases (via unassign, remove allocation, or group delete) will fully reset the tent to neutral
+## Visual Result
+
+- **Map view:** Each VIP tent with +1 will show a small orange/amber "+1" label below or beside the tent number
+- **Grid view (TentCard):** A small "+1" badge appears alongside existing badges (VIP sparkle, gender)
+- **Mini-map:** A tiny "+1" near the tent icon
+
+No database or schema changes needed -- this is purely a UI display feature reading existing data.
