@@ -146,7 +146,7 @@ const Index = () => {
       if (g.startDate > todayStr || g.endDate < todayStr) return;
       (g.vipTentConfigs || []).forEach(config => {
         if (config.assignedTentCode && config.hasExtraBed) {
-          map[config.assignedTentCode] = true;
+          map[`VIP ${config.assignedTentCode}`] = true;
         }
       });
     });

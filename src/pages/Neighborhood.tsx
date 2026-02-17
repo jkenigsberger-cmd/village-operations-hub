@@ -171,7 +171,7 @@ const Neighborhood = () => {
     overlappingVIPGroups.forEach(g => {
       (g.vipTentConfigs || []).forEach(config => {
         if (config.assignedTentCode && config.hasExtraBed) {
-          map[config.assignedTentCode] = true;
+          map[`VIP ${config.assignedTentCode}`] = true;
         }
       });
     });
