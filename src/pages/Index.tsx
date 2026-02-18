@@ -503,7 +503,7 @@ const Index = () => {
 
                 {/* Facilities Alert Tile */}
                 <div
-                onClick={() => setActiveSection('facilities-alert')}
+                onClick={() => setActiveSection('maintenance')}
                 className="tile p-6 cursor-pointer hover:shadow-lg transition-all border-r-4 border-destructive">
 
                   <div className="flex items-center gap-4">
@@ -1504,7 +1504,7 @@ const Index = () => {
             
             <div className="space-y-8">
               {/* Maintenance Items */}
-              {(maintenanceItems.length > 0 || activitySpaceMaintenanceItems.length > 0 || vipMaintenanceTasks.length > 0) &&
+              {(maintenanceItems.length > 0 || activitySpaceMaintenanceItems.length > 0 || vipMaintenanceTasks.length > 0 || generalMaintenanceTasks.length > 0) &&
             <div>
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Wrench className="w-5 h-5" />
