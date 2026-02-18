@@ -141,6 +141,9 @@ const Index = () => {
   // Neighborhood bookings for selected date
   const { neighborhoodBookings, vipBooking, futureBookings } = useNeighborhoodBookings(neighborhoodsSelectedDate);
 
+  // VIP reservations for today (single source of truth from groups) - must be before early return
+  const todayVipReservations = useVipReservations(new Date());
+
   // GOAL 2: Get ALL sleeping groups for allocations view
   const sleepingGroups = useMemo(() => getSleepingGroups(groups), [groups]);
 
@@ -301,8 +304,6 @@ const Index = () => {
   { key: 'housekeeping', label: HE.nav.housekeeping, icon: Sparkles, count: totalHousekeepingItems },
   { key: 'notes', label: HE.nav.notes, icon: StickyNote }];
 
-  // VIP reservations for today (single source of truth from groups)
-  const todayVipReservations = useVipReservations(new Date());
 
   const handleReportIssue = (status: WorkingStatus) => {
     setReportStatus(status);
