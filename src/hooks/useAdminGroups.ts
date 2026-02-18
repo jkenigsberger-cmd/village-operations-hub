@@ -25,6 +25,7 @@ const mapDbRowToGroup = (row: any): GroupRecord => ({
   arrivalTime: row.arrival_time || undefined,
   departureTime: row.departure_time || undefined,
   status: (row.status as GroupStatus) || 'PLANNED',
+  isArchived: row.status === 'archived',
   mealsPlan: (row.meal_plan as MealPlanItem[]) || [],
   scheduleItems: (row.schedule_items as ScheduleItem[]) || [],
   vipTentConfigs: (row.vip_tent_configs as VIPTentConfig[]) || [],
@@ -125,6 +126,7 @@ export const useAdminGroups = () => {
     }
     if (updates.boysCount !== undefined) dbUpdates.boys_count = updates.boysCount ?? null;
     if (updates.girlsCount !== undefined) dbUpdates.girls_count = updates.girlsCount ?? null;
+    if (updates.isArchived !== undefined) dbUpdates.status = updates.isArchived ? 'archived' : (updates.status || 'PLANNED');
 
     // If group name is changing, update all linked records
     if (updates.groupName !== undefined) {
