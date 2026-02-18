@@ -13,27 +13,27 @@ interface DailySummaryCardProps {
 }
 
 export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ selectedDate }) => {
-  const { groups } = useAdminGroups();
+  const { activeGroups } = useAdminGroups();
   const { getTimeSlotsForDate } = useKitchenData();
   const { state } = useVillage();
   const dayStr = format(selectedDate, 'yyyy-MM-dd');
   const [open, setOpen] = useState(false);
 
   const summary = useMemo(() => {
-    const activeGroups = groups.filter(
+    const overnightGroups = activeGroups.filter(
       g => g.startDate <= dayStr && g.endDate > dayStr
     );
-    const sleepingGroups = activeGroups.filter(g => g.groupType === 'לינה');
-    const dayOnlyGroups = groups.filter(
+    const sleepingGroups = overnightGroups.filter(g => g.groupType === 'לינה');
+    const dayOnlyGroups = activeGroups.filter(
       g => g.startDate === dayStr && g.endDate === dayStr
     );
-    const allToday = [...activeGroups, ...dayOnlyGroups.filter(d => !activeGroups.some(a => a.id === d.id))];
+    const allToday = [...overnightGroups, ...dayOnlyGroups.filter(d => !overnightGroups.some(a => a.id === d.id))];
 
     const totalPeople = allToday.reduce((sum, g) => sum + (g.pax || 0), 0);
     const sleepingPeople = sleepingGroups.reduce((sum, g) => sum + (g.pax || 0), 0);
 
-    const checkInGroups = groups.filter(g => g.startDate === dayStr);
-    const checkOutGroups = groups.filter(g => g.endDate === dayStr);
+    const checkInGroups = activeGroups.filter(g => g.startDate === dayStr);
+    const checkOutGroups = activeGroups.filter(g => g.endDate === dayStr);
 
     const reservations = Object.values(state.activityReservations).filter(r => r.date === dayStr);
     const meals = getTimeSlotsForDate(dayStr);
@@ -53,7 +53,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ selectedDate
       reservations,
       meals,
     };
-  }, [groups, dayStr, state.activityReservations, getTimeSlotsForDate]);
+  }, [activeGroups, dayStr, state.activityReservations, getTimeSlotsForDate]);
 
   
 
