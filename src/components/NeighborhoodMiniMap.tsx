@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import MiniMapCircular, { MiniTentNode } from "./MiniMapCircular";
 import MiniMapVIP, { MiniVIPTentNode } from "./MiniMapVIP";
 import { Users, LogIn, LogOut } from "lucide-react";
+import { VipReservationMap } from "@/hooks/useVipReservations";
 
 interface NeighborhoodMiniMapProps {
   neighborhoodId: NeighborhoodId;
@@ -16,6 +17,8 @@ interface NeighborhoodMiniMapProps {
   onTentClick: (tentId: string) => void;
   bookingPax?: number;
   extraBedTentCodes?: Record<string, boolean>;
+  /** Groups-based VIP reservations (single source of truth). When provided, overrides physical tent state for VIP. */
+  vipReservations?: VipReservationMap;
 }
 
 function getTentType(tent: Tent): "SIMPLE" | "DOUBLE" | "WHITE" {
@@ -31,7 +34,8 @@ export default function NeighborhoodMiniMap({
   summary,
   onTentClick,
   bookingPax,
-  extraBedTentCodes 
+  extraBedTentCodes,
+  vipReservations,
 }: NeighborhoodMiniMapProps) {
   const navigate = useNavigate();
   const isVIP = neighborhoodId === 'VIP';
@@ -62,18 +66,28 @@ export default function NeighborhoodMiniMap({
   const vipNodes: MiniVIPTentNode[] = useMemo(() => {
     if (!isVIP) return [];
     
-    return tents.map(tent => ({
-      id: tent.id,
-      code: tent.code,
-      onClick: () => onTentClick(tent.id),
-      gender: tent.gender,
-      hasReservation: (() => {
-        const today = format(new Date(), 'yyyy-MM-dd');
-        return !!(tent.checkInDate && tent.checkOutDate && tent.groupName && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
-      })(),
-      hasExtraBed: !!extraBedTentCodes?.[tent.code],
-    }));
-  }, [tents, isVIP, onTentClick, extraBedTentCodes]);
+    return tents.map(tent => {
+      const tentNum = tent.code.match(/\d+/)?.[0] || '';
+      const vipRes = vipReservations?.[tentNum];
+
+      // Use groups-based source of truth when available
+      const hasReservation = vipRes
+        ? true
+        : (() => {
+            const today = format(new Date(), 'yyyy-MM-dd');
+            return !!(tent.checkInDate && tent.checkOutDate && tent.groupName && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
+          })();
+
+      return {
+        id: tent.id,
+        code: tent.code,
+        onClick: () => onTentClick(tent.id),
+        gender: vipRes?.gender || tent.gender,
+        hasReservation,
+        hasExtraBed: vipRes?.hasExtraBed || !!extraBedTentCodes?.[tent.code],
+      };
+    });
+  }, [tents, isVIP, onTentClick, extraBedTentCodes, vipReservations]);
 
   const displayedOccupied = Math.max(summary.occupiedBeds, bookingPax ?? 0);
   const occupancyPercent = summary.totalBeds > 0 

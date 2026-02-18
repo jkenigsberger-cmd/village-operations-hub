@@ -22,6 +22,7 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { PendingAllocationCard } from '@/components/PendingAllocationCard';
 import { DailySummaryCard } from '@/components/DailySummaryCard';
 import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
+import { useVipReservations } from '@/hooks/useVipReservations';
 import { BOOKING_STATUS_COLORS, type BookingStatus } from '@/lib/bookingStatusColors';
 import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
 import { Switch } from '@/components/ui/switch';
@@ -300,6 +301,8 @@ const Index = () => {
   { key: 'housekeeping', label: HE.nav.housekeeping, icon: Sparkles, count: totalHousekeepingItems },
   { key: 'notes', label: HE.nav.notes, icon: StickyNote }];
 
+  // VIP reservations for today (single source of truth from groups)
+  const todayVipReservations = useVipReservations(new Date());
 
   const handleReportIssue = (status: WorkingStatus) => {
     setReportStatus(status);
@@ -635,6 +638,7 @@ const Index = () => {
                       onTentClick={(tentId) => setSelectedTentId(tentId)}
                       bookingPax={booking?.totalPax}
                       extraBedTentCodes={id === 'VIP' ? extraBedTentCodes : undefined}
+                      vipReservations={id === 'VIP' ? todayVipReservations : undefined}
                     />
                   </div>
                 );
