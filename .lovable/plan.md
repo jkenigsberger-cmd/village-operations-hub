@@ -1,27 +1,31 @@
 
 
-# Move "+1 Extra Bed" Badge to a Distinct Position on TentCard
+# Exclude Archived Groups from Daily Summary Counts
 
-## Problem
-The "+1" badge on the TentCard is grouped with other small badges (VIP sparkle, accessibility, bathroom, gender) in the top-right corner, making it hard to distinguish.
+## Current State
 
-## Solution
-Move the "+1" badge out of the badges row and place it as a **floating absolute-positioned badge** in the **top-left corner** of the card, similar to a notification dot. This makes it immediately stand out and not get confused with the other feature badges.
+The allocation system **already correctly filters** archived groups in all the right places:
+- Pending allocation notifications (dashboard overview)
+- "Sleeping groups" list in the allocations tab  
+- Group stays (sleeping calendar, check-in/check-out)
+- Master calendar day-use events
 
-## Changes
+## Gap Found
 
-### File: `src/components/TentCard.tsx`
+**`DailySummaryCard.tsx`** -- the daily summary widget that shows total people, check-ins, and check-outs does **not** filter out archived groups. This means an archived group still gets counted in "total people on site today" and "check-ins/check-outs today."
 
-1. Add `relative` to the card's outer `<Link>` className (needed for absolute positioning of the badge)
-2. Remove the `hasExtraBed` badge from the badges `<div>` (lines 102-106)
-3. Add a new floating "+1" badge as a direct child of the `<Link>`, positioned at the top-left corner using `absolute -top-2 -left-2`:
+## Fix
 
-```tsx
-{hasExtraBed && (
-  <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-white text-xs font-bold shadow-md border-2 border-white">
-    +1
-  </span>
-)}
-```
+### File: `src/components/DailySummaryCard.tsx`
 
-This creates a bold, circular floating badge that is clearly separated from other indicators.
+Change the hook usage from `{ groups }` to `{ activeGroups }` (which already excludes archived groups), then use `activeGroups` instead of `groups` throughout the summary calculation.
+
+Specifically:
+- Line 16: Change `const { groups } = useAdminGroups()` to `const { activeGroups } = useAdminGroups()`
+- Lines 23-36: Replace all references to `groups` with `activeGroups` so that:
+  - `activeGroups` date-range filter excludes archived
+  - `dayOnlyGroups` excludes archived
+  - `checkInGroups` / `checkOutGroups` exclude archived
+
+This is a single-file change -- no schema, database, or other component modifications needed. The rest of the allocation architecture is already correctly excluding archived groups.
+
