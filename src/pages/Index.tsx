@@ -13,6 +13,7 @@ import { NeighborhoodId, Facility, WorkingStatus, getActivitySpaceLabel } from '
 import { FacilityTile, FacilityCard } from '@/components/FacilityCard';
 import { MaintenancePhotoCapture } from '@/components/MaintenancePhotoCapture';
 import { ReportIssueModal } from '@/components/ReportIssueModal';
+import { GeneralMaintenanceModal } from '@/components/GeneralMaintenanceModal';
 import { TentCard } from '@/components/TentCard';
 import { TentDetailModal } from '@/components/TentDetailModal';
 import { MasterCalendar } from '@/components/MasterCalendar';
@@ -57,6 +58,7 @@ import {
   ChefHat,
   Settings,
   ClipboardList,
+  Plus,
   Users } from
 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -93,6 +95,7 @@ const Index = () => {
     resolveActivitySpaceIssue,
     updateActivitySpaceStatus,
     getDailyTasks,
+    addDailyTask,
     removeDailyTask,
     resolveTentFacilityIssue
   } = useVillage();
@@ -115,15 +118,17 @@ const Index = () => {
   }, [activeSection, navigate]);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [generalMaintenanceModalOpen, setGeneralMaintenanceModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<WorkingStatus>('BROKEN');
   const [expandedMaintenanceItem, setExpandedMaintenanceItem] = useState<{
-    type: 'facility' | 'activitySpace' | 'vipTask';
+    type: 'facility' | 'activitySpace' | 'vipTask' | 'generalTask';
     title: string;
     status: string;
     statusLabel: string;
     image?: string;
     notes?: string;
     location?: string;
+    priority?: string;
     onResolve: () => void;
   } | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -261,12 +266,14 @@ const Index = () => {
 
   // VIP Maintenance tasks from dailyTasks (baños y duchas VIP)
   const today = new Date().toISOString().split('T')[0];
-  const vipMaintenanceTasks = getDailyTasks(today).filter(
-    (task) => task.type === 'MAINTENANCE' && task.status !== 'COMPLETED' && task.entityType === 'TENT'
+  const allMaintenanceTasks = getDailyTasks(today).filter(
+    (task) => task.type === 'MAINTENANCE' && task.status !== 'COMPLETED'
   );
+  const vipMaintenanceTasks = allMaintenanceTasks.filter((task) => task.entityType === 'TENT');
+  const generalMaintenanceTasks = allMaintenanceTasks.filter((task) => task.entityType === 'GENERAL');
 
   // Combined maintenance count
-  const totalMaintenanceCount = maintenanceItems.length + activitySpaceMaintenanceItems.length + vipMaintenanceTasks.length;
+  const totalMaintenanceCount = maintenanceItems.length + activitySpaceMaintenanceItems.length + vipMaintenanceTasks.length + generalMaintenanceTasks.length;
 
   // Housekeeping items - tents, facilities, and activity spaces that need cleaning
   const tentsNeedingCleaning = Object.values(state.tents).filter(
@@ -315,6 +322,21 @@ const Index = () => {
   const handleResolveMaintenance = (facilityId: string) => {
     resolveFacilityIssue(facilityId);
     toast.success(HE.messages.taskCompleted);
+  };
+
+  const handleGeneralMaintenanceSubmit = (data: { title: string; description: string; location: string; priority: 'low' | 'medium' | 'high'; image?: string }) => {
+    addDailyTask({
+      date: new Date().toISOString().split('T')[0],
+      type: 'MAINTENANCE',
+      title: data.title,
+      description: data.description,
+      entityType: 'GENERAL',
+      facilityType: data.location,
+      assignedTo: data.priority,
+      maintenanceImage: data.image,
+      status: 'PENDING',
+    });
+    toast.success('דיווח תחזוקה כללי נשמר בהצלחה');
   };
 
   return (
@@ -792,7 +814,17 @@ const Index = () => {
               {HE.nav.maintenance}
             </h2>
             
-          {maintenanceItems.length === 0 && activitySpaceMaintenanceItems.length === 0 && vipMaintenanceTasks.length === 0 ?
+            {/* Add General Maintenance Button */}
+            <Button
+              onClick={() => setGeneralMaintenanceModalOpen(true)}
+              className="mb-6"
+              variant="outline"
+            >
+              <Plus className="w-4 h-4 ml-1" />
+              דיווח תחזוקה כללי
+            </Button>
+
+          {maintenanceItems.length === 0 && activitySpaceMaintenanceItems.length === 0 && vipMaintenanceTasks.length === 0 && generalMaintenanceTasks.length === 0 ?
           <div className="tile p-8 text-center bg-status-clean/10 border-status-clean">
                 <CheckCircle className="w-16 h-16 mx-auto mb-4 text-status-clean" />
                 <p className="text-xl font-medium">{HE.messages.allFacilitiesWorking}</p>
@@ -919,7 +951,7 @@ const Index = () => {
                         location: tent ? `📍 ${tent.code}` : undefined,
                         onResolve: () => {
                           if (task.entityId && task.facilityType) {
-                            resolveTentFacilityIssue(task.entityId, task.facilityType);
+                            resolveTentFacilityIssue(task.entityId, task.facilityType as 'bathroom' | 'shower');
                           }
                           removeDailyTask(task.id);
                           toast.success(HE.messages.taskCompleted);
@@ -951,8 +983,77 @@ const Index = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (task.entityId && task.facilityType) {
-                            resolveTentFacilityIssue(task.entityId, task.facilityType);
+                            resolveTentFacilityIssue(task.entityId, task.facilityType as 'bathroom' | 'shower');
                           }
+                          removeDailyTask(task.id);
+                          toast.success(HE.messages.taskCompleted);
+                        }}
+                        className="w-full px-4 py-3 bg-status-clean text-status-clean-foreground rounded-xl font-bold flex items-center justify-center gap-2">
+                              <CheckCircle className="w-5 h-5" />
+                              {HE.messages.taskCompleted}
+                            </button>
+                          </div>);
+                })}
+                    </div>
+                  </div>
+            }
+
+                {/* General Maintenance Tasks */}
+                {generalMaintenanceTasks.length > 0 &&
+            <div>
+                    <h3 className="text-xl font-semibold mb-4">כללי</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {generalMaintenanceTasks.map((task) => {
+                  const priorityLabel = task.assignedTo === 'high' ? 'גבוהה' : task.assignedTo === 'medium' ? 'בינונית' : 'נמוכה';
+                  const priorityColor = task.assignedTo === 'high' ? 'text-destructive' : task.assignedTo === 'medium' ? 'text-yellow-600' : 'text-blue-500';
+                  return (
+                    <div key={task.id} className="tile border-destructive bg-destructive/5 cursor-pointer hover:shadow-lg transition-all"
+                      onClick={() => setExpandedMaintenanceItem({
+                        type: 'generalTask',
+                        title: task.title,
+                        status: 'MAINTENANCE',
+                        statusLabel: `עדיפות: ${priorityLabel}`,
+                        image: task.maintenanceImage,
+                        notes: task.description,
+                        location: task.facilityType ? `📍 ${task.facilityType}` : undefined,
+                        priority: task.assignedTo,
+                        onResolve: () => {
+                          removeDailyTask(task.id);
+                          toast.success(HE.messages.taskCompleted);
+                          setExpandedMaintenanceItem(null);
+                        },
+                      })}>
+                            <div className="flex items-center gap-3 mb-4">
+                              <Wrench className="w-6 h-6 text-primary" />
+                              <div className="flex-1">
+                                <h4 className="font-bold text-lg">{task.title}</h4>
+                                <span className={`text-sm ${priorityColor}`}>
+                                  עדיפות: {priorityLabel}
+                                </span>
+                              </div>
+                              <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary font-semibold">כללי</span>
+                            </div>
+                            
+                            {task.maintenanceImage &&
+                      <img
+                        src={task.maintenanceImage}
+                        alt="Issue"
+                        className="w-full h-32 object-cover rounded-lg mb-3" />
+                      }
+                            
+                            {task.facilityType &&
+                      <p className="text-sm text-muted-foreground mb-2">
+                                📍 {task.facilityType}
+                              </p>
+                      }
+                            
+                            {task.description &&
+                      <p className="text-muted-foreground mb-4 line-clamp-2">{task.description}</p>
+                      }
+                            
+                            <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           removeDailyTask(task.id);
                           toast.success(HE.messages.taskCompleted);
                         }}
@@ -1467,6 +1568,13 @@ const Index = () => {
         onOpenChange={(open) => !open && setSelectedTentId(null)}
         tent={selectedTentId ? state.tents[selectedTentId] : null} />
 
+
+      {/* General Maintenance Modal */}
+      <GeneralMaintenanceModal
+        isOpen={generalMaintenanceModalOpen}
+        onClose={() => setGeneralMaintenanceModalOpen(false)}
+        onSubmit={handleGeneralMaintenanceSubmit}
+      />
 
     </div>);
 

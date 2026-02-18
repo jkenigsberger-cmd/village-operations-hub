@@ -305,12 +305,12 @@ export const useSupabaseVillage = () => {
           type: mapDbTaskType(dt.task_type),
           title: dt.title,
           description: dt.description || undefined,
-          entityType: dt.entity_type as 'TENT' | 'FACILITY' | 'NEIGHBORHOOD' | undefined,
+          entityType: dt.entity_type as 'TENT' | 'FACILITY' | 'NEIGHBORHOOD' | 'GENERAL' | undefined,
           entityId: dt.entity_id || undefined,
           status: mapDbTaskStatus(dt.status),
           assignedTo: dt.assigned_to || undefined,
           maintenanceImage: dt.maintenance_image || undefined,
-          facilityType: dt.facility_type as 'bathroom' | 'shower' | undefined,
+          facilityType: dt.facility_type || undefined,
           createdAt: dt.created_at,
           completedAt: dt.completed_at || undefined
         };
