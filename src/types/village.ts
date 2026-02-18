@@ -304,12 +304,12 @@ export interface DailyTask {
   type: DailyTaskType;
   title: string;
   description?: string;
-  entityType?: 'TENT' | 'FACILITY' | 'NEIGHBORHOOD';
+  entityType?: 'TENT' | 'FACILITY' | 'NEIGHBORHOOD' | 'GENERAL';
   entityId?: string;
   status: DailyTaskStatus;
   assignedTo?: string;
   maintenanceImage?: string; // Base64 image for maintenance tasks
-  facilityType?: 'bathroom' | 'shower'; // For VIP tent facility maintenance
+  facilityType?: string; // For VIP tent facility maintenance or general location text
   createdAt: string;
   completedAt?: string;
 }
