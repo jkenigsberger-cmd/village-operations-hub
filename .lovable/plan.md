@@ -1,31 +1,40 @@
 
 
-# Exclude Archived Groups from Daily Summary Counts
+# Fix: Archived Groups Not Persisting to Database
 
-## Current State
+## Root Cause
 
-The allocation system **already correctly filters** archived groups in all the right places:
-- Pending allocation notifications (dashboard overview)
-- "Sleeping groups" list in the allocations tab  
-- Group stays (sleeping calendar, check-in/check-out)
-- Master calendar day-use events
+In `src/hooks/useAdminGroups.ts`, the `updateGroup` function maps every `GroupRecord` field to its corresponding database column -- except `isArchived`. The line that converts `isArchived` to the database `status` column is simply missing.
 
-## Gap Found
+When you archive a group:
+1. `archiveGroup(id)` calls `updateGroup(id, { isArchived: true })`
+2. `updateGroup` builds `dbUpdates` but skips `isArchived` (no mapping exists)
+3. Local state updates via `setGroups(...)` so it looks archived in the UI
+4. The database never receives the change
+5. On page reload, the group loads from the database with its original status -- not archived
 
-**`DailySummaryCard.tsx`** -- the daily summary widget that shows total people, check-ins, and check-outs does **not** filter out archived groups. This means an archived group still gets counted in "total people on site today" and "check-ins/check-outs today."
+The sister hook `useSupabaseGroups.ts` has the correct mapping at line 143, but `useAdminGroups.ts` (which is actually used by the app) does not.
 
 ## Fix
 
-### File: `src/components/DailySummaryCard.tsx`
+### File: `src/hooks/useAdminGroups.ts`
 
-Change the hook usage from `{ groups }` to `{ activeGroups }` (which already excludes archived groups), then use `activeGroups` instead of `groups` throughout the summary calculation.
+Add the missing `isArchived` mapping inside the `updateGroup` function, after the `girlsCount` line (line 127):
 
-Specifically:
-- Line 16: Change `const { groups } = useAdminGroups()` to `const { activeGroups } = useAdminGroups()`
-- Lines 23-36: Replace all references to `groups` with `activeGroups` so that:
-  - `activeGroups` date-range filter excludes archived
-  - `dayOnlyGroups` excludes archived
-  - `checkInGroups` / `checkOutGroups` exclude archived
+```typescript
+if (updates.boysCount !== undefined) dbUpdates.boys_count = updates.boysCount ?? null;
+if (updates.girlsCount !== undefined) dbUpdates.girls_count = updates.girlsCount ?? null;
+// ADD THIS LINE:
+if (updates.isArchived !== undefined) dbUpdates.status = updates.isArchived ? 'archived' : updates.status || 'PLANNED';
+```
 
-This is a single-file change -- no schema, database, or other component modifications needed. The rest of the allocation architecture is already correctly excluding archived groups.
+This ensures that when `archiveGroup` or `restoreGroup` is called, the `status` column in the database is set to `'archived'` or restored to `'PLANNED'`, making the change persistent.
+
+Also need to update the `mapDbRowToGroup` function to derive `isArchived` from the database `status` field (it currently does not set it). Around line 27, add:
+
+```typescript
+isArchived: row.status === 'archived',
+```
+
+This is a two-line fix in a single file. No schema or other file changes needed.
 
