@@ -13,6 +13,7 @@ import { VIPPlanningPanel } from '@/components/VIPPlanningPanel';
 import { NeighborhoodDatePicker } from '@/components/NeighborhoodDatePicker';
 import { NeighborhoodBookingsList } from '@/components/NeighborhoodBookingsList';
 import { useNeighborhoodBookings } from '@/hooks/useNeighborhoodBookings';
+import { useVipReservations } from '@/hooks/useVipReservations';
 import { BOOKING_STATUS_COLORS, getBookingStatus } from '@/lib/bookingStatusColors';
 
 import { Badge } from '@/components/ui/badge';
@@ -58,8 +59,31 @@ const Neighborhood = () => {
 
   // Booking data for the selected view date
   const { neighborhoodBookings, vipBooking } = useNeighborhoodBookings(viewDate);
+  
+  // VIP reservations from the single source of truth (groups.vip_tent_configs)
+  const vipReservations = useVipReservations(viewDate);
+
+  // Build VIP booking banner from vipReservations (groups-based, not allocations)
+  const vipBookingFromGroups = useMemo(() => {
+    const entries = Object.values(vipReservations);
+    if (entries.length === 0) return null;
+    // Pick the first group found (there could be multiple groups overlapping)
+    const first = entries[0];
+    const totalPax = entries.reduce((acc, r) => acc + r.bedsPlanned, 0);
+    const status = getBookingStatus(first.startDate, first.endDate, format(viewDate, 'yyyy-MM-dd'));
+    return {
+      status,
+      groupName: first.groupName,
+      startDate: first.startDate,
+      endDate: first.endDate,
+      totalPax,
+      boysCount: undefined as number | undefined,
+      girlsCount: undefined as number | undefined,
+    };
+  }, [vipReservations, viewDate]);
+
   const currentBooking = isVIPNeighborhood
-    ? (vipBooking ? { status: vipBooking.status, groupName: vipBooking.groupName, startDate: vipBooking.startDate, endDate: vipBooking.endDate, totalPax: vipBooking.totalPax, boysCount: undefined as number | undefined, girlsCount: undefined as number | undefined } : null)
+    ? vipBookingFromGroups
     : neighborhoodBookings[neighborhoodId] || null;
 
   const neighborhood = state?.neighborhoods[neighborhoodId];
@@ -164,19 +188,17 @@ const Neighborhood = () => {
     }));
   }, [filteredTents, groupByDouble, hasDoubleTents]);
 
-  // Build a lookup of tent code -> hasExtraBed from all overlapping VIP groups
+  // Build a lookup of tent code -> hasExtraBed from vipReservations (groups-based source of truth)
   const extraBedByTentCode = useMemo(() => {
     const map: Record<string, boolean> = {};
     if (!isVIPNeighborhood) return map;
-    overlappingVIPGroups.forEach(g => {
-      (g.vipTentConfigs || []).forEach(config => {
-        if (config.assignedTentCode && config.hasExtraBed) {
-          map[`VIP ${config.assignedTentCode}`] = true;
-        }
-      });
+    Object.entries(vipReservations).forEach(([tentCode, reservation]) => {
+      if (reservation.hasExtraBed) {
+        map[`VIP ${tentCode}`] = true;
+      }
     });
     return map;
-  }, [overlappingVIPGroups, isVIPNeighborhood]);
+  }, [vipReservations, isVIPNeighborhood]);
 
   // Map nodes for NeighborhoodMap
   const mapNodes: TentNode[] = useMemo(() => {
@@ -197,12 +219,19 @@ const Neighborhood = () => {
         cleaning = 'IN_PROGRESS';
       }
 
-      // Check if tent has active reservation using hotel-logic date check
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const hasReservation = !!(
-        tent.checkInDate && tent.checkOutDate && tent.groupName &&
-        getBookingStatus(tent.checkInDate, tent.checkOutDate, today)
-      );
+      // For VIP tents: derive hasReservation + gender from vipReservations (groups-based)
+      // For regular tents: use physical tent state as before
+      const tentNum = tent.code.match(/\d+/)?.[0] || '';
+      const vipRes = isVIPNeighborhood ? vipReservations[tentNum] : undefined;
+
+      const hasReservation = isVIPNeighborhood
+        ? !!vipRes
+        : !!(tent.checkInDate && tent.checkOutDate && tent.groupName &&
+              getBookingStatus(tent.checkInDate, tent.checkOutDate, format(new Date(), 'yyyy-MM-dd')));
+
+      const gender = isVIPNeighborhood
+        ? (vipRes?.gender || tent.gender)
+        : tent.gender;
 
       return {
         id: tent.id,
@@ -210,18 +239,18 @@ const Neighborhood = () => {
         type: tentType,
         cleaning,
         occupancySummary: {
-            used: summary.occupiedBeds + summary.reservedBeds,
+            used: vipRes ? vipRes.bedsPlanned : (summary.occupiedBeds + summary.reservedBeds),
           total: summary.totalBeds,
         },
         onClick: () => setSelectedTent(tent),
         isAlef: tent.isAlef,
         doubleTentId: tent.doubleTentId,
-        gender: tent.gender,
+        gender,
         hasReservation,
         hasExtraBed: !!extraBedByTentCode[tent.code],
       };
     });
-  }, [filteredTents, extraBedByTentCode]);
+  }, [filteredTents, extraBedByTentCode, isVIPNeighborhood, vipReservations]);
 
   if (isLoading || !state) {
     return (
@@ -484,19 +513,38 @@ const Neighborhood = () => {
         ) : (
           // Regular grid view - responsive columns
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
-            {filteredTents.map(({ tent, summary }) => (
-              <div 
-                key={summary.tentId} 
-                onClick={() => setSelectedTent(tent)}
-                className="cursor-pointer"
-              >
-                <TentCard
-                  summary={summary}
-                  to="#"
-                  hasExtraBed={!!extraBedByTentCode[tent.code]}
-                />
-              </div>
-            ))}
+            {filteredTents.map(({ tent, summary }) => {
+              // For VIP: overlay groups-based booking data onto the summary
+              const tentNum = tent.code.match(/\d+/)?.[0] || '';
+              const vipRes = isVIPNeighborhood ? vipReservations[tentNum] : undefined;
+              const augmentedSummary = isVIPNeighborhood && vipRes
+                ? {
+                    ...summary,
+                    groupName: vipRes.groupName,
+                    checkInDate: vipRes.startDate,
+                    checkOutDate: vipRes.endDate,
+                    gender: vipRes.gender || summary.gender,
+                    occupiedBeds: vipRes.bedsPlanned,
+                    freeBeds: Math.max(0, summary.totalBeds - vipRes.bedsPlanned),
+                  }
+                : isVIPNeighborhood && !vipRes
+                  ? { ...summary, groupName: undefined, checkInDate: undefined, checkOutDate: undefined }
+                  : summary;
+
+              return (
+                <div 
+                  key={summary.tentId} 
+                  onClick={() => setSelectedTent(tent)}
+                  className="cursor-pointer"
+                >
+                  <TentCard
+                    summary={augmentedSummary}
+                    to="#"
+                    hasExtraBed={!!extraBedByTentCode[tent.code]}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
