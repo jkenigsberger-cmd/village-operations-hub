@@ -12,6 +12,7 @@ interface TentCardProps {
   to: string;
   showGrouped?: boolean;
   hasExtraBed?: boolean;
+  selectedDate?: string; // YYYY-MM-DD
 }
 
 // Gender color styles - only apply when tent has an active reservation
@@ -48,12 +49,13 @@ const getGenderBadge = (gender?: TentGender, hasReservation?: boolean) => {
   }
 };
 
-export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped, hasExtraBed }) => {
+export const TentCard: React.FC<TentCardProps> = ({ summary, to, showGrouped, hasExtraBed, selectedDate }) => {
   // Determine if tent has an active reservation using hotel-logic date check
   const today = format(new Date(), 'yyyy-MM-dd');
+  const checkDate = selectedDate || today;
   const hasReservation = !!(
     summary.checkInDate && summary.checkOutDate && summary.groupName &&
-    getBookingStatus(summary.checkInDate, summary.checkOutDate, today)
+    getBookingStatus(summary.checkInDate, summary.checkOutDate, checkDate)
   );
 
   const usedBeds = hasReservation ? (summary.occupiedBeds + summary.reservedBeds) : 0;

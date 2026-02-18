@@ -504,6 +504,7 @@ const Neighborhood = () => {
                       key={summary.tentId}
                       summary={summary}
                       to={`/tent/${summary.tentId}`}
+                      selectedDate={format(viewDate, 'yyyy-MM-dd')}
                     />
                   ))}
                 </div>
@@ -541,6 +542,7 @@ const Neighborhood = () => {
                     summary={augmentedSummary}
                     to="#"
                     hasExtraBed={!!extraBedByTentCode[tent.code]}
+                    selectedDate={format(viewDate, 'yyyy-MM-dd')}
                   />
                 </div>
               );
