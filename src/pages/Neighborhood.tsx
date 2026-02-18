@@ -526,6 +526,7 @@ const Neighborhood = () => {
                     checkOutDate: vipRes.endDate,
                     gender: vipRes.gender || summary.gender,
                     occupiedBeds: vipRes.bedsPlanned,
+                    reservedBeds: 0,
                     freeBeds: Math.max(0, summary.totalBeds - vipRes.bedsPlanned),
                   }
                 : isVIPNeighborhood && !vipRes

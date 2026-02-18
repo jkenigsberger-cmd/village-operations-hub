@@ -60,7 +60,9 @@ export const useVipReservations = (selectedDate: Date | string): VipReservationM
           endDate: end,
           bedsPlanned: config.bedsPlanned + (config.hasExtraBed ? 1 : 0),
           hasExtraBed: !!config.hasExtraBed,
-          gender: config.gender as TentGender | undefined,
+          gender: config.gender
+            ? (config.gender.toUpperCase() as TentGender)
+            : undefined,
         };
       }
     }
