@@ -183,7 +183,7 @@ const commonStyles = `
     .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: none; color: #333; position: relative; }
     .header .subtitle { color: #666; font-size: 14px; }
     .header h1 { color: #0b2fd6; }
-    .header-logo { height: 48px; width: auto; margin-bottom: 12px; }
+    .header-logo { height: 72px; width: auto; margin-bottom: 12px; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: right; font-size: 13px; }
     th { background: #e8eefa; font-weight: bold; }
@@ -196,7 +196,7 @@ const commonStyles = `
     .postcard { margin-top: 18px; text-align: center; }
     .postcard-container { max-width: 520px; width: 100%; margin: 0 auto; }
     .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
-    .postcard-img { width: 100%; height: 110px; object-fit: cover; border-radius: 14px; border: 1px solid #ddd; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .postcard-img { width: 100%; height: 150px; object-fit: contain; background: #f9f9f7; padding: 8px; border-radius: 14px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
