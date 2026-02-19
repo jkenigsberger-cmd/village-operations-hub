@@ -1,32 +1,40 @@
 
 
-# Fix: "הצעת מחיר ללקוח" Button Does Nothing for Unsaved Quotes
+# Generate Quote as PDF Instead of HTML
 
-## The Problem
+## What Changes
 
-The "הצעת מחיר ללקוח" (Client Quote) and "דף תפעול לצוות" (Operational Doc) buttons silently do nothing when the quote has not been saved yet. The `handleDownload` function (line 211) checks `if (!selectedQuote) return;` and exits without any feedback.
+The quote download buttons ("הצעת מחיר ללקוח" and "דף תפעול לצוות") will produce a **PDF file** instead of an HTML file. We'll use the browser's built-in `window.print()` mechanism to convert the existing HTML template to PDF -- this is the simplest approach that requires no new dependencies.
 
-## The Fix
+## How It Works
+
+The existing HTML document generation (`buildQuoteDocHTML`) already produces a fully styled, print-ready HTML document. We'll open it in a new browser window and trigger `window.print()`, which lets the user save as PDF using the browser's native "Save as PDF" printer.
+
+## Technical Details
+
+### File: `src/lib/quoteUtils.ts`
+
+Replace the `downloadDocHTML` function with a new `downloadDocPDF` function:
+
+```typescript
+export const downloadDocPDF = (html: string, filename: string): void => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.onload = () => {
+    printWindow.print();
+  };
+};
+```
+
+Also add a `@media print` block inside `commonStyles` to hide browser chrome and ensure clean PDF output (hide margins, set page size A4, etc.).
 
 ### File: `src/pages/AdminQuotes.tsx`
 
-Two changes:
+Update the import from `downloadDocHTML` to `downloadDocPDF` and use it in the `handleDownload` callback. The filenames stay the same (they appear in the print dialog title).
 
-1. **Add a toast message** when the user clicks download without a saved quote, so they understand why nothing happens:
+### No new dependencies needed
 
-```typescript
-const handleDownload = useCallback((type: 'client' | 'operational') => {
-  if (!selectedQuote) {
-    toast({ title: 'יש לשמור את ההצעה לפני הורדה', variant: 'destructive' });
-    return;
-  }
-  // ... rest unchanged
-}, [selectedQuote, computedTotals, editSnapshot.groupName, editTitle]);
-```
-
-2. **Optionally disable the buttons visually** when no quote is saved, by adding `disabled={!selectedQuoteId}` to both download buttons (lines 603 and 607). This gives a clear visual cue that saving is required first.
-
-### No other files change
-
-The download logic itself (`buildQuoteDocHTML`, `downloadDocHTML`) is correct. The only issue is missing user feedback when the precondition (saved quote) is not met.
+This approach uses the browser's native print-to-PDF. No external libraries required. The user clicks the button, a print dialog opens, and they choose "Save as PDF."
 
