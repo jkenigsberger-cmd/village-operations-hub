@@ -168,6 +168,11 @@ export const buildQuoteDocHTML = (
   return buildOperationalDocHTML(quote);
 };
 
+const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+};
+
 const commonStyles = `
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -175,9 +180,10 @@ const commonStyles = `
     h1 { font-size: 24px; color: #0b2fd6; margin-bottom: 8px; }
     h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
     h3 { font-size: 15px; margin-top: 16px; margin-bottom: 8px; }
-    .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: none; color: #333; }
+    .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: none; color: #333; position: relative; }
     .header .subtitle { color: #666; font-size: 14px; }
     .header h1 { color: #0b2fd6; }
+    .header-logo { height: 48px; width: auto; margin-bottom: 12px; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: right; font-size: 13px; }
     th { background: #e8eefa; font-weight: bold; }
@@ -187,6 +193,10 @@ const commonStyles = `
     .note { font-size: 12px; color: #888; margin-top: 24px; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     .vat-note { color: #c0392b; font-size: 11px; }
+    .postcard { margin-top: 18px; text-align: center; }
+    .postcard-container { max-width: 520px; width: 100%; margin: 0 auto; }
+    .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+    .postcard-img { width: 100%; height: 110px; object-fit: cover; border-radius: 14px; border: 1px solid #ddd; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
@@ -274,6 +284,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
 <head><meta charset="UTF-8"><title>הצעת מחיר - ${s.groupName || quote.title || ''}</title>${commonStyles}</head>
 <body>
   <div class="header">
+    <img src="${getBaseUrl()}/assets/quote-logo.png" alt="בית הדור הבא" class="header-logo" onerror="this.style.display='none'">
     <h1>בית הדור הבא – חוות אהרונסון</h1>
     <div class="subtitle">הצעת מחיר</div>
   </div>
@@ -319,6 +330,13 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
 
   <p class="note">הצעת מחיר זו בתוקף ל-30 יום מתאריך הפקה: ${formatDate(quote.createdAt)}</p>
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
+
+  <div class="postcard">
+    <div class="postcard-container">
+      <div class="postcard-label">מחכים לכם בחווה</div>
+      <img src="${getBaseUrl()}/assets/quote-footer-photo.jpg" alt="חוות אהרונסון" class="postcard-img" onerror="this.parentElement.parentElement.style.display='none'">
+    </div>
+  </div>
 </body></html>`;
 };
 
@@ -331,6 +349,7 @@ const buildOperationalDocHTML = (quote: QuoteRecord): string => {
 <head><meta charset="UTF-8"><title>דף תפעול - ${s.groupName || quote.title || ''}</title>${commonStyles}</head>
 <body>
   <div class="header">
+    <img src="${getBaseUrl()}/assets/quote-logo.png" alt="בית הדור הבא" class="header-logo" onerror="this.style.display='none'">
     <h1>דף תפעול לצוות</h1>
     <div class="subtitle">בית הדור הבא – חוות אהרונסון</div>
   </div>
