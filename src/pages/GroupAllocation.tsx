@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
+import { useGroupAllocation } from '@/hooks/useGroupAllocation';
 import { VIPAllocationTab } from '@/components/VIPAllocationTab';
 import { ParticipantAllocationTab } from '@/components/ParticipantAllocationTab';
 import { DistributionPreferenceDisplay } from '@/components/DistributionPreferenceDisplay';
@@ -17,6 +18,7 @@ const GroupAllocation: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { groups, updateGroup, refetchGroups } = useAdminGroups();
+  const { allocations } = useGroupAllocation();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const group = groups.find(g => g.id === id);
@@ -61,7 +63,10 @@ const GroupAllocation: React.FC = () => {
   const staffCount = group.staffCount || 0;
   const participantCount = group.participantCount || (group.pax - staffCount);
   const remainingStaff = group.remainingStaff ?? staffCount;
-  const remainingParticipants = group.remainingParticipants ?? participantCount;
+  const participantAllocatedBeds = allocations
+    .filter(a => a.groupId === group.id && (a.allocationType === 'NEIGHBORHOOD' || a.allocationType === 'TENT'))
+    .reduce((sum, a) => sum + a.bedsAssigned, 0);
+  const remainingParticipants = Math.max(0, participantCount - participantAllocatedBeds);
   
   const recommendedVIPTents = Math.ceil(remainingStaff / 3);
   const isComplete = remainingStaff === 0 && remainingParticipants === 0;
