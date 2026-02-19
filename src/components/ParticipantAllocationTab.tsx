@@ -139,14 +139,15 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     const neighborhood = state.neighborhoods[neighborhoodId];
     if (!neighborhood) return { feasible: true, requestedSizes: [], availableCapacities: [] };
 
-    // Get requested tent sizes (sorted descending for greedy match)
-    const requestedSizes = pref.tents.map(t => t.pax).sort((a, b) => b - a);
-
     // Get available tent capacities (sorted descending)
     const availableCapacities = neighborhood.tentIds
       .map(tentId => state.tents[tentId]?.beds.length || 0)
       .filter(c => c > 0)
       .sort((a, b) => b - a);
+
+    // Only compare as many requested tents as this neighborhood has physical tents
+    const allRequestedSizes = pref.tents.map(t => t.pax).sort((a, b) => b - a);
+    const requestedSizes = allRequestedSizes.slice(0, availableCapacities.length);
 
     // Greedy descending match: for each requested size, find a tent with capacity >= requested
     const usedIndices = new Set<number>();
