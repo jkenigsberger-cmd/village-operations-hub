@@ -209,7 +209,10 @@ const AdminQuotes = () => {
 
   // Download documents
   const handleDownload = useCallback((type: 'client' | 'operational') => {
-    if (!selectedQuote) return;
+    if (!selectedQuote) {
+      toast({ title: 'יש לשמור את ההצעה לפני הורדה', variant: 'destructive' });
+      return;
+    }
     const quoteWithTotals = { ...selectedQuote, totals: computedTotals };
     const html = buildQuoteDocHTML(type, quoteWithTotals);
     const prefix = type === 'client' ? 'הצעת-מחיר' : 'דף-תפעול';
