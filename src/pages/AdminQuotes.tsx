@@ -36,7 +36,7 @@ import {
   buildQuoteSnapshotFromSupabase,
   computeQuoteTotals,
   buildQuoteDocHTML,
-  downloadDocHTML,
+  downloadDocPDF,
 } from '@/lib/quoteUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -217,7 +217,7 @@ const AdminQuotes = () => {
     const html = buildQuoteDocHTML(type, quoteWithTotals);
     const prefix = type === 'client' ? 'הצעת-מחיר' : 'דף-תפעול';
     const name = editSnapshot.groupName || editTitle || 'ללא-שם';
-    downloadDocHTML(html, `${prefix}-${name}-v${selectedQuote.version}.html`);
+    downloadDocPDF(html, `${prefix}-${name}-v${selectedQuote.version}`);
   }, [selectedQuote, computedTotals, editSnapshot.groupName, editTitle]);
 
   // Delete

@@ -186,7 +186,10 @@ const commonStyles = `
     .note { font-size: 12px; color: #888; margin-top: 24px; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     .vat-note { color: #c0392b; font-size: 11px; }
-    @media print { body { padding: 20px; } }
+    @media print {
+      body { padding: 20px; margin: 0; }
+      @page { size: A4; margin: 15mm; }
+    }
   </style>
 `;
 
@@ -379,14 +382,12 @@ const buildOperationalDocHTML = (quote: QuoteRecord): string => {
 
 // ---- Download helper ----
 
-export const downloadDocHTML = (html: string, filename: string): void => {
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+export const downloadDocPDF = (html: string, _filename: string): void => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.onload = () => {
+    printWindow.print();
+  };
 };
