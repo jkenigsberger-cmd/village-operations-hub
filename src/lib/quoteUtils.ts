@@ -72,10 +72,11 @@ export const computeQuoteTotals = (
 
   if (pricing.audience === 'students') {
     const pricePerPerson = pricing.accommodationPricePerPerson || 0;
-    accommodationSubtotal = pricePerPerson * snapshot.studentsTotal;
-    // For lodging, multiply by nights
-    if (pricing.activityType !== 'day_activity' && snapshot.nights > 0) {
-      accommodationSubtotal = pricePerPerson * snapshot.studentsTotal; // Price already per-stay
+    if (pricing.activityType === 'day_activity') {
+      accommodationSubtotal = pricePerPerson * snapshot.studentsTotal;
+    } else {
+      // Lodging: multiply by sleeping nights
+      accommodationSubtotal = pricePerPerson * snapshot.studentsTotal * Math.max(1, snapshot.nights);
     }
   } else {
     // Adults: per tent per night

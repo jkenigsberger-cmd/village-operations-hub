@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { differenceInCalendarDays, parseISO, addDays, format } from 'date-fns';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
@@ -68,7 +69,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { NumericInput } from '@/components/NumericInput';
-import { format, parseISO } from 'date-fns';
+
 import { he } from 'date-fns/locale';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -598,7 +599,7 @@ const AdminQuotes = () => {
                   const sd = e.target.value;
                   setEditSnapshot(prev => {
                     const nights = prev.endDate && sd
-                      ? Math.max(0, Math.round((new Date(prev.endDate).getTime() - new Date(sd).getTime()) / 86400000))
+                      ? Math.max(0, differenceInCalendarDays(parseISO(prev.endDate), parseISO(sd)))
                       : 0;
                     return { ...prev, startDate: sd, nights };
                   });
@@ -614,7 +615,7 @@ const AdminQuotes = () => {
                   const ed = e.target.value;
                   setEditSnapshot(prev => {
                     const nights = prev.startDate && ed
-                      ? Math.max(0, Math.round((new Date(ed).getTime() - new Date(prev.startDate).getTime()) / 86400000))
+                      ? Math.max(0, differenceInCalendarDays(parseISO(ed), parseISO(prev.startDate)))
                       : 0;
                     return { ...prev, endDate: ed, nights };
                   });
@@ -623,7 +624,12 @@ const AdminQuotes = () => {
             </div>
             <div>
               <Label>מס׳ לילות</Label>
-              <NumericInput value={editSnapshot.nights} onChange={v => setEditSnapshot(prev => ({ ...prev, nights: v }))} min={0} />
+              <NumericInput value={editSnapshot.nights} onChange={v => setEditSnapshot(prev => {
+                const endDate = prev.startDate
+                  ? format(addDays(parseISO(prev.startDate), v), 'yyyy-MM-dd')
+                  : prev.endDate;
+                return { ...prev, nights: v, endDate };
+              })} min={0} />
             </div>
             <div>
               <Label>סה"כ משתתפים</Label>
