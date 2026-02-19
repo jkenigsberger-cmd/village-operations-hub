@@ -1,64 +1,88 @@
 
 
-# Fix: VIP Tent Card Colors and Bed Numbers Must Match Allocations
+# Fix: Participant (Student) Double-Allocation Bug
 
 ## Problem
 
-Two bugs prevent VIP tent cards from correctly reflecting allocation data:
+When you edit a group or re-open the allocation page, the system "forgets" how many students were already allocated and lets you allocate the full number again. This only affects participant/student allocation — VIP works correctly.
 
-1. **No gender colors**: Database stores gender as lowercase (`'female'`, `'male'`), but TentCard expects uppercase (`'FEMALE'`, `'MALE'`, `'MIXED'`). The hook passes it through without converting, so the color logic never matches.
+## Root Cause
 
-2. **Wrong bed numbers**: TentCard computes `usedBeds = occupiedBeds + reservedBeds`. The augmented summary correctly sets `occupiedBeds` from VIP allocation data, but `reservedBeds` still carries stale values from the physical tent state, inflating the displayed count.
+In `AdminGroupEdit.tsx` (line 510), whenever pax or staff count changes, a `useEffect` resets `remainingParticipants` back to the full participant count, erasing the record of existing allocations:
 
-## Changes
+```typescript
+remainingParticipants: participantCount,  // <-- wipes out allocated count
+```
 
-### 1. `src/hooks/useVipReservations.ts` (line 63)
+Both `GroupAllocation.tsx` (line 64) and `ParticipantAllocationTab.tsx` (line 65) then read this stale counter from the group record instead of computing it from actual allocations.
 
-Normalize gender to uppercase so it matches TentCard expectations:
+## Fix: Compute Remaining Students Dynamically
+
+Three files need small changes. No database or schema changes required.
+
+### 1. `src/pages/AdminGroupEdit.tsx` (line 510)
+
+Stop resetting `remainingParticipants` when recalculating participant count:
 
 ```typescript
 // Before:
-gender: config.gender as TentGender | undefined,
+setFormData(prev => ({
+  ...prev,
+  participantCount,
+  remainingParticipants: participantCount,  // REMOVE this line
+}));
 
 // After:
-gender: config.gender
-  ? (config.gender.toUpperCase() as TentGender)
-  : undefined,
+setFormData(prev => ({
+  ...prev,
+  participantCount,
+}));
 ```
 
-### 2. `src/pages/Neighborhood.tsx` (line ~521-533)
+### 2. `src/pages/GroupAllocation.tsx` (line 64)
 
-Add `reservedBeds: 0` to the augmented summary so TentCard only counts the allocation-derived beds:
+Replace stale counter with dynamic computation from allocations:
 
 ```typescript
-const augmentedSummary = isVIPNeighborhood && vipRes
-  ? {
-      ...summary,
-      groupName: vipRes.groupName,
-      checkInDate: vipRes.startDate,
-      checkOutDate: vipRes.endDate,
-      gender: vipRes.gender || summary.gender,
-      occupiedBeds: vipRes.bedsPlanned,
-      reservedBeds: 0,           // prevent stale physical tent data from inflating count
-      freeBeds: Math.max(0, summary.totalBeds - vipRes.bedsPlanned),
-    }
-  : isVIPNeighborhood && !vipRes
-    ? { ...summary, groupName: undefined, checkInDate: undefined, checkOutDate: undefined }
-    : summary;
+// Before:
+const remainingParticipants = group.remainingParticipants ?? participantCount;
+
+// After:
+const { allocations } = useGroupAllocation();
+const participantAllocatedBeds = allocations
+  .filter(a => a.groupId === group.id && (a.allocationType === 'NEIGHBORHOOD' || a.allocationType === 'TENT'))
+  .reduce((sum, a) => sum + a.bedsAssigned, 0);
+const remainingParticipants = Math.max(0, participantCount - participantAllocatedBeds);
 ```
+
+Note: `useGroupAllocation` is already imported and used elsewhere in this component's children, so we just need to use its `allocations` array here too.
+
+### 3. `src/components/ParticipantAllocationTab.tsx` (line 65)
+
+Same dynamic computation:
+
+```typescript
+// Before:
+const remainingParticipants = group.remainingParticipants ?? group.participantCount ?? (group.pax - (group.staffCount || 0));
+
+// After:
+const participantAllocatedBeds = allocations
+  .filter(a => a.groupId === group.id && (a.allocationType === 'NEIGHBORHOOD' || a.allocationType === 'TENT'))
+  .reduce((sum, a) => sum + a.bedsAssigned, 0);
+const participantCount = group.participantCount ?? (group.pax - (group.staffCount || 0));
+const remainingParticipants = Math.max(0, participantCount - participantAllocatedBeds);
+```
+
+The `allocations` array is already available in this component via `useGroupAllocation()`.
 
 ## What stays unchanged
 
-- TentCard component (no changes needed, it already supports the selectedDate prop)
-- useVipReservations hook logic (date filtering, hotel rule)
+- VIP allocation (already working correctly)
+- Database schema
 - Realtime subscriptions
-- Database / schema
-- All non-VIP tent card behavior
-- Index.tsx, Today.tsx usages
+- `allocationStatus.ts` (already uses the correct dynamic pattern)
+- The `allocations` table remains the single source of truth
 
 ## Result
 
-After this fix, VIP tent cards will show:
-- Correct gender-based color borders (pink for female, blue for male, purple for mixed)
-- Correct bed occupancy numbers matching exactly what was allocated in vip_tent_configs
-
+After this fix, the remaining student count will always be computed from the actual allocations in the database. Editing a group, changing pax, or re-opening the allocation page cannot reset or inflate the count.
