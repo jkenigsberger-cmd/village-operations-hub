@@ -579,85 +579,6 @@ const AdminQuotes = () => {
           </CardContent>
         </Card>
 
-        {/* Snapshot / Group details */}
-        <Card>
-          <CardHeader><CardTitle>פרטי פעילות</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>שם קבוצה</Label>
-              <Input
-                value={editSnapshot.groupName}
-                onChange={e => setEditSnapshot(prev => ({ ...prev, groupName: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label>תאריך התחלה</Label>
-              <Input
-                type="date"
-                value={editSnapshot.startDate}
-                onChange={e => {
-                  const sd = e.target.value;
-                  setEditSnapshot(prev => {
-                    const nights = prev.endDate && sd
-                      ? Math.max(0, differenceInCalendarDays(parseISO(prev.endDate), parseISO(sd)))
-                      : 0;
-                    return { ...prev, startDate: sd, nights };
-                  });
-                }}
-              />
-            </div>
-            <div>
-              <Label>תאריך סיום</Label>
-              <Input
-                type="date"
-                value={editSnapshot.endDate}
-                onChange={e => {
-                  const ed = e.target.value;
-                  setEditSnapshot(prev => {
-                    const nights = prev.startDate && ed
-                      ? Math.max(0, differenceInCalendarDays(parseISO(ed), parseISO(prev.startDate)))
-                      : 0;
-                    return { ...prev, endDate: ed, nights };
-                  });
-                }}
-              />
-            </div>
-            <div>
-              <Label>מס׳ לילות</Label>
-              <NumericInput value={editSnapshot.nights} onChange={v => setEditSnapshot(prev => {
-                const endDate = prev.startDate
-                  ? format(addDays(parseISO(prev.startDate), v), 'yyyy-MM-dd')
-                  : prev.endDate;
-                return { ...prev, nights: v, endDate };
-              })} min={0} />
-            </div>
-            <div>
-              <Label>סה"כ משתתפים</Label>
-              <NumericInput
-                value={editSnapshot.totalPax}
-                onChange={v => setEditSnapshot(prev => ({ ...prev, totalPax: v }))}
-                min={0}
-              />
-            </div>
-            <div>
-              <Label>חניכים</Label>
-              <NumericInput
-                value={editSnapshot.studentsTotal}
-                onChange={v => setEditSnapshot(prev => ({ ...prev, studentsTotal: v, studentsOverride: true }))}
-                min={0}
-              />
-            </div>
-            <div>
-              <Label>צוות</Label>
-              <NumericInput
-                value={editSnapshot.staffTotal}
-                onChange={v => setEditSnapshot(prev => ({ ...prev, staffTotal: v, staffOverride: true }))}
-                min={0}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Pricing config */}
         <Card>
           <CardHeader><CardTitle>תמחור</CardTitle></CardHeader>
@@ -931,6 +852,85 @@ const AdminQuotes = () => {
                   onChange={e => setEditPricing(prev => ({ ...prev, discountReason: e.target.value }))}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Snapshot / Group details */}
+        <Card>
+          <CardHeader><CardTitle>פרטי פעילות</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>שם קבוצה</Label>
+              <Input
+                value={editSnapshot.groupName}
+                onChange={e => setEditSnapshot(prev => ({ ...prev, groupName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>תאריך התחלה</Label>
+              <Input
+                type="date"
+                value={editSnapshot.startDate}
+                onChange={e => {
+                  const sd = e.target.value;
+                  setEditSnapshot(prev => {
+                    const nights = prev.endDate && sd
+                      ? Math.max(0, differenceInCalendarDays(parseISO(prev.endDate), parseISO(sd)))
+                      : 0;
+                    return { ...prev, startDate: sd, nights };
+                  });
+                }}
+              />
+            </div>
+            <div>
+              <Label>תאריך סיום</Label>
+              <Input
+                type="date"
+                value={editSnapshot.endDate}
+                onChange={e => {
+                  const ed = e.target.value;
+                  setEditSnapshot(prev => {
+                    const nights = prev.startDate && ed
+                      ? Math.max(0, differenceInCalendarDays(parseISO(ed), parseISO(prev.startDate)))
+                      : 0;
+                    return { ...prev, endDate: ed, nights };
+                  });
+                }}
+              />
+            </div>
+            <div>
+              <Label>מס׳ לילות</Label>
+              <NumericInput value={editSnapshot.nights} onChange={v => setEditSnapshot(prev => {
+                const endDate = prev.startDate
+                  ? format(addDays(parseISO(prev.startDate), v), 'yyyy-MM-dd')
+                  : prev.endDate;
+                return { ...prev, nights: v, endDate };
+              })} min={0} />
+            </div>
+            <div>
+              <Label>סה"כ משתתפים</Label>
+              <NumericInput
+                value={editSnapshot.totalPax}
+                onChange={v => setEditSnapshot(prev => ({ ...prev, totalPax: v }))}
+                min={0}
+              />
+            </div>
+            <div>
+              <Label>חניכים</Label>
+              <NumericInput
+                value={editSnapshot.studentsTotal}
+                onChange={v => setEditSnapshot(prev => ({ ...prev, studentsTotal: v, studentsOverride: true }))}
+                min={0}
+              />
+            </div>
+            <div>
+              <Label>צוות</Label>
+              <NumericInput
+                value={editSnapshot.staffTotal}
+                onChange={v => setEditSnapshot(prev => ({ ...prev, staffTotal: v, staffOverride: true }))}
+                min={0}
+              />
             </div>
           </CardContent>
         </Card>
