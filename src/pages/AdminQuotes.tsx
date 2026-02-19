@@ -828,7 +828,7 @@ const AdminQuotes = () => {
                   <Label>חניכים</Label>
                   <NumericInput
                     value={editSnapshot.studentsTotal}
-                    onChange={v => setEditSnapshot(prev => ({ ...prev, studentsTotal: v, studentsOverride: true }))}
+                    onChange={v => setEditSnapshot(prev => ({ ...prev, studentsTotal: v, totalPax: v + prev.staffTotal, studentsOverride: true }))}
                     min={0}
                   />
                 </div>
@@ -836,7 +836,7 @@ const AdminQuotes = () => {
                   <Label>צוות</Label>
                   <NumericInput
                     value={editSnapshot.staffTotal}
-                    onChange={v => setEditSnapshot(prev => ({ ...prev, staffTotal: v, staffOverride: true }))}
+                    onChange={v => setEditSnapshot(prev => ({ ...prev, staffTotal: v, totalPax: prev.studentsTotal + v, staffOverride: true }))}
                     min={0}
                   />
                 </div>
