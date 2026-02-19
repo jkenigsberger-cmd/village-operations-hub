@@ -172,18 +172,18 @@ const commonStyles = `
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Arial', 'Helvetica', sans-serif; direction: rtl; text-align: right; color: #333; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; }
-    h1 { font-size: 24px; color: #2c5fa8; margin-bottom: 8px; }
-    h2 { font-size: 18px; color: #3b6fb7; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #a8c4e6; padding-bottom: 4px; }
+    h1 { font-size: 24px; color: #0b2fd6; margin-bottom: 8px; }
+    h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
     h3 { font-size: 15px; margin-top: 16px; margin-bottom: 8px; }
-    .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: linear-gradient(135deg, #3b6fb7, #5b8fd7); color: #fff; border-radius: 8px; }
+    .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: linear-gradient(135deg, #0b2fd6, #3b5fe6); color: #fff; border-radius: 8px; }
     .header .subtitle { color: rgba(255,255,255,0.85); font-size: 14px; }
     .header h1 { color: #fff; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: right; font-size: 13px; }
-    th { background: #e8f0fa; font-weight: bold; }
-    .total-row { font-weight: bold; background: #f0f5fc; }
-    .grand-total { font-size: 18px; color: #2c5fa8; font-weight: bold; }
-    .payment-box { background: #e8f0fa; padding: 16px; border-radius: 8px; margin-top: 16px; }
+    th { background: #e8eefa; font-weight: bold; }
+    .total-row { font-weight: bold; background: #f0f2fc; }
+    .grand-total { font-size: 18px; color: #0b2fd6; font-weight: bold; }
+    .payment-box { background: #e8eefa; padding: 16px; border-radius: 8px; margin-top: 16px; }
     .note { font-size: 12px; color: #888; margin-top: 24px; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     .vat-note { color: #c0392b; font-size: 11px; }
