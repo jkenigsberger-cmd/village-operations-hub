@@ -1,25 +1,32 @@
 
 
-# Make Quote PDF Header Text Blue
-
-## What Changes
-
-The PDF header currently has a blue gradient background with white text. We need to remove the gradient and make the text blue (#0b2fd6) instead, matching the screenshot.
+# Adjust Logo Size and Postcard Image Style
 
 ## File: `src/lib/quoteUtils.ts`
 
-Update three CSS rules in the `commonStyles` block:
+Two CSS changes in the `commonStyles` block:
 
-1. **`.header`** -- Remove the gradient background, keep the layout:
-   - Before: `background: linear-gradient(135deg, #0b2fd6, #3b5fe6); color: #fff; border-radius: 8px;`
-   - After: `background: none; color: #333;`
+### 1. Logo -- Make bigger
+- Change `.header-logo` height from `72px` to `96px`
 
-2. **`.header h1`** -- Change from white to blue:
-   - Before: `color: #fff;`
-   - After: `color: #0b2fd6;`
+### 2. Footer image -- Clean, borderless, centered
+- Update `.postcard-img`:
+  - Remove `border`, `box-shadow`, `background`, `padding`, `border-radius`
+  - Set `object-fit: contain`
+  - Increase height to `200px`
+- Remove `.postcard-container` max-width constraint (set to `100%`)
 
-3. **`.header .subtitle`** -- Change from semi-transparent white to a lighter blue/gray:
-   - Before: `color: rgba(255,255,255,0.85);`
-   - After: `color: #666;`
+### Before / After
 
-No other files change.
+| Property | Before | After |
+|----------|--------|-------|
+| `.header-logo` height | 72px | 96px |
+| `.postcard-img` border | 1px solid rgba(...) | none |
+| `.postcard-img` box-shadow | 0 1px 4px ... | none |
+| `.postcard-img` background | #f9f9f7 | transparent |
+| `.postcard-img` padding | 8px | 0 |
+| `.postcard-img` border-radius | 14px | 0 |
+| `.postcard-img` height | 150px | 200px |
+| `.postcard-container` max-width | 520px | 100% |
+
+No logic, pricing, or DB changes.
