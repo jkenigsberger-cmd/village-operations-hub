@@ -1,25 +1,25 @@
 
 
-# Update Quote PDF Color to #0b2fd6
+# Make Quote PDF Header Text Blue
 
 ## What Changes
 
-Replace the current blue shades in the quote PDF styles with `#0b2fd6` as the primary color throughout.
+The PDF header currently has a blue gradient background with white text. We need to remove the gradient and make the text blue (#0b2fd6) instead, matching the screenshot.
 
 ## File: `src/lib/quoteUtils.ts`
 
-Update `commonStyles`:
+Update three CSS rules in the `commonStyles` block:
 
-| Element | Current | New |
-|---------|---------|-----|
-| h1 color | `#2c5fa8` | `#0b2fd6` |
-| h2 color | `#3b6fb7` | `#0b2fd6` |
-| h2 border-bottom | `#a8c4e6` | `#7a9be6` |
-| header gradient | `linear-gradient(135deg, #3b6fb7, #5b8fd7)` | `linear-gradient(135deg, #0b2fd6, #3b5fe6)` |
-| header h1 | stays `#fff` | stays `#fff` |
-| grand-total color | `#2c5fa8` | `#0b2fd6` |
-| th background | `#e8f0fa` | `#e8eefa` |
-| total-row background | `#f0f5fc` | `#f0f2fc` |
-| payment-box background | `#e8f0fa` | `#e8eefa` |
+1. **`.header`** -- Remove the gradient background, keep the layout:
+   - Before: `background: linear-gradient(135deg, #0b2fd6, #3b5fe6); color: #fff; border-radius: 8px;`
+   - After: `background: none; color: #333;`
+
+2. **`.header h1`** -- Change from white to blue:
+   - Before: `color: #fff;`
+   - After: `color: #0b2fd6;`
+
+3. **`.header .subtitle`** -- Change from semi-transparent white to a lighter blue/gray:
+   - Before: `color: rgba(255,255,255,0.85);`
+   - After: `color: #666;`
 
 No other files change.
