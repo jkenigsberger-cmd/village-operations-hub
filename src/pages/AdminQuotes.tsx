@@ -28,6 +28,8 @@ import {
   QUOTE_STATUS_LABELS,
   AUDIENCE_LABELS,
   ACTIVITY_TYPE_LABELS,
+  WORKSHOP_CATALOG,
+  LECTURE_CATALOG,
 } from '@/types/quote';
 import {
   buildQuoteSnapshotFromSupabase,
@@ -224,18 +226,40 @@ const AdminQuotes = () => {
     toast({ title: 'ההצעה נמחקה' });
   }, [selectedQuoteId, deleteQuote]);
 
-  // When audience changes, update accommodation price
+  // When audience changes, update accommodation price and filter incompatible content
   const handleAudienceChange = (audience: QuoteAudience) => {
-    setEditPricing(prev => ({
-      ...prev,
-      audience,
-      activityType: audience === 'students' ? (prev.activityType || 'midweek_lodging') : undefined,
-      accommodationPricePerPerson: audience === 'students'
-        ? STUDENT_PRICES[prev.activityType || 'midweek_lodging']
-        : undefined,
-      accommodationPriceTent3: audience === 'adults' ? ADULT_TENT_PRICES.tent3 : undefined,
-      accommodationPriceTent68: audience === 'adults' ? ADULT_TENT_PRICES.tent68 : undefined,
-    }));
+    setEditPricing(prev => {
+      // Filter out workshops not available for new audience
+      const filteredWorkshops = prev.workshops.filter(w => {
+        const catalogItem = WORKSHOP_CATALOG.find(c => c.catalogId === w.catalogId);
+        if (!catalogItem) return false;
+        return audience === 'students' || catalogItem.adultsPrice !== null;
+      });
+
+      // Update prices for remaining workshops
+      const updatedWorkshops: QuoteWorkshop[] = filteredWorkshops.map(w => {
+        const catalogItem = WORKSHOP_CATALOG.find(c => c.catalogId === w.catalogId)!;
+        const price = audience === 'students' ? catalogItem.studentsPrice : catalogItem.adultsPrice!;
+        return { ...w, price, audience };
+      });
+
+      const removedCount = prev.workshops.length - updatedWorkshops.length;
+      if (removedCount > 0) {
+        toast({ title: `הוסרו ${removedCount} תכנים שאינם זמינים לקהל שנבחר` });
+      }
+
+      return {
+        ...prev,
+        audience,
+        activityType: audience === 'students' ? (prev.activityType || 'midweek_lodging') : undefined,
+        accommodationPricePerPerson: audience === 'students'
+          ? STUDENT_PRICES[prev.activityType || 'midweek_lodging']
+          : undefined,
+        accommodationPriceTent3: audience === 'adults' ? ADULT_TENT_PRICES.tent3 : undefined,
+        accommodationPriceTent68: audience === 'adults' ? ADULT_TENT_PRICES.tent68 : undefined,
+        workshops: updatedWorkshops,
+      };
+    });
   };
 
   const handleActivityTypeChange = (type: StudentActivityType) => {
@@ -246,14 +270,18 @@ const AdminQuotes = () => {
     }));
   };
 
-  // Workshop helpers
-  const addWorkshop = () => {
+  // Workshop helpers - catalog based
+  const addWorkshopFromCatalog = (catalogId: string) => {
+    const item = WORKSHOP_CATALOG.find(c => c.catalogId === catalogId);
+    if (!item) return;
+    const price = editPricing.audience === 'students' ? item.studentsPrice : item.adultsPrice!;
     setEditPricing(prev => ({
       ...prev,
       workshops: [...prev.workshops, {
         id: generateId(),
-        name: '',
-        price: WORKSHOP_PRICES[prev.audience],
+        catalogId: item.catalogId,
+        name: item.name,
+        price,
         audience: prev.audience,
         quantity: 1,
       }],
@@ -274,16 +302,20 @@ const AdminQuotes = () => {
     }));
   };
 
-  // Lecture helpers
-  const addLecture = () => {
+  // Lecture helpers - catalog based
+  const addLectureFromCatalog = (catalogId: string) => {
+    const item = LECTURE_CATALOG.find(c => c.catalogId === catalogId);
+    if (!item) return;
     setEditPricing(prev => ({
       ...prev,
       lectures: [...prev.lectures, {
         id: generateId(),
-        name: '',
-        price: 0,
-        includesVat: false,
-        vatRate: VAT_RATE,
+        catalogId: item.catalogId,
+        name: item.name,
+        lecturer: item.lecturer,
+        price: item.price,
+        includesVat: item.includesVat,
+        vatRate: item.vatRate,
         quantity: 1,
       }],
     }));
@@ -697,25 +729,41 @@ const AdminQuotes = () => {
 
             <Separator />
 
-            {/* Workshops */}
+            {/* Workshops - catalog based */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold">סדנאות</h3>
-                <Button variant="outline" size="sm" onClick={addWorkshop} className="gap-1">
-                  <Plus className="w-3 h-3" /> הוסף סדנה
-                </Button>
+                <Select onValueChange={addWorkshopFromCatalog}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="הוסף סדנה..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WORKSHOP_CATALOG.map(item => {
+                      const alreadyAdded = editPricing.workshops.some(w => w.catalogId === item.catalogId);
+                      const unavailable = editPricing.audience === 'adults' && item.adultsPrice === null;
+                      return (
+                        <SelectItem
+                          key={item.catalogId}
+                          value={item.catalogId}
+                          disabled={alreadyAdded || unavailable}
+                        >
+                          {item.name}
+                          {unavailable ? ' (לא זמין לקהל זה)' : ''}
+                          {alreadyAdded ? ' (כבר נוסף)' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
               {editPricing.workshops.map(w => (
-                <div key={w.id} className="flex items-end gap-3 mb-2">
-                  <div className="flex-1">
-                    <Input placeholder="שם סדנה" value={w.name} onChange={e => updateWorkshop(w.id, { name: e.target.value })} />
-                  </div>
-                  <div className="w-28">
-                    <NumericInput value={w.price} onChange={v => updateWorkshop(w.id, { price: v })} min={0} />
-                  </div>
+                <div key={w.id} className="flex items-center gap-3 mb-2 p-2 rounded border bg-muted/30">
+                  <div className="flex-1 font-medium text-sm">{w.name}</div>
+                  <div className="text-sm text-muted-foreground">{fc(w.price)}</div>
                   <div className="w-20">
                     <NumericInput value={w.quantity} onChange={v => updateWorkshop(w.id, { quantity: v })} min={1} />
                   </div>
+                  <div className="text-sm font-medium w-20 text-left">{fc(w.price * w.quantity)}</div>
                   <Button variant="ghost" size="icon" onClick={() => removeWorkshop(w.id)}>
                     <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
@@ -725,34 +773,53 @@ const AdminQuotes = () => {
 
             <Separator />
 
-            {/* Lectures */}
+            {/* Lectures - catalog based */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold">הרצאות</h3>
-                <Button variant="outline" size="sm" onClick={addLecture} className="gap-1">
-                  <Plus className="w-3 h-3" /> הוסף הרצאה
-                </Button>
+                <Select onValueChange={addLectureFromCatalog}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="הוסף הרצאה..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LECTURE_CATALOG.map(item => {
+                      const alreadyAdded = editPricing.lectures.some(l => l.catalogId === item.catalogId);
+                      return (
+                        <SelectItem
+                          key={item.catalogId}
+                          value={item.catalogId}
+                          disabled={alreadyAdded}
+                        >
+                          {item.name} - {item.lecturer}
+                          {alreadyAdded ? ' (כבר נוסף)' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
-              {editPricing.lectures.map(l => (
-                <div key={l.id} className="flex items-end gap-3 mb-2">
-                  <div className="flex-1">
-                    <Input placeholder="שם הרצאה" value={l.name} onChange={e => updateLecture(l.id, { name: e.target.value })} />
+              {editPricing.lectures.map(l => {
+                const totalPrice = l.includesVat ? l.price + (l.price * l.vatRate) : l.price;
+                return (
+                  <div key={l.id} className="flex items-center gap-3 mb-2 p-2 rounded border bg-muted/30">
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{l.name}</div>
+                      <div className="text-xs text-muted-foreground">{l.lecturer}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {fc(totalPrice)}
+                      {l.includesVat && <Badge variant="outline" className="mr-1 text-xs">כולל מע״מ</Badge>}
+                    </div>
+                    <div className="w-20">
+                      <NumericInput value={l.quantity} onChange={v => updateLecture(l.id, { quantity: v })} min={1} />
+                    </div>
+                    <div className="text-sm font-medium w-20 text-left">{fc(totalPrice * l.quantity)}</div>
+                    <Button variant="ghost" size="icon" onClick={() => removeLecture(l.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
                   </div>
-                  <div className="w-28">
-                    <NumericInput value={l.price} onChange={v => updateLecture(l.id, { price: v })} min={0} />
-                  </div>
-                  <div className="w-20">
-                    <NumericInput value={l.quantity} onChange={v => updateLecture(l.id, { quantity: v })} min={1} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={l.includesVat} onCheckedChange={v => updateLecture(l.id, { includesVat: v })} />
-                    <span className="text-xs text-muted-foreground">+מע"מ</span>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeLecture(l.id)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <Separator />
