@@ -1,44 +1,23 @@
 
-# Move "פרטי פעילות" Between Pricing and Workshops
 
-## What Changes
+# Fix: Coffee Corner Not Adding Per-Person Cost
 
-The "פרטי פעילות" (Activity Details) card will be repositioned to appear **after** the accommodation pricing section and **before** the workshops section. This requires splitting the current "תמחור" card into two separate cards.
+## The Problem
 
-## Current Layout Order
-1. **תמחור Card** (single large card containing):
-   - Audience + Activity type
-   - Accommodation pricing
-   - Workshops
-   - Lectures
-   - Coffee corner, Addons, Adjustments, Discount
-2. **פרטי פעילות Card** (group name, dates, nights, participants)
-3. **סיכום Card** (totals)
+When toggling the coffee corner on, the price shows as 0 because `totalPax` (total participants) is not auto-calculated from `studentsTotal + staffTotal`. The coffee corner formula is `15 x totalPax`, but `totalPax` stays at 0 unless manually typed in.
 
-## New Layout Order
-1. **תמחור Card** (trimmed -- only top-level pricing config):
-   - Audience + Activity type
-   - Accommodation pricing
-2. **פרטי פעילות Card** (moved here -- group name, dates, nights, participants)
-3. **תוכן Card** (new card title -- the rest of the pricing content):
-   - Workshops
-   - Lectures
-   - Coffee corner
-   - Addons
-   - Custom adjustments
-   - Discount
-4. **סיכום Card** (totals -- unchanged)
-
-## Technical Details
+## The Fix
 
 ### File: `src/pages/AdminQuotes.tsx`
 
-1. **Close the תמחור Card early** -- after the accommodation pricing section (line 655), close `</CardContent>` and `</Card>`.
+**Auto-sync `totalPax`** whenever `studentsTotal` or `staffTotal` changes:
 
-2. **Move the פרטי פעילות Card block** (lines 859-936) to appear right after the closed תמחור card.
+- In the `studentsTotal` onChange handler (line 831): also update `totalPax` to `newValue + prev.staffTotal`
+- In the `staffTotal` onChange handler (line 839): also update `totalPax` to `prev.studentsTotal + newValue`
 
-3. **Open a new Card** for the remaining content (workshops, lectures, coffee, addons, adjustments, discount) with a title like "תוכן ותוספות" (Content and Extras).
+This ensures that when participants are entered, the coffee corner (and any other calculation using `totalPax`) automatically gets the correct count.
 
-4. The Separator before workshops (line 657) becomes unnecessary since they will be in a new card.
+### No other files change
 
-No logic changes -- purely a JSX restructuring.
+The calculation in `quoteUtils.ts` is already correct: `coffeeCornerSubtotal = pricePerPerson * totalPax`. The only issue is that `totalPax` was not being kept in sync with the individual counts.
+
