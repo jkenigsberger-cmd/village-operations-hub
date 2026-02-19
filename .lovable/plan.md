@@ -1,40 +1,37 @@
 
-
-# Generate Quote as PDF Instead of HTML
+# Change Quote PDF Color Scheme to Blue
 
 ## What Changes
 
-The quote download buttons ("הצעת מחיר ללקוח" and "דף תפעול לצוות") will produce a **PDF file** instead of an HTML file. We'll use the browser's built-in `window.print()` mechanism to convert the existing HTML template to PDF -- this is the simplest approach that requires no new dependencies.
+The quote PDF document currently uses a green/olive color scheme (`#4a6741`, `#5a7a51`, `#c5d5a9`, `#f0f4e8`). We'll update it to a blue gradient style similar to the reference image.
 
-## How It Works
+## File: `src/lib/quoteUtils.ts`
 
-The existing HTML document generation (`buildQuoteDocHTML`) already produces a fully styled, print-ready HTML document. We'll open it in a new browser window and trigger `window.print()`, which lets the user save as PDF using the browser's native "Save as PDF" printer.
+Update the `commonStyles` block (lines 171-193) with these color swaps:
 
-## Technical Details
+| Element | Current (Green) | New (Blue) |
+|---------|-----------------|------------|
+| h1 color | `#4a6741` | `#2c5fa8` |
+| h2 color | `#5a7a51` | `#3b6fb7` |
+| h2 border-bottom | `#c5d5a9` | `#a8c4e6` |
+| header border-bottom | `#4a6741` | `#2c5fa8` |
+| th background | `#f0f4e8` | `#e8f0fa` |
+| total-row background | `#f8faf5` | `#f0f5fc` |
+| grand-total color | `#4a6741` | `#2c5fa8` |
+| payment-box background | `#f0f4e8` | `#e8f0fa` |
 
-### File: `src/lib/quoteUtils.ts`
+Additionally, update the `.header` to use a blue gradient background with white text, matching the reference image style:
 
-Replace the `downloadDocHTML` function with a new `downloadDocPDF` function:
-
-```typescript
-export const downloadDocPDF = (html: string, filename: string): void => {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.onload = () => {
-    printWindow.print();
-  };
-};
+```css
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 24px 16px;
+  background: linear-gradient(135deg, #3b6fb7, #5b8fd7);
+  color: #fff;
+  border-radius: 8px;
+}
+.header .subtitle { color: rgba(255,255,255,0.85); }
 ```
 
-Also add a `@media print` block inside `commonStyles` to hide browser chrome and ensure clean PDF output (hide margins, set page size A4, etc.).
-
-### File: `src/pages/AdminQuotes.tsx`
-
-Update the import from `downloadDocHTML` to `downloadDocPDF` and use it in the `handleDownload` callback. The filenames stay the same (they appear in the print dialog title).
-
-### No new dependencies needed
-
-This approach uses the browser's native print-to-PDF. No external libraries required. The user clicks the button, a print dialog opens, and they choose "Save as PDF."
-
+No other files change. The blue theme will apply to both client and operational PDF documents.
