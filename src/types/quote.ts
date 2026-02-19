@@ -54,8 +54,50 @@ export interface QuoteClientDetails {
 
 // ---- Pricing configuration ----
 
+// ---- Catalog definitions ----
+
+export interface WorkshopCatalogItem {
+  catalogId: string;
+  name: string;
+  studentsPrice: number;
+  adultsPrice: number | null; // null = not available for adults
+}
+
+export interface LectureCatalogItem {
+  catalogId: string;
+  name: string;
+  lecturer: string;
+  price: number;
+  includesVat: boolean;
+  vatRate: number;
+  totalWithVat: number; // price + vat if applicable
+}
+
+export const WORKSHOP_CATALOG: WorkshopCatalogItem[] = [
+  { catalogId: 'ws_pnim_chutz', name: 'ענייני פנים ענייני חוץ', studentsPrice: 750, adultsPrice: 1500 },
+  { catalogId: 'ws_tikvah', name: 'יוצרים תקווה', studentsPrice: 750, adultsPrice: 1500 },
+  { catalogId: 'ws_rotzeh', name: 'מי שרוצה מצליח', studentsPrice: 750, adultsPrice: null },
+  { catalogId: 'ws_shiraretz', name: 'שירארץ', studentsPrice: 750, adultsPrice: 1500 },
+  { catalogId: 'ws_stickers', name: 'סדנת סטיקרים', studentsPrice: 750, adultsPrice: 1500 },
+  { catalogId: 'ws_kol_sheli', name: 'הקול שלי במרחב', studentsPrice: 750, adultsPrice: null },
+  { catalogId: 'ws_narrativim', name: 'סדנת נרטיבים', studentsPrice: 750, adultsPrice: null },
+  { catalogId: 'ws_ometz', name: 'סדנת אומץ', studentsPrice: 750, adultsPrice: 1500 },
+  { catalogId: 'ws_pedagogia', name: 'פדגוגיה של חוויה (עדי פאר)', studentsPrice: 750, adultsPrice: 1500 },
+];
+
+export const LECTURE_CATALOG: LectureCatalogItem[] = [
+  { catalogId: 'lec_pedagogia_tikvah', name: 'פדגוגיה של תקווה', lecturer: 'שירלי רימון ברכה', price: 2500, includesVat: false, vatRate: 0, totalWithVat: 2500 },
+  { catalogId: 'lec_chinuch_narrativi', name: 'חינוך כמעשה נרטיבי', lecturer: 'שירלי רימון ברכה', price: 2500, includesVat: false, vatRate: 0, totalWithVat: 2500 },
+  { catalogId: 'lec_yehudit_demo', name: 'יהודית ודמוקרטית', lecturer: 'שירלי רימון ברכה', price: 2500, includesVat: false, vatRate: 0, totalWithVat: 2500 },
+  { catalogId: 'lec_ecosystem', name: 'בניית אקוסיסטם חינוכי', lecturer: 'רותי אנזל', price: 1500, includesVat: false, vatRate: 0, totalWithVat: 1500 },
+  { catalogId: 'lec_latzet_midaatenu', name: 'לצאת מדעתנו', lecturer: 'מירב לשם גונן', price: 5000, includesVat: true, vatRate: 0.18, totalWithVat: 5900 },
+];
+
+// ---- Pricing line items ----
+
 export interface QuoteWorkshop {
   id: string;
+  catalogId: string;
   name: string;
   price: number;
   audience: WorkshopAudience;
@@ -64,10 +106,12 @@ export interface QuoteWorkshop {
 
 export interface QuoteLecture {
   id: string;
+  catalogId: string;
   name: string;
+  lecturer: string;
   price: number;
   includesVat: boolean;
-  vatRate: number; // 0.18
+  vatRate: number;
   quantity: number;
 }
 
