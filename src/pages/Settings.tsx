@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users, Cloud, Database, Briefcase } from 'lucide-react';
+import { Loader2, Settings as SettingsIcon, Download, Upload, RotateCcw, AlertTriangle, Check, Copy, FileJson, Users, Cloud, Database, Briefcase, FileText } from 'lucide-react';
 import { HE } from '@/lib/translations';
 import { importAllFromLocalStorage, hasLocalStorageData, clearLocalStorageData, ImportResult } from '@/lib/dataImport';
 
@@ -250,6 +250,24 @@ const Settings = () => {
           >
             <Briefcase className="w-6 h-6" />
             כניסה להנהלה
+          </button>
+        </section>
+
+        {/* Quotes Section */}
+        <section className="tile border-primary/30 bg-primary/5">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <FileText className="w-7 h-7" />
+            הצעות מחיר
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            הפקה, עריכה והורדת הצעות מחיר לקבוצות
+          </p>
+          <button 
+            onClick={() => navigate('/admin/quotes')}
+            className="px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:bg-primary/90 flex items-center gap-2"
+          >
+            <FileText className="w-6 h-6" />
+            ניהול הצעות מחיר
           </button>
         </section>
 

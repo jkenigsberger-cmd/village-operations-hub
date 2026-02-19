@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { Users, DollarSign, Receipt, UserCheck, BarChart3, Briefcase } from 'lucide-react';
+import { Users, DollarSign, Receipt, UserCheck, BarChart3, Briefcase, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
@@ -20,6 +20,7 @@ const managementNavItems = [
   { path: '/admin/expenses', label: 'הוצאות', icon: Receipt },
   { path: '/admin/outsourced', label: 'עובדים חיצוניים', icon: UserCheck },
   { path: '/admin/reports', label: 'דוחות', icon: BarChart3 },
+  { path: '/admin/quotes', label: 'הצעות מחיר', icon: FileText },
 ];
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subtitle, section = 'groups' }) => {
