@@ -1,23 +1,32 @@
 
 
-# Fix: Coffee Corner Not Adding Per-Person Cost
+# Fix: "הצעת מחיר ללקוח" Button Does Nothing for Unsaved Quotes
 
 ## The Problem
 
-When toggling the coffee corner on, the price shows as 0 because `totalPax` (total participants) is not auto-calculated from `studentsTotal + staffTotal`. The coffee corner formula is `15 x totalPax`, but `totalPax` stays at 0 unless manually typed in.
+The "הצעת מחיר ללקוח" (Client Quote) and "דף תפעול לצוות" (Operational Doc) buttons silently do nothing when the quote has not been saved yet. The `handleDownload` function (line 211) checks `if (!selectedQuote) return;` and exits without any feedback.
 
 ## The Fix
 
 ### File: `src/pages/AdminQuotes.tsx`
 
-**Auto-sync `totalPax`** whenever `studentsTotal` or `staffTotal` changes:
+Two changes:
 
-- In the `studentsTotal` onChange handler (line 831): also update `totalPax` to `newValue + prev.staffTotal`
-- In the `staffTotal` onChange handler (line 839): also update `totalPax` to `prev.studentsTotal + newValue`
+1. **Add a toast message** when the user clicks download without a saved quote, so they understand why nothing happens:
 
-This ensures that when participants are entered, the coffee corner (and any other calculation using `totalPax`) automatically gets the correct count.
+```typescript
+const handleDownload = useCallback((type: 'client' | 'operational') => {
+  if (!selectedQuote) {
+    toast({ title: 'יש לשמור את ההצעה לפני הורדה', variant: 'destructive' });
+    return;
+  }
+  // ... rest unchanged
+}, [selectedQuote, computedTotals, editSnapshot.groupName, editTitle]);
+```
+
+2. **Optionally disable the buttons visually** when no quote is saved, by adding `disabled={!selectedQuoteId}` to both download buttons (lines 603 and 607). This gives a clear visual cue that saving is required first.
 
 ### No other files change
 
-The calculation in `quoteUtils.ts` is already correct: `coffeeCornerSubtotal = pricePerPerson * totalPax`. The only issue is that `totalPax` was not being kept in sync with the individual counts.
+The download logic itself (`buildQuoteDocHTML`, `downloadDocHTML`) is correct. The only issue is missing user feedback when the precondition (saved quote) is not met.
 
