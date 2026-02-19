@@ -62,7 +62,11 @@ export const ParticipantAllocationTab: React.FC<ParticipantAllocationTabProps> =
     availableCapacities: number[];
   } | null>(null);
 
-  const remainingParticipants = group.remainingParticipants ?? group.participantCount ?? (group.pax - (group.staffCount || 0));
+  const participantAllocatedBeds = allocations
+    .filter(a => a.groupId === group.id && (a.allocationType === 'NEIGHBORHOOD' || a.allocationType === 'TENT'))
+    .reduce((sum, a) => sum + a.bedsAssigned, 0);
+  const participantCount = group.participantCount ?? (group.pax - (group.staffCount || 0));
+  const remainingParticipants = Math.max(0, participantCount - participantAllocatedBeds);
 
   // Get current allocations for this group
   const groupAllocations = allocations.filter(

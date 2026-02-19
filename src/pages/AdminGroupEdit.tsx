@@ -507,7 +507,6 @@ const AdminGroupEdit = () => {
       setFormData(prev => ({
         ...prev,
         participantCount,
-        remainingParticipants: participantCount,
       }));
     }
   }, [formData.pax, formData.staffCount]);
