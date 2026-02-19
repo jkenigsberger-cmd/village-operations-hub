@@ -1,83 +1,73 @@
 
+# Fix: Nights Logic in Quote System
 
-# Fix: Feasibility Check Compares Wrong Scope
+## The Problem
 
-## Problem
+Currently, the nights calculation uses a raw date difference (`endDate - startDate`) which counts the departure day as a night. But in the farm's business model:
 
-The warning dialog shows "requested distribution: [8,8,8,8,...26 tents]" vs "available: [8,8,8,8,8,8,8,8]". The check is comparing ALL virtual tents from the group's distribution preference against just one neighborhood's physical tents. Since the group needs 26 tents total but N1 only has 8, the check always fails -- even though the 8 tents in N1 perfectly match 8 of the requested tent sizes.
+- **Nights (for pricing)** = only the nights they sleep = `endDate - startDate - 1` (the departure day is NOT a sleeping night)
+- **Date range (for display)** = `startDate` to `endDate` inclusive (departure day still has activities)
 
-## Root Cause
+Example: Group arrives Jan 12, departs Jan 15.
+- They sleep nights of: 12th, 13th, 14th = **3 nights**
+- Current code: `differenceInCalendarDays(Jan 15, Jan 12) = 3` -- this is actually correct!
 
-In `ParticipantAllocationTab.tsx`, line 143:
+Wait -- re-reading the user's request more carefully: "if they want 3 nights it must be using a logic also in the starting date and the ending date." The issue is about **bidirectional sync**:
 
-```typescript
-const requestedSizes = pref.tents.map(t => t.pax).sort((a, b) => b - a);
+1. When user sets dates, nights auto-calculates correctly
+2. When user changes nights manually, the end date should adjust accordingly
+3. The pricing must use nights (sleeping nights only), not total days
+
+Currently `differenceInCalendarDays(endDate, startDate)` already gives the correct number of sleeping nights (arrival to departure). The real issues are:
+
+- The date calculation uses `new Date()` which can cause timezone bugs (the stack overflow warning)
+- Changing nights manually doesn't update the end date
+- The students pricing doesn't multiply by nights for lodging stays
+
+## Changes
+
+### 1. `src/pages/AdminQuotes.tsx` - Fix date/nights sync
+
+**Date calculation**: Replace the timezone-unsafe `new Date().getTime() / 86400000` with proper `differenceInCalendarDays` from date-fns using parsed local dates.
+
+**Bidirectional sync**:
+- Changing `startDate` or `endDate` recalculates `nights` using `differenceInCalendarDays(endDate, startDate)`
+- Changing `nights` manually recalculates `endDate` by adding days to `startDate` using `addDays(parseISO(startDate), nights)`
+
+### 2. `src/lib/quoteUtils.ts` - Fix students lodging pricing
+
+Currently students lodging pricing does NOT multiply by nights:
+```
+accommodationSubtotal = pricePerPerson * snapshot.studentsTotal; // Price already per-stay
 ```
 
-This takes ALL virtual tents from the distribution preference. It should only take enough tents to fill the beds being assigned to this specific neighborhood.
-
-## Fix
-
-In `checkTentFeasibility`, instead of comparing all requested tents, slice only the number of tents that match the neighborhood's tent count. The logic should be:
-
-1. Get the number of physical tents in the neighborhood
-2. Take only that many virtual tents from the requested distribution (sorted descending, so we pick the largest ones first -- or better, pick the ones that best match)
-3. Compare those against the neighborhood's available capacities
-
-Updated logic in `src/components/ParticipantAllocationTab.tsx` (~lines 132-170):
-
-```typescript
-const checkTentFeasibility = (neighborhoodId: NeighborhoodId): { feasible: boolean; requestedSizes: number[]; availableCapacities: number[] } => {
-  const pref = group.distributionPreference as DistributionPreference | null;
-  if (!pref?.tents || pref.tents.length === 0) {
-    return { feasible: true, requestedSizes: [], availableCapacities: [] };
-  }
-
-  const neighborhood = state.neighborhoods[neighborhoodId];
-  if (!neighborhood) return { feasible: true, requestedSizes: [], availableCapacities: [] };
-
-  // Get available tent capacities (sorted descending)
-  const availableCapacities = neighborhood.tentIds
-    .map(tentId => state.tents[tentId]?.beds.length || 0)
-    .filter(c => c > 0)
-    .sort((a, b) => b - a);
-
-  // Only compare as many requested tents as this neighborhood has physical tents
-  const allRequestedSizes = pref.tents.map(t => t.pax).sort((a, b) => b - a);
-  const requestedSizes = allRequestedSizes.slice(0, availableCapacities.length);
-
-  // Greedy descending match
-  const usedIndices = new Set<number>();
-  let feasible = true;
-
-  for (const reqSize of requestedSizes) {
-    let matched = false;
-    for (let i = 0; i < availableCapacities.length; i++) {
-      if (!usedIndices.has(i) && availableCapacities[i] >= reqSize) {
-        usedIndices.add(i);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      feasible = false;
-      break;
-    }
-  }
-
-  return { feasible, requestedSizes, availableCapacities };
-};
+This needs to be fixed: for lodging types (midweek/weekend), multiply by nights:
+```
+accommodationSubtotal = pricePerPerson * snapshot.studentsTotal * snapshot.nights;
 ```
 
-## What this fixes
+For `day_activity`, keep it as-is (no nights multiplier).
 
-- N1 has 8 tents of 8 beds. The group requests tents of size 8. The check now compares 8 requested tents vs 8 available tents -- a perfect match, no warning.
-- If a neighborhood has 5 tents of 6 beds but the requested sizes include tents of 8, only 5 tents are compared and the warning correctly fires for the mismatched ones.
+### 3. `src/lib/quoteUtils.ts` - Fix snapshot builder
 
-## What stays unchanged
+Use `differenceInCalendarDays` with properly parsed dates (already using `parseISO` -- this is fine since date-fns `parseISO` handles YYYY-MM-DD correctly as local dates).
 
-- The override flow (logging to activity_log)
-- The warning dialog UI
-- VIP allocation
-- Database schema
+## Technical Details
 
+### File: `src/pages/AdminQuotes.tsx`
+
+- Import `addDays` from date-fns
+- **startDate onChange**: Use `differenceInCalendarDays(parseISO(endDate), parseISO(sd))` instead of raw ms math
+- **endDate onChange**: Same pattern with `differenceInCalendarDays`
+- **nights NumericInput onChange**: Add logic to compute `endDate = format(addDays(parseISO(startDate), newNights), 'yyyy-MM-dd')` and update both `nights` and `endDate`
+
+### File: `src/lib/quoteUtils.ts`
+
+- In `computeQuoteTotals`, for students lodging:
+  - `day_activity`: `pricePerPerson * studentsTotal` (no nights)
+  - `midweek_lodging` / `weekend_lodging`: `pricePerPerson * studentsTotal * nights`
+
+### Documents
+
+- Client doc already shows nights and dates separately -- no change needed
+- The pricing table will naturally reflect the correct subtotal since it reads from `totals`
