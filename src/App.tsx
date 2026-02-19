@@ -19,6 +19,7 @@ import AdminIncome from "./pages/AdminIncome";
 import AdminExpenses from "./pages/AdminExpenses";
 import AdminOutsourced from "./pages/AdminOutsourced";
 import AdminReports from "./pages/AdminReports";
+import AdminQuotes from "./pages/AdminQuotes";
 import GroupAllocation from "./pages/GroupAllocation";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/admin/expenses" element={<AdminExpenses />} />
               <Route path="/admin/outsourced" element={<AdminOutsourced />} />
               <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/quotes" element={<AdminQuotes />} />
               <Route path="/allocation/:id" element={<GroupAllocation />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

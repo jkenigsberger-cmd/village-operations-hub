@@ -764,6 +764,68 @@ export type Database = {
         }
         Relationships: []
       }
+      quotes: {
+        Row: {
+          client_details: Json
+          created_at: string
+          created_by: string | null
+          currency: string
+          doc_client_html: string | null
+          doc_operational_html: string | null
+          group_id: string | null
+          id: string
+          pricing: Json
+          snapshot: Json
+          status: string
+          title: string | null
+          totals: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          client_details?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          doc_client_html?: string | null
+          doc_operational_html?: string | null
+          group_id?: string | null
+          id?: string
+          pricing?: Json
+          snapshot?: Json
+          status?: string
+          title?: string | null
+          totals?: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          client_details?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          doc_client_html?: string | null
+          doc_operational_html?: string | null
+          group_id?: string | null
+          id?: string
+          pricing?: Json
+          snapshot?: Json
+          status?: string
+          title?: string | null
+          totals?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tents: {
         Row: {
           bathroom_maintenance_image: string | null
