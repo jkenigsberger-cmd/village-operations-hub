@@ -175,9 +175,9 @@ const commonStyles = `
     h1 { font-size: 24px; color: #0b2fd6; margin-bottom: 8px; }
     h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
     h3 { font-size: 15px; margin-top: 16px; margin-bottom: 8px; }
-    .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: linear-gradient(135deg, #0b2fd6, #3b5fe6); color: #fff; border-radius: 8px; }
-    .header .subtitle { color: rgba(255,255,255,0.85); font-size: 14px; }
-    .header h1 { color: #fff; }
+    .header { text-align: center; margin-bottom: 32px; padding: 24px 16px; background: none; color: #333; }
+    .header .subtitle { color: #666; font-size: 14px; }
+    .header h1 { color: #0b2fd6; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: right; font-size: 13px; }
     th { background: #e8eefa; font-weight: bold; }
