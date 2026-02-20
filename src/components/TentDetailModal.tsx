@@ -80,6 +80,16 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
   const { groups } = useAdminGroups();
   const { getOverlappingGroups, addAllocation, canAllocate, getUnassignedVIPConfigs, assignVIPConfig } = useGroupAllocation();
 
+  // VIP source-of-truth override: use groups-based reservations instead of stale physical data
+  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+  const vipReservations = useVipReservations(todayStr);
+  
+  const vipOverride = useMemo(() => {
+    if (!tent?.isVIP) return null;
+    const tentNum = tent.code.match(/\d+/)?.[0] || '';
+    return vipReservations[tentNum] || null;
+  }, [tent?.isVIP, tent?.code, vipReservations]);
+
   const [localGuestNames, setLocalGuestNames] = useState<Record<string, string>>({});
   const [cleaningWorker, setCleaningWorker] = useState('');
   
