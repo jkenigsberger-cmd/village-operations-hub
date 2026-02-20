@@ -152,8 +152,13 @@ export const NeighborhoodBookingsList: React.FC<NeighborhoodBookingsListProps> =
       }
     }
     
+    // DATE-GUARD: Never render items where selectedDate is outside [startDate, endDate)
+    // This is the last-resort safeguard — even if upstream passes wrong data,
+    // departed groups will never appear.
+    const guarded = results.filter(b => dateStr >= b.checkIn && dateStr < b.checkOut);
+    
     // Sort by check-in date
-    return results.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+    return guarded.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
   }, [state, neighborhoodId, date, getTentSummary, vipReservations]);
   
   if (bookings.length === 0) {
