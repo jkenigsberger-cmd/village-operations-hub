@@ -1169,16 +1169,6 @@ const AdminGroupEdit = () => {
               />
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              <Switch
-                id="upgraded-coffee"
-                checked={formData.upgradedCoffee || false}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, upgradedCoffee: checked }))}
-              />
-              <Label htmlFor="upgraded-coffee" className="text-sm font-medium cursor-pointer">
-                ☕ קפה משודרג
-              </Label>
-            </div>
           </CardContent>
         </Card>
 
@@ -1455,6 +1445,16 @@ const AdminGroupEdit = () => {
               <Utensils className="w-5 h-5" />
               ארוחות
             </CardTitle>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="upgraded-coffee"
+                checked={formData.upgradedCoffee || false}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, upgradedCoffee: checked }))}
+              />
+              <Label htmlFor="upgraded-coffee" className="text-sm font-medium cursor-pointer">
+                ☕ קפה משודרג
+              </Label>
+            </div>
             <Button 
               onClick={addMealPlanItem} 
               variant="outline" 
