@@ -1,59 +1,60 @@
 
-
-# Fix VIP Neighborhood Showing Departed Groups + Clean Stale Data
+# Fix: Stale VIP Tent Colors on Dashboard
 
 ## Problem
-The VIP bookings list reads directly from the physical `tents` table, which has stale group data left over after checkout. Groups like "pilot" and "hashomer" still appear even though they departed days ago. The correct source of truth (`useVipReservations`, derived from `groups.vip_tent_configs`) is already used by the map and status banner but not by the bookings list.
+The VIP mini-map on the dashboard still shows colorful (occupied) tents for groups that have checked out today ("pilot", "hashomer", etc.). Two root causes:
 
-## Changes
+1. **MiniMap fallback reads stale physical data**: When `useVipReservations` correctly excludes a departed group, the code falls back to checking the physical `tents` table -- which still has old `group_name` and dates. Since `getBookingStatus` returns `CHECKOUT` for checkout-day records, tents appear colored.
 
-### 1. `src/components/NeighborhoodBookingsList.tsx`
-- Add an optional `vipReservations?: VipReservationMap` prop.
-- When `neighborhoodId === 'VIP'` and `vipReservations` is provided, skip the tent-level bookings loop (section 2) entirely.
-- Instead, build bookings from the `vipReservations` map, grouping entries by group name and using the correct dates/gender from the groups source of truth.
+2. **Cleanup function misses checkout-day tents**: The `cleanup_stale_vip_tents()` database function uses `check_out_date < CURRENT_DATE` (strictly less than). Tents checking out **today** are not cleaned until **tomorrow**. Meanwhile the cron runs at 03:00 so there's a full-day gap.
 
-### 2. `src/pages/Neighborhood.tsx`
-- Pass the existing `vipReservations` (already computed on line 64) to `NeighborhoodBookingsList` as a new prop.
+3. **TentDetailModal reads raw physical tent data**: It shows the stale "pilot" group name because it never consults the groups-based source of truth.
 
-### 3. Database Cleanup (one-time)
-- Run an UPDATE query on the `tents` table to clear stale VIP data: set `group_name = NULL`, `check_in_date = NULL`, `check_out_date = NULL`, `gender = 'MIXED'`, and reset reserved beds to 0 for VIP tents where the checkout date has already passed (before today, Feb 20).
-- This prevents any other components that might read physical tent state from showing incorrect data.
+---
+
+## Solution (3 changes)
+
+### 1. Remove physical-tent fallback for VIP nodes
+In `src/components/NeighborhoodMiniMap.tsx`, when `vipReservations` is provided, do NOT fall back to physical tent state. If there's no `vipRes` for a tent, treat it as empty (no reservation).
+
+```text
+Current (line 74-79):
+  const hasReservation = vipRes
+    ? true
+    : (() => {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        return !!(tent.checkInDate && ... getBookingStatus(...));
+      })();
+
+Fixed:
+  const hasReservation = vipReservations
+    ? !!vipRes       // Groups source of truth: no vipRes = empty
+    : (() => { ... physical fallback for non-VIP ... })();
+```
+
+Gender will also default to `undefined` (empty) when no `vipRes` exists.
+
+### 2. Fix cleanup function to include checkout-day tents
+Update the database function `cleanup_stale_vip_tents()` to use `check_out_date <= CURRENT_DATE` instead of `< CURRENT_DATE`. By hotel rule, checkout day is NOT a sleeping night, so these tents should be cleared immediately.
+
+```sql
+-- Change: < CURRENT_DATE  -->  <= CURRENT_DATE
+WHERE neighborhood_id = 'VIP'
+  AND check_out_date IS NOT NULL
+  AND check_out_date <= CURRENT_DATE;
+```
+
+### 3. Override stale data in TentDetailModal for VIP
+Pass `todayVipReservations` through to `TentDetailModal` (or use `useVipReservations` inside it) so that when a VIP tent is opened, it shows the group from the groups source of truth rather than the stale physical record. If no active VIP reservation exists for that tent, display it as empty.
+
+---
 
 ## Technical Details
 
-The `NeighborhoodBookingsList` component will be updated to:
+**Files modified:**
+- `src/components/NeighborhoodMiniMap.tsx` -- remove physical fallback when `vipReservations` is provided
+- `src/components/TentDetailModal.tsx` -- use `useVipReservations` to override stale physical tent data for VIP tents
+- Database migration -- update `cleanup_stale_vip_tents()` to use `<=` instead of `<`
+- Run cleanup immediately after migration to clear today's stale records
 
-```text
-Props:
-  neighborhoodId: NeighborhoodId
-  date: Date
-  vipReservations?: VipReservationMap  <-- NEW
-
-Logic:
-  If VIP + vipReservations provided:
-    - Group vipReservations entries by groupName
-    - Build BookingInfo[] from grouped data (tent count, gender, dates)
-    - Skip tent-level loop
-  Else:
-    - Existing logic (neighborhood reservations + tent bookings)
-```
-
-DB cleanup query:
-```text
-UPDATE tents
-SET group_name = NULL,
-    check_in_date = NULL,
-    check_out_date = NULL,
-    gender = 'MIXED'
-WHERE neighborhood_id = 'VIP'
-  AND check_out_date < '2026-02-20';
-
-UPDATE beds
-SET status = 'FREE', guest_name = NULL
-WHERE tent_id IN (
-  SELECT id FROM tents
-  WHERE neighborhood_id = 'VIP'
-    AND check_out_date < '2026-02-20'
-);
-```
-
+**No schema changes.** Only the existing function body is updated.
