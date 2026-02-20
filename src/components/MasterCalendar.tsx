@@ -205,13 +205,14 @@ export const MasterCalendar: React.FC = () => {
           endTime: group.departureTime || '17:00',
           location: 'פעילות יום',
           color: EVENT_COLORS.DAY_USE,
-          metadata: {
+        metadata: {
             groupId: group.id,
             pax: group.pax,
             arrivalTime: group.arrivalTime,
             departureTime: group.departureTime,
             linkedSpaces: group.linkedSpaceReservationIds,
             linkedMeals: group.linkedKitchenSlotIds,
+            upgradedCoffee: group.upgradedCoffee,
           },
         });
       });
@@ -251,6 +252,7 @@ export const MasterCalendar: React.FC = () => {
           neighborhoods: stay.neighborhoods,
           vipTents: stay.vipTents,
           vipTentCount: stay.vipTentCount,
+          upgradedCoffee: group?.upgradedCoffee,
         },
       });
 
@@ -272,6 +274,7 @@ export const MasterCalendar: React.FC = () => {
           neighborhoods: stay.neighborhoods,
           vipTents: stay.vipTents,
           vipTentCount: stay.vipTentCount,
+          upgradedCoffee: group?.upgradedCoffee,
         },
       });
     });

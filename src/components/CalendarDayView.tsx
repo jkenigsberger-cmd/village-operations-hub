@@ -190,7 +190,10 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                         borderLeft: `4px solid ${event.color}`
                       }}
                     >
-                      <div className="font-semibold">{event.groupName}</div>
+                      <div className="font-semibold">
+                        {event.groupName}
+                        {event.metadata?.upgradedCoffee && <span className="mr-1" title="קפה משודרג">☕</span>}
+                      </div>
                       <div className="text-muted-foreground text-xs mt-1">
                         {event.location}
                       </div>
@@ -224,7 +227,10 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                         borderLeft: `4px solid ${event.color}`
                       }}
                     >
-                      <div className="font-semibold">{event.title}</div>
+                      <div className="font-semibold">
+                        {event.title}
+                        {event.metadata?.upgradedCoffee && <span className="mr-1" title="קפה משודרג">☕</span>}
+                      </div>
                       <div className="text-muted-foreground text-xs">{event.groupName}</div>
                       <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3" />
@@ -261,7 +267,10 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                         borderLeft: `4px solid ${event.color}`
                       }}
                     >
-                      <div className="font-semibold">{event.title}</div>
+                      <div className="font-semibold">
+                        {event.title}
+                        {event.metadata?.upgradedCoffee && <span className="mr-1" title="קפה משודרג">☕</span>}
+                      </div>
                       <div className="text-muted-foreground text-xs">{event.groupName}</div>
                       <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3" />
@@ -343,7 +352,10 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({ selectedDate, 
                         >
                           <Icon className="w-4 h-4 flex-shrink-0" />
                           <div className="min-w-0 overflow-hidden">
-                            <div className="font-semibold truncate">{event.title}</div>
+                            <div className="font-semibold truncate">
+                              {event.title}
+                              {event.metadata?.upgradedCoffee && ' ☕'}
+                            </div>
                             <div className="text-xs opacity-90 truncate">
                               {event.startTime} - {event.endTime} • {event.groupName}
                             </div>
