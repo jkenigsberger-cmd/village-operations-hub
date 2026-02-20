@@ -105,7 +105,9 @@ export const GroupItineraryModal: React.FC<GroupItineraryModalProps> = ({
       if (slot.specialDiets.vegan > 0) specialDetails.push(`טבעוני: ${slot.specialDiets.vegan}`);
       if (slot.specialDiets.glutenFree > 0) specialDetails.push(`ללא גלוטן: ${slot.specialDiets.glutenFree}`);
       if (slot.specialDiets.lactoseFree > 0) specialDetails.push(`ללא לקטוז: ${slot.specialDiets.lactoseFree}`);
-      if (slot.specialDiets.allergies > 0) specialDetails.push(`אלרגיות: ${slot.specialDiets.allergies}`);
+      if (slot.specialDiets.lifeThreatening > 0) specialDetails.push(`סכנת חיים: ${slot.specialDiets.lifeThreatening}`);
+      if (slot.specialDiets.mehadrinKosher > 0) specialDetails.push(`כשר למהדרין: ${slot.specialDiets.mehadrinKosher}`);
+      if (slot.specialDiets.sensitivities > 0) specialDetails.push(`רגישויות: ${slot.specialDiets.sensitivities}`);
 
       items.push({
         time: slot.time,

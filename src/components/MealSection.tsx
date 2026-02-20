@@ -35,7 +35,9 @@ export const MealSection: React.FC<MealSectionProps> = ({
     slot.specialDiets.vegan + 
     slot.specialDiets.glutenFree + 
     slot.specialDiets.lactoseFree + 
-    slot.specialDiets.allergies, 0
+    slot.specialDiets.lifeThreatening +
+    slot.specialDiets.mehadrinKosher +
+    slot.specialDiets.sensitivities, 0
   );
 
   return (

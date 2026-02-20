@@ -25,7 +25,9 @@ const DEFAULT_SPECIAL_DIETS: SpecialDiets = {
   vegan: 0,
   glutenFree: 0,
   lactoseFree: 0,
-  allergies: 0,
+  lifeThreatening: 0,
+  mehadrinKosher: 0,
+  sensitivities: 0,
   notes: '',
 };
 
@@ -59,7 +61,9 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
     specialDiets.vegan + 
     specialDiets.glutenFree + 
     specialDiets.lactoseFree + 
-    specialDiets.allergies;
+    specialDiets.lifeThreatening +
+    specialDiets.mehadrinKosher +
+    specialDiets.sensitivities;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

@@ -4,8 +4,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { KitchenState, TimeSlot, MealType, SpecialDiets, MealGroup } from '@/types/kitchen';
 
 const getDefaultSpecialDiets = (): SpecialDiets => ({
-  vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, allergies: 0, notes: '',
+  vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, sensitivities: 0, notes: '',
 });
+
+/** Backward compat: map legacy 'allergies' key to 'lifeThreatening' */
+const migrateSpecialDiets = (raw: any): SpecialDiets => {
+  const defaults = getDefaultSpecialDiets();
+  if (!raw || typeof raw !== 'object') return defaults;
+  return {
+    vegetarian: raw.vegetarian || 0,
+    vegan: raw.vegan || 0,
+    glutenFree: raw.glutenFree || 0,
+    lactoseFree: raw.lactoseFree || 0,
+    lifeThreatening: raw.lifeThreatening || raw.allergies || 0,
+    mehadrinKosher: raw.mehadrinKosher || 0,
+    sensitivities: raw.sensitivities || 0,
+    notes: raw.notes || '',
+  };
+};
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
@@ -23,7 +39,7 @@ export const useKitchenData = () => {
         timeSlots[slot.id] = {
           id: slot.id, date: slot.date, mealType: slot.meal_type as MealType, time: slot.time,
           location: slot.location as 'DINING_HALL' | 'OUTSIDE', totalPax: slot.total_pax,
-          specialDiets: (slot.special_diets as unknown as SpecialDiets) || getDefaultSpecialDiets(),
+          specialDiets: migrateSpecialDiets(slot.special_diets),
           groups: (slot.groups as unknown as MealGroup[]) || [], updatedAt: slot.updated_at,
         };
       });

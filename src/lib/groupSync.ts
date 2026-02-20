@@ -41,7 +41,9 @@ const convertSpecialDiets = (meal: MealPlanItem): SpecialDiets => ({
   vegan: meal.specialDiets?.vegan || 0,
   glutenFree: meal.specialDiets?.glutenFree || 0,
   lactoseFree: meal.specialDiets?.lactoseFree || 0,
-  allergies: meal.specialDiets?.allergies || 0,
+  lifeThreatening: meal.specialDiets?.lifeThreatening || 0,
+  mehadrinKosher: meal.specialDiets?.mehadrinKosher || 0,
+  sensitivities: meal.specialDiets?.sensitivities || 0,
   notes: meal.specialDiets?.allergiesNotes || '',
 });
 

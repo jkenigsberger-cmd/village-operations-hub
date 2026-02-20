@@ -23,8 +23,10 @@ export interface MealPlanItem {
     vegan: number;
     glutenFree: number;
     lactoseFree: number;
-    allergies: number;       // Numeric count for allergies
-    allergiesNotes: string;  // Free text notes
+    lifeThreatening: number;       // Life-threatening allergies count
+    mehadrinKosher: number;        // Mehadrin Kosher count
+    sensitivities: number;         // Sensitivities count
+    allergiesNotes: string;        // Free text notes
   };
 }
 

@@ -270,8 +270,8 @@ const Today = () => {
               {dayUseGroups.map((group) => {
                 const groupMeals = getMealsForGroup(group.groupName);
                 const specialCount = groupMeals.reduce((acc, slot) => {
-                  const { vegetarian, vegan, glutenFree, lactoseFree, allergies } = slot.specialDiets;
-                  return acc + vegetarian + vegan + glutenFree + lactoseFree + allergies;
+                  const { vegetarian, vegan, glutenFree, lactoseFree, lifeThreatening, mehadrinKosher, sensitivities } = slot.specialDiets;
+                  return acc + vegetarian + vegan + glutenFree + lactoseFree + lifeThreatening + mehadrinKosher + sensitivities;
                 }, 0);
 
                 return (

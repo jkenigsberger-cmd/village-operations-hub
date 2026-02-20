@@ -14,8 +14,8 @@ const MEAL_DURATIONS: Record<MealType, number> = {
  * Calculate special diets count (excluding notes)
  */
 export const getSpecialCount = (slot: TimeSlot): number => {
-  const { vegetarian, vegan, glutenFree, lactoseFree, allergies } = slot.specialDiets;
-  return vegetarian + vegan + glutenFree + lactoseFree + allergies;
+  const { vegetarian, vegan, glutenFree, lactoseFree, lifeThreatening, mehadrinKosher, sensitivities } = slot.specialDiets;
+  return vegetarian + vegan + glutenFree + lactoseFree + lifeThreatening + mehadrinKosher + sensitivities;
 };
 
 /**
