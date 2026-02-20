@@ -196,6 +196,27 @@ export type Database = {
           },
         ]
       }
+      allowed_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+        }
+        Relationships: []
+      }
       beds: {
         Row: {
           bed_type: Database["public"]["Enums"]["bed_type"]
@@ -764,6 +785,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
           client_details: Json
@@ -930,6 +975,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -962,9 +1025,18 @@ export type Database = {
           status: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_allowed_email: { Args: { _email: string }; Returns: boolean }
     }
     Enums: {
       allocation_type: "VIP_TENT" | "NEIGHBORHOOD" | "TENT"
+      app_role: "admin" | "viewer"
       bed_status: "FREE" | "RESERVED" | "OCCUPIED" | "BLOCKED"
       bed_type: "SINGLE" | "BUNK_TOP" | "BUNK_BOTTOM"
       cleaning_status: "CLEAN" | "NEEDS_CLEANING" | "CLEANING_IN_PROGRESS"
@@ -1105,6 +1177,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_type: ["VIP_TENT", "NEIGHBORHOOD", "TENT"],
+      app_role: ["admin", "viewer"],
       bed_status: ["FREE", "RESERVED", "OCCUPIED", "BLOCKED"],
       bed_type: ["SINGLE", "BUNK_TOP", "BUNK_BOTTOM"],
       cleaning_status: ["CLEAN", "NEEDS_CLEANING", "CLEANING_IN_PROGRESS"],
