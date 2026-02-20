@@ -499,6 +499,7 @@ export type Database = {
           status: string | null
           total_pax: number
           updated_at: string
+          upgraded_coffee: boolean | null
           vip_people_per_tent: number | null
           vip_tent_configs: Json | null
         }
@@ -528,6 +529,7 @@ export type Database = {
           status?: string | null
           total_pax?: number
           updated_at?: string
+          upgraded_coffee?: boolean | null
           vip_people_per_tent?: number | null
           vip_tent_configs?: Json | null
         }
@@ -557,6 +559,7 @@ export type Database = {
           status?: string | null
           total_pax?: number
           updated_at?: string
+          upgraded_coffee?: boolean | null
           vip_people_per_tent?: number | null
           vip_tent_configs?: Json | null
         }

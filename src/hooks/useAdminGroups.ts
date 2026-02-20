@@ -32,6 +32,7 @@ const mapDbRowToGroup = (row: any): GroupRecord => ({
   distributionPreference: row.distribution_preference || undefined,
   boysCount: row.boys_count ?? undefined,
   girlsCount: row.girls_count ?? undefined,
+  upgradedCoffee: row.upgraded_coffee ?? false,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -90,6 +91,7 @@ export const useAdminGroups = () => {
         : null,
       boys_count: group.boysCount ?? null,
       girls_count: group.girlsCount ?? null,
+      upgraded_coffee: group.upgradedCoffee || false,
     });
     if (error) throw error;
     const now = new Date().toISOString();
@@ -126,6 +128,7 @@ export const useAdminGroups = () => {
     }
     if (updates.boysCount !== undefined) dbUpdates.boys_count = updates.boysCount ?? null;
     if (updates.girlsCount !== undefined) dbUpdates.girls_count = updates.girlsCount ?? null;
+    if (updates.upgradedCoffee !== undefined) dbUpdates.upgraded_coffee = updates.upgradedCoffee;
     if (updates.isArchived !== undefined) dbUpdates.status = updates.isArchived ? 'archived' : (updates.status || 'PLANNED');
 
     // If group name is changing, update all linked records

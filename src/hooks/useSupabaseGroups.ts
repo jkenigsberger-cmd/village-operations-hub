@@ -48,6 +48,7 @@ export const useSupabaseGroups = () => {
         mealsPlan: (g.meal_plan as unknown as GroupRecord['mealsPlan']) || undefined,
         distributionPreference: (g.distribution_preference as unknown as DistributionPreference) || undefined,
         isArchived: g.status === 'archived',
+        upgradedCoffee: (g as any).upgraded_coffee ?? false,
         createdAt: g.created_at,
         updatedAt: g.updated_at
       }));
@@ -103,7 +104,8 @@ export const useSupabaseGroups = () => {
       meal_plan: JSON.parse(JSON.stringify(group.mealsPlan || {})),
       schedule_items: JSON.parse(JSON.stringify(group.scheduleItems || [])),
       vip_tent_configs: JSON.parse(JSON.stringify(group.vipTentConfigs || [])),
-      distribution_preference: group.distributionPreference ? JSON.parse(JSON.stringify(group.distributionPreference)) : null
+      distribution_preference: group.distributionPreference ? JSON.parse(JSON.stringify(group.distributionPreference)) : null,
+      upgraded_coffee: group.upgradedCoffee || false,
     });
 
     if (insertError) throw insertError;
@@ -140,6 +142,7 @@ export const useSupabaseGroups = () => {
     if (updates.vipTentConfigs !== undefined) dbUpdates.vip_tent_configs = updates.vipTentConfigs;
     if (updates.groupType !== undefined) dbUpdates.group_type = updates.groupType;
     if (updates.distributionPreference !== undefined) dbUpdates.distribution_preference = updates.distributionPreference;
+    if (updates.upgradedCoffee !== undefined) (dbUpdates as any).upgraded_coffee = updates.upgradedCoffee;
     if (updates.isArchived !== undefined) dbUpdates.status = updates.isArchived ? 'archived' : 'confirmed';
 
     const { error: updateError } = await supabase.from('groups').update(dbUpdates).eq('id', id);

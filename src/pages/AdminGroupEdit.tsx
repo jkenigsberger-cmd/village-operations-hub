@@ -26,6 +26,8 @@ import { VIPTentPlanner } from '@/components/VIPTentPlanner';
 import { NumericInput } from '@/components/NumericInput';
 import { SleepingTentDistributionSection } from '@/components/SleepingTentDistributionSection';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -458,6 +460,7 @@ const AdminGroupEdit = () => {
     remainingStaff: 0,
     remainingParticipants: 10,
     assignmentStatus: 'pending_allocation' as AssignmentStatus,
+    upgradedCoffee: false,
   });
 
   useEffect(() => {
@@ -489,6 +492,7 @@ const AdminGroupEdit = () => {
           assignmentStatus: existing.assignmentStatus || 'pending_allocation',
           boysCount: existing.boysCount,
           girlsCount: existing.girlsCount,
+          upgradedCoffee: existing.upgradedCoffee || false,
         });
         // Load VIP tent configs into local state
         setVipTentConfigs(existing.vipTentConfigs || []);
@@ -1163,6 +1167,17 @@ const AdminGroupEdit = () => {
                 placeholder="הערות נוספות על הקבוצה..."
                 rows={3}
               />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <Switch
+                id="upgraded-coffee"
+                checked={formData.upgradedCoffee || false}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, upgradedCoffee: checked }))}
+              />
+              <Label htmlFor="upgraded-coffee" className="text-sm font-medium cursor-pointer">
+                ☕ קפה משודרג
+              </Label>
             </div>
           </CardContent>
         </Card>
