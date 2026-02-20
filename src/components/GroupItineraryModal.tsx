@@ -243,6 +243,12 @@ export const GroupItineraryModal: React.FC<GroupItineraryModalProps> = ({
                 <span>הגעה: {group.arrivalTime}</span>
               </div>
             )}
+            {group.upgradedCoffee && (
+              <div className="col-span-2 flex items-center gap-2 px-2 py-1 bg-amber-500/10 rounded-md border border-amber-500/30">
+                <span className="text-base">☕</span>
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-400">קפה משודרג</span>
+              </div>
+            )}
             {group.departureTime && isSameDay(selectedDate, parseISO(group.endDate)) && (
               <div className="flex items-center gap-2">
                 <LogOut className="w-4 h-4 text-blue-500" />
