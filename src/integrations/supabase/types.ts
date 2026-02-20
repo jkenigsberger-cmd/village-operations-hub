@@ -1001,6 +1001,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_stale_vip_tents: { Args: never; Returns: Json }
       create_activity_reservation_safe: {
         Args: {
           p_date: string
