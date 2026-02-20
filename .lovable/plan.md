@@ -1,34 +1,16 @@
 
 
-# Add "Upgraded Coffee" Option to Group Management
+# Move "Upgraded Coffee" Toggle to the Meals Section
 
 ## Summary
-Add a yes/no toggle for "קפה משודרג" (upgraded coffee) on the group creation/edit form, and display a small badge/indicator on the group card in the groups list when enabled.
+Move the "☕ קפה משודרג" switch from the general group details card (line ~1172) to the Meals Plan card, placing it right before the "הוסף ארוחה" (Add Meal) button area so kitchen staff see it alongside meal planning.
 
-## No Database Migration Needed
-The `groups` table stores flexible JSONB fields, but this is a simple boolean that fits best as a dedicated column. A migration will add `upgraded_coffee boolean default false` to the `groups` table.
+## Changes
 
-## Technical Changes
+### `src/pages/AdminGroupEdit.tsx`
+1. **Remove** the upgraded coffee switch block from the group details card (lines 1171-1181).
+2. **Add** it inside the Meals Plan card header area (around line 1467), just before the "הוסף ארוחה" button -- displayed as a row with the switch on the left and the add-meal button on the right, so it's visible at the top of the meals section.
 
-### 1. Database Migration
-- Add column `upgraded_coffee` (boolean, default `false`, nullable) to the `groups` table.
+The toggle will appear as: `☕ קפה משודרג [switch]` in the meals card header, making it clear this is a kitchen-related option.
 
-### 2. `src/types/adminGroups.ts`
-- Add `upgradedCoffee?: boolean` to the `GroupRecord` interface.
-
-### 3. `src/hooks/useAdminGroups.ts`
-- In `mapDbRowToGroup`: map `row.upgraded_coffee` to `upgradedCoffee`.
-- In `addGroup`: include `upgraded_coffee: group.upgradedCoffee || false`.
-- In `updateGroup`: handle `updates.upgradedCoffee` mapping to `upgraded_coffee`.
-
-### 4. `src/hooks/useSupabaseGroups.ts`
-- Same mapping changes as `useAdminGroups.ts` (this is the other groups hook).
-
-### 5. `src/pages/AdminGroupEdit.tsx` -- Group Form
-- Add a Switch toggle labeled "☕ קפה משודרג" in the group details section (near the notes or group type area).
-- Wire it to `upgradedCoffee` state in the form, included on save.
-
-### 6. `src/pages/AdminGroups.tsx` -- Group Card
-- After the status badges (line ~232), add a small coffee badge when `group.upgradedCoffee` is true:
-  - A pill/badge with a coffee icon and "קפה משודרג" text, styled distinctly (e.g., brown/amber tones).
-
+No other files need to change -- the data flow (save/load) already works correctly.
