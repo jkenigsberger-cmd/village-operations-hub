@@ -117,10 +117,22 @@ export const KitchenEventDetailModal: React.FC<KitchenEventDetailModalProps> = (
                   <span className="font-bold">{specialDiets.lactoseFree}</span>
                 </div>
               )}
-              {specialDiets.allergies > 0 && (
+              {specialDiets.lifeThreatening > 0 && (
                 <div className="flex justify-between p-2 bg-red-50 dark:bg-red-950/30 rounded col-span-2">
-                  <span>{DIET_LABELS.allergies}</span>
-                  <span className="font-bold">{specialDiets.allergies}</span>
+                  <span>{DIET_LABELS.lifeThreatening}</span>
+                  <span className="font-bold">{specialDiets.lifeThreatening}</span>
+                </div>
+              )}
+              {specialDiets.mehadrinKosher > 0 && (
+                <div className="flex justify-between p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
+                  <span>{DIET_LABELS.mehadrinKosher}</span>
+                  <span className="font-bold">{specialDiets.mehadrinKosher}</span>
+                </div>
+              )}
+              {specialDiets.sensitivities > 0 && (
+                <div className="flex justify-between p-2 bg-orange-50 dark:bg-orange-950/30 rounded">
+                  <span>{DIET_LABELS.sensitivities}</span>
+                  <span className="font-bold">{specialDiets.sensitivities}</span>
                 </div>
               )}
             </div>

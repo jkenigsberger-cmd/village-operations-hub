@@ -32,7 +32,9 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
     vegan: 0,
     glutenFree: 0,
     lactoseFree: 0,
-    allergies: 0,
+    lifeThreatening: 0,
+    mehadrinKosher: 0,
+    sensitivities: 0,
     notes: '',
   });
   const [groups, setGroups] = useState<MealGroup[]>([]);

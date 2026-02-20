@@ -9,7 +9,9 @@ export interface SpecialDiets {
   vegan: number;
   glutenFree: number;
   lactoseFree: number;
-  allergies: number;
+  lifeThreatening: number;
+  mehadrinKosher: number;
+  sensitivities: number;
   notes: string;
 }
 
@@ -55,6 +57,8 @@ export const DIET_LABELS = {
   vegan: '🥬 טבעוני',
   glutenFree: '🚫 ללא גלוטן',
   lactoseFree: '🥛 ללא לקטוז',
-  allergies: '🥜 אלרגיות',
+  lifeThreatening: '⚠️ סכנת חיים',
+  mehadrinKosher: '✡️ כשר למהדרין',
+  sensitivities: '🤧 רגישויות',
   notes: '✏️ דרישות מיוחדות',
 };

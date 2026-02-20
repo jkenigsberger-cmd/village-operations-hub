@@ -773,7 +773,7 @@ const AdminGroupEdit = () => {
       data.time,
       data.location,
       data.pax,
-      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, allergies: 0, notes: `קבוצה: ${formData.groupName}` },
+      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, sensitivities: 0, notes: `קבוצה: ${formData.groupName}` },
       [{ name: formData.groupName, pax: data.pax }]
     );
 
@@ -1598,102 +1598,38 @@ const AdminGroupEdit = () => {
                     {/* Special needs - always shown */}
                     <div className="mt-3 pt-3 border-t space-y-3">
                         <label className="text-xs font-medium text-muted-foreground">צרכים מיוחדים</label>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">🌱 צמחוני</label>
-                            <NumericInput
-                              value={meal.specialDiets?.vegetarian || 0}
-                              onChange={(val) => updateMealPlanItem(meal.id, { 
-                                specialDiets: { 
-                                  ...meal.specialDiets, 
-                                  vegetarian: val,
-                                  vegan: meal.specialDiets?.vegan || 0,
-                                  glutenFree: meal.specialDiets?.glutenFree || 0,
-                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
-                                  allergies: meal.specialDiets?.allergies || 0,
-                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
-                                } 
-                              })}
-                              min={0}
-                              max={meal.pax}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">🥬 טבעוני</label>
-                            <NumericInput
-                              value={meal.specialDiets?.vegan || 0}
-                              onChange={(val) => updateMealPlanItem(meal.id, { 
-                                specialDiets: { 
-                                  ...meal.specialDiets, 
-                                  vegetarian: meal.specialDiets?.vegetarian || 0,
-                                  vegan: val,
-                                  glutenFree: meal.specialDiets?.glutenFree || 0,
-                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
-                                  allergies: meal.specialDiets?.allergies || 0,
-                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
-                                } 
-                              })}
-                              min={0}
-                              max={meal.pax}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">🚫 ללא גלוטן</label>
-                            <NumericInput
-                              value={meal.specialDiets?.glutenFree || 0}
-                              onChange={(val) => updateMealPlanItem(meal.id, { 
-                                specialDiets: { 
-                                  ...meal.specialDiets, 
-                                  vegetarian: meal.specialDiets?.vegetarian || 0,
-                                  vegan: meal.specialDiets?.vegan || 0,
-                                  glutenFree: val,
-                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
-                                  allergies: meal.specialDiets?.allergies || 0,
-                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
-                                } 
-                              })}
-                              min={0}
-                              max={meal.pax}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">🥛 ללא לקטוז</label>
-                            <NumericInput
-                              value={meal.specialDiets?.lactoseFree || 0}
-                              onChange={(val) => updateMealPlanItem(meal.id, { 
-                                specialDiets: { 
-                                  ...meal.specialDiets, 
-                                  vegetarian: meal.specialDiets?.vegetarian || 0,
-                                  vegan: meal.specialDiets?.vegan || 0,
-                                  glutenFree: meal.specialDiets?.glutenFree || 0,
-                                  lactoseFree: val,
-                                  allergies: meal.specialDiets?.allergies || 0,
-                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
-                                } 
-                              })}
-                              min={0}
-                              max={meal.pax}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">🥜 אלרגיות</label>
-                            <NumericInput
-                              value={meal.specialDiets?.allergies || 0}
-                              onChange={(val) => updateMealPlanItem(meal.id, { 
-                                specialDiets: { 
-                                  ...meal.specialDiets, 
-                                  vegetarian: meal.specialDiets?.vegetarian || 0,
-                                  vegan: meal.specialDiets?.vegan || 0,
-                                  glutenFree: meal.specialDiets?.glutenFree || 0,
-                                  lactoseFree: meal.specialDiets?.lactoseFree || 0,
-                                  allergies: val,
-                                  allergiesNotes: meal.specialDiets?.allergiesNotes || ''
-                                } 
-                              })}
-                              min={0}
-                              max={meal.pax}
-                            />
-                          </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                          {([
+                            { key: 'vegetarian', label: '🌱 צמחוני' },
+                            { key: 'vegan', label: '🥬 טבעוני' },
+                            { key: 'glutenFree', label: '🚫 ללא גלוטן' },
+                            { key: 'lactoseFree', label: '🥛 ללא לקטוז' },
+                            { key: 'lifeThreatening', label: '⚠️ סכנת חיים' },
+                            { key: 'mehadrinKosher', label: '✡️ כשר למהדרין' },
+                            { key: 'sensitivities', label: '🤧 רגישויות' },
+                          ] as const).map(({ key, label }) => (
+                            <div key={key} className="space-y-1">
+                              <label className="text-xs text-muted-foreground">{label}</label>
+                              <NumericInput
+                                value={(meal.specialDiets as any)?.[key] || 0}
+                                onChange={(val) => updateMealPlanItem(meal.id, { 
+                                  specialDiets: { 
+                                    vegetarian: meal.specialDiets?.vegetarian || 0,
+                                    vegan: meal.specialDiets?.vegan || 0,
+                                    glutenFree: meal.specialDiets?.glutenFree || 0,
+                                    lactoseFree: meal.specialDiets?.lactoseFree || 0,
+                                    lifeThreatening: meal.specialDiets?.lifeThreatening || 0,
+                                    mehadrinKosher: meal.specialDiets?.mehadrinKosher || 0,
+                                    sensitivities: meal.specialDiets?.sensitivities || 0,
+                                    allergiesNotes: meal.specialDiets?.allergiesNotes || '',
+                                    [key]: val,
+                                  } 
+                                })}
+                                min={0}
+                                max={meal.pax}
+                              />
+                            </div>
+                          ))}
                         </div>
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">✏️ הערות נוספות</label>
@@ -1701,16 +1637,17 @@ const AdminGroupEdit = () => {
                             value={meal.specialDiets?.allergiesNotes || ''}
                             onChange={(e) => updateMealPlanItem(meal.id, { 
                               specialDiets: { 
-                                ...meal.specialDiets, 
                                 vegetarian: meal.specialDiets?.vegetarian || 0,
                                 vegan: meal.specialDiets?.vegan || 0,
                                 glutenFree: meal.specialDiets?.glutenFree || 0,
                                 lactoseFree: meal.specialDiets?.lactoseFree || 0,
-                                allergies: meal.specialDiets?.allergies || 0,
+                                lifeThreatening: meal.specialDiets?.lifeThreatening || 0,
+                                mehadrinKosher: meal.specialDiets?.mehadrinKosher || 0,
+                                sensitivities: meal.specialDiets?.sensitivities || 0,
                                 allergiesNotes: e.target.value
                               } 
                             })}
-                            placeholder="פירוט אלרגיות או צרכים מיוחדים נוספים..."
+                            placeholder="פירוט צרכים מיוחדים נוספים..."
                             rows={2}
                           />
                         </div>

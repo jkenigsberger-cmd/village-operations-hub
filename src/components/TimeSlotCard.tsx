@@ -13,7 +13,9 @@ export const TimeSlotCard: React.FC<TimeSlotCardProps> = ({ slot, onClick }) => 
     slot.specialDiets.vegan + 
     slot.specialDiets.glutenFree + 
     slot.specialDiets.lactoseFree + 
-    slot.specialDiets.allergies;
+    slot.specialDiets.lifeThreatening +
+    slot.specialDiets.mehadrinKosher +
+    slot.specialDiets.sensitivities;
 
   const locationLabel = LOCATION_LABELS[slot.location];
 
