@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN upgraded_coffee boolean DEFAULT false;

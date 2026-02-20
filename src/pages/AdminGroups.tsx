@@ -230,6 +230,11 @@ const AdminGroups = () => {
                             ארכיון
                           </span>
                         )}
+                        {group.upgradedCoffee && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                            ☕ קפה משודרג
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">

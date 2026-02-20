@@ -92,6 +92,7 @@ export interface GroupRecord {
   // Optional gender breakdown for participants (planning only)
   boysCount?: number;
   girlsCount?: number;
+  upgradedCoffee?: boolean;
   createdAt: string;
   updatedAt: string;
 }
