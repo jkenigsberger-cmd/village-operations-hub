@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { VillageProvider } from "@/context/VillageContext";
 import AuthGate from "@/components/AuthGate";
+import { useVipCleanup } from "@/hooks/useVipCleanup";
 import Index from "./pages/Index";
 import Today from "./pages/Today";
 import Neighborhood from "./pages/Neighborhood";
@@ -26,11 +27,17 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppInner = () => {
+  useVipCleanup();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthGate>
       <TooltipProvider>
         <VillageProvider>
+          <AppInner />
           <Toaster />
           <Sonner />
           <BrowserRouter>
