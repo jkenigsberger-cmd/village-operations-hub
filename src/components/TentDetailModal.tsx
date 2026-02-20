@@ -628,11 +628,14 @@ export const TentDetailModal: React.FC<TentDetailModalProps> = ({
             <div className="space-y-2">
               <Label>שם הקבוצה</Label>
               <Input
-                value={tent.groupName || ''}
+                value={isVIP && vipOverride ? vipOverride.groupName : (tent.groupName || '')}
                 onChange={(e) => updateTentGroupName(tent.id, e.target.value)}
                 placeholder="שם הקבוצה..."
-                disabled={!!selectedGroupId}
+                disabled={!!selectedGroupId || (isVIP && !!vipOverride)}
               />
+              {isVIP && !vipOverride && tent.groupName && (
+                <p className="text-xs text-muted-foreground">אין הזמנה VIP פעילה להיום — האוהל פנוי</p>
+              )}
             </div>
 
             {/* People Count */}
