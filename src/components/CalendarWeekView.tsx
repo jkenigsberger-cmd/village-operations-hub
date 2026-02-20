@@ -186,7 +186,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
               >
                 <div className="flex items-center gap-1">
                   <Tent className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{bar.event.groupName}</span>
+                  <span className="truncate">{bar.event.groupName}{bar.event.metadata?.upgradedCoffee ? ' ☕' : ''}</span>
                 </div>
               </div>
             ))}
