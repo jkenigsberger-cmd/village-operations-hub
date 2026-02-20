@@ -375,7 +375,7 @@ const Neighborhood = () => {
             <span className="font-semibold">צפה בהזמנות לתאריך</span>
           </div>
           <NeighborhoodDatePicker value={viewDate} onChange={setViewDate} />
-          <NeighborhoodBookingsList neighborhoodId={neighborhoodId} date={viewDate} />
+          <NeighborhoodBookingsList neighborhoodId={neighborhoodId} date={viewDate} vipReservations={isVIP ? vipReservations : undefined} />
         </div>
 
         {/* VIP Planning Panel - only for VIP neighborhood */}

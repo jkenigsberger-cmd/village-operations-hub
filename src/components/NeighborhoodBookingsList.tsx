@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Users, Tent as TentIcon, CalendarDays } from 'lucide-react';
 import { genderColor } from '@/lib/tentColors';
 import { HE } from '@/lib/translations';
+import { VipReservationMap } from '@/hooks/useVipReservations';
 
 interface NeighborhoodBookingsListProps {
   neighborhoodId: NeighborhoodId;
   date: Date;
+  vipReservations?: VipReservationMap;
 }
 
 interface BookingInfo {
@@ -27,6 +29,7 @@ interface BookingInfo {
 export const NeighborhoodBookingsList: React.FC<NeighborhoodBookingsListProps> = ({
   neighborhoodId,
   date,
+  vipReservations,
 }) => {
   const { state, getTentSummary } = useVillage();
   
@@ -48,7 +51,6 @@ export const NeighborhoodBookingsList: React.FC<NeighborhoodBookingsListProps> =
     nReservations.forEach(r => {
       if (!seenGroups.has(r.groupName)) {
         seenGroups.add(r.groupName);
-        // Determine gender from genderDistribution if available
         let gender: TentGender | undefined;
         if (r.genderDistribution) {
           if (r.genderDistribution.female > 0 && r.genderDistribution.male === 0) {
@@ -72,54 +74,87 @@ export const NeighborhoodBookingsList: React.FC<NeighborhoodBookingsListProps> =
       }
     });
     
-    // 2. Get tent-level bookings for this neighborhood
-    const neighborhood = state.neighborhoods[neighborhoodId];
-    if (neighborhood) {
-      const tentBookings = neighborhood.tentIds
-        .map(id => state.tents[id])
-        .filter((t): t is Tent => 
-          !!t && 
-          !!t.checkInDate && 
-          !!t.checkOutDate &&
-          t.checkInDate <= dateStr && 
-          t.checkOutDate >= dateStr
-        );
-      
-      // Group tents by groupName
-      const tentsByGroup: Record<string, Tent[]> = {};
-      tentBookings.forEach(t => {
-        const name = t.groupName || 'ללא קבוצה';
-        if (!tentsByGroup[name]) tentsByGroup[name] = [];
-        tentsByGroup[name].push(t);
+    // 2. For VIP: use vipReservations (groups source of truth) instead of physical tents
+    if (neighborhoodId === 'VIP' && vipReservations) {
+      // Group VIP reservations by groupName
+      const byGroup: Record<string, { tentCount: number; gender?: TentGender; checkIn: string; checkOut: string; totalBeds: number }> = {};
+      Object.values(vipReservations).forEach(res => {
+        if (!byGroup[res.groupName]) {
+          byGroup[res.groupName] = {
+            tentCount: 0,
+            gender: res.gender,
+            checkIn: res.startDate,
+            checkOut: res.endDate,
+            totalBeds: 0,
+          };
+        }
+        byGroup[res.groupName].tentCount += 1;
+        byGroup[res.groupName].totalBeds += res.bedsPlanned;
       });
-      
-      Object.entries(tentsByGroup).forEach(([groupName, tents]) => {
+
+      Object.entries(byGroup).forEach(([groupName, data]) => {
         if (!seenGroups.has(groupName)) {
           seenGroups.add(groupName);
-          const firstTent = tents[0];
-          // Calculate total reserved beds from tent summaries
-          const totalBeds = tents.reduce((acc, t) => {
-            const summary = getTentSummary(t.id);
-            return acc + (summary?.reservedBeds || 0) + (summary?.occupiedBeds || 0);
-          }, 0);
-          
           results.push({
-            id: `tent-group-${groupName}`,
+            id: `vip-group-${groupName}`,
             type: 'tent',
             groupName,
-            gender: firstTent.gender,
-            checkIn: firstTent.checkInDate!,
-            checkOut: firstTent.checkOutDate!,
-            tentCount: tents.length,
-            bedCount: totalBeds,
+            gender: data.gender,
+            checkIn: data.checkIn,
+            checkOut: data.checkOut,
+            tentCount: data.tentCount,
+            bedCount: data.totalBeds,
           });
         }
       });
+    } else {
+      // Non-VIP: get tent-level bookings from physical tent state
+      const neighborhood = state.neighborhoods[neighborhoodId];
+      if (neighborhood) {
+        const tentBookings = neighborhood.tentIds
+          .map(id => state.tents[id])
+          .filter((t): t is Tent => 
+            !!t && 
+            !!t.checkInDate && 
+            !!t.checkOutDate &&
+            t.checkInDate <= dateStr && 
+            t.checkOutDate >= dateStr
+          );
+        
+        const tentsByGroup: Record<string, Tent[]> = {};
+        tentBookings.forEach(t => {
+          const name = t.groupName || 'ללא קבוצה';
+          if (!tentsByGroup[name]) tentsByGroup[name] = [];
+          tentsByGroup[name].push(t);
+        });
+        
+        Object.entries(tentsByGroup).forEach(([groupName, tents]) => {
+          if (!seenGroups.has(groupName)) {
+            seenGroups.add(groupName);
+            const firstTent = tents[0];
+            const totalBeds = tents.reduce((acc, t) => {
+              const summary = getTentSummary(t.id);
+              return acc + (summary?.reservedBeds || 0) + (summary?.occupiedBeds || 0);
+            }, 0);
+            
+            results.push({
+              id: `tent-group-${groupName}`,
+              type: 'tent',
+              groupName,
+              gender: firstTent.gender,
+              checkIn: firstTent.checkInDate!,
+              checkOut: firstTent.checkOutDate!,
+              tentCount: tents.length,
+              bedCount: totalBeds,
+            });
+          }
+        });
+      }
     }
     
     // Sort by check-in date
     return results.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
-  }, [state, neighborhoodId, date, getTentSummary]);
+  }, [state, neighborhoodId, date, getTentSummary, vipReservations]);
   
   if (bookings.length === 0) {
     return (
