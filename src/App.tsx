@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { VillageProvider } from "@/context/VillageContext";
-import PasswordGate from "@/components/PasswordGate";
+import AuthGate from "@/components/AuthGate";
 import Index from "./pages/Index";
 import Today from "./pages/Today";
 import Neighborhood from "./pages/Neighborhood";
@@ -21,13 +21,14 @@ import AdminOutsourced from "./pages/AdminOutsourced";
 import AdminReports from "./pages/AdminReports";
 import AdminQuotes from "./pages/AdminQuotes";
 import GroupAllocation from "./pages/GroupAllocation";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <PasswordGate>
+    <AuthGate>
       <TooltipProvider>
         <VillageProvider>
           <Toaster />
@@ -51,12 +52,13 @@ const App = () => (
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/quotes" element={<AdminQuotes />} />
               <Route path="/allocation/:id" element={<GroupAllocation />} />
+              <Route path="/admin/users" element={<UserManagement />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </VillageProvider>
       </TooltipProvider>
-    </PasswordGate>
+    </AuthGate>
   </QueryClientProvider>
 );
 
