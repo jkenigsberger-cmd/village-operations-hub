@@ -36,6 +36,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { compressImageFileToDataUrl } from '@/lib/imageCompression';
+import { useVipReservations } from '@/hooks/useVipReservations';
+import { format } from 'date-fns';
 interface TentDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

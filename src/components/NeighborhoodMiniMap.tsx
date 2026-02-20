@@ -71,8 +71,10 @@ export default function NeighborhoodMiniMap({
       const vipRes = vipReservations?.[tentNum];
 
       // Use groups-based source of truth when available
-      const hasReservation = vipRes
-        ? true
+      // When vipReservations is provided, use it as strict source of truth
+      // No vipRes = tent is empty (don't fall back to stale physical data)
+      const hasReservation = vipReservations
+        ? !!vipRes
         : (() => {
             const today = format(new Date(), 'yyyy-MM-dd');
             return !!(tent.checkInDate && tent.checkOutDate && tent.groupName && getBookingStatus(tent.checkInDate, tent.checkOutDate, today));
