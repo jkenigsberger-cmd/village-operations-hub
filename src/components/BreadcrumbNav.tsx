@@ -16,7 +16,7 @@ export const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ items }) => {
   const location = useLocation();
 
   return (
-    <nav className="breadcrumb mb-6">
+    <nav className="breadcrumb mb-6 flex-wrap text-base md:text-lg">
       <Link 
         to="/" 
         className="breadcrumb-link flex items-center gap-1"
