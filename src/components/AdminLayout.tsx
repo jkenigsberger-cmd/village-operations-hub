@@ -52,7 +52,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subti
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-muted/50 to-transparent pointer-events-none z-10 md:hidden" />
           
           <div className="container overflow-x-auto scrollbar-hide">
-            <div className="flex gap-1 py-2">
+            <div className="flex gap-1 py-2 min-w-max">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -61,7 +61,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subti
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-3 md:py-2.5 rounded-lg font-medium text-sm whitespace-nowrap transition-colors min-h-[48px] touch-target',
+                      'flex items-center gap-2 px-4 py-3 md:py-2.5 rounded-lg font-medium text-sm whitespace-nowrap transition-colors min-h-[48px] touch-target flex-shrink-0',
                       isActive
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
