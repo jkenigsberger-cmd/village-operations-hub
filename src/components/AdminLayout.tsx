@@ -21,6 +21,7 @@ const managementNavItems = [
   { path: '/admin/outsourced', label: 'עובדים חיצוניים', icon: UserCheck },
   { path: '/admin/reports', label: 'דוחות', icon: BarChart3 },
   { path: '/admin/quotes', label: 'הצעות מחיר', icon: FileText },
+  { path: '/admin/guest-forms', label: 'שאלון לקוח', icon: ClipboardList },
   { path: '/admin/users', label: 'משתמשים', icon: Shield },
 ];
 

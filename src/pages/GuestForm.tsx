@@ -169,7 +169,7 @@ export default function GuestForm() {
                     <Input
                       className="flex-1"
                       placeholder="כמות / פירוט"
-                      value={form.special_diets[`${opt.key}_detail`] || ''}
+                      value={String(form.special_diets[`${opt.key}_detail`] || '')}
                       onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_detail`]: e.target.value })}
                     />
                   )}

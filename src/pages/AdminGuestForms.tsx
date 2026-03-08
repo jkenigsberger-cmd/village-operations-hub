@@ -22,7 +22,7 @@ export default function AdminGuestForms() {
   const { groups } = useAdminGroups();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const activeGroups = groups.filter(g => g.status !== 'archived');
+  const activeGroups = groups;
   const groupsWithForm = new Set(submissions.map(s => s.group_id));
 
   const copyLink = async (sub: GuestFormSubmission) => {
