@@ -197,6 +197,14 @@ const commonStyles = `
     .postcard-container { max-width: 100%; width: 100%; margin: 0 auto; }
     .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
     .postcard-img { width: 100%; height: 200px; object-fit: contain; background: transparent; padding: 0; border-radius: 0; border: none; box-shadow: none; }
+    .terms { margin-top: 32px; page-break-before: auto; }
+    .terms h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
+    .terms h3 { font-size: 14px; margin-top: 14px; margin-bottom: 6px; font-weight: bold; }
+    .terms p, .terms li { font-size: 13px; line-height: 1.8; }
+    .terms ul { list-style: disc; padding-right: 20px; margin: 4px 0; }
+    .signature-block { margin-top: 32px; }
+    .signature-line { display: inline-block; min-width: 180px; border-bottom: 1px solid #333; margin: 0 8px; }
+    .signature-row { margin-top: 20px; font-size: 13px; line-height: 2.4; }
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
