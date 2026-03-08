@@ -209,6 +209,9 @@ const commonStyles = `
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
+      .pricing-section { page-break-inside: avoid; }
+      .payment-box { page-break-inside: avoid; }
+      table { page-break-inside: avoid; }
     }
   </style>
 `;
