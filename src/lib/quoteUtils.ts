@@ -381,7 +381,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
 
   <div class="postcard">
     <div class="postcard-container">
-      <div class="postcard-label">מחכים לכם בחווה</div>
+      <div class="postcard-label">מחכים לכם בבית הדור הבא</div>
       <img src="${getBaseUrl()}/assets/quote-footer-photo.jpg" alt="חוות אהרונסון" class="postcard-img" onerror="this.parentElement.parentElement.style.display='none'">
     </div>
   </div>
