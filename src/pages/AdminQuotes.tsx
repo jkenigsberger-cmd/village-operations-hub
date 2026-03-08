@@ -402,10 +402,20 @@ const AdminQuotes = () => {
       <AdminLayout title="הצעות מחיר" subtitle="ניהול הצעות מחיר לקבוצות" section="management">
         <div className="space-y-6">
           {/* Actions */}
-          <div className="flex flex-wrap gap-3">
+           <div className="flex flex-wrap gap-3">
             <Button onClick={() => handleNewQuote()} className="gap-2">
               <Plus className="w-4 h-4" />
               הצעה חדשה (עצמאית)
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/guest-form`);
+                toast({ title: 'הקישור הועתק! 📋', description: 'שלחו את הקישור ללקוח למילוי שאלון הכנה' });
+              }}
+            >
+              שאלון לקוח 📋
             </Button>
             <Select onValueChange={(v) => handleNewQuote(v)}>
               <SelectTrigger className="w-64">

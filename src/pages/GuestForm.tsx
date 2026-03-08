@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
 import hadorHabaLogo from '@/assets/hador-haba-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,13 +24,13 @@ const DIET_OPTIONS = [
 ];
 
 export default function GuestForm() {
-  const { groupId } = useParams<{ groupId: string }>();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
 
   const [form, setForm] = useState({
+    group_name: '',
     client_name: '',
     client_org: '',
     client_phone: '',
@@ -52,6 +51,10 @@ export default function GuestForm() {
   const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
+    if (!form.group_name.trim()) {
+      setError('יש למלא שם קבוצה');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -62,7 +65,7 @@ export default function GuestForm() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            group_id: groupId,
+            group_name: form.group_name,
             client_name: form.client_name,
             client_org: form.client_org,
             client_phone: form.client_phone,
@@ -139,6 +142,7 @@ export default function GuestForm() {
 
           {step === 0 && (
             <div className="space-y-4">
+              <div><Label>שם הקבוצה *</Label><Input value={form.group_name} onChange={e => set('group_name', e.target.value)} placeholder="למשל: תנועת הצופים - גדוד 12" /></div>
               <div><Label>שם איש קשר</Label><Input value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="שם מלא" /></div>
               <div><Label>ארגון / חברה</Label><Input value={form.client_org} onChange={e => set('client_org', e.target.value)} placeholder="שם הארגון" /></div>
               <div><Label>טלפון</Label><Input type="tel" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} placeholder="050-0000000" /></div>
