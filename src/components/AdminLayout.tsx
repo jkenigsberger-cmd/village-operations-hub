@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
-import { Users, DollarSign, Receipt, UserCheck, BarChart3, Briefcase, FileText, Shield } from 'lucide-react';
+import { Users, DollarSign, Receipt, UserCheck, BarChart3, Briefcase, FileText, Shield, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
