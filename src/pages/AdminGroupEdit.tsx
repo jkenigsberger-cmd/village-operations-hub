@@ -777,7 +777,7 @@ const AdminGroupEdit = () => {
       data.time,
       data.location,
       data.pax,
-      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, sensitivities: 0, notes: `קבוצה: ${formData.groupName}` },
+      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, eggFree: 0, nutFree: 0, notes: `קבוצה: ${formData.groupName}` },
       [{ name: formData.groupName, pax: data.pax }]
     );
 

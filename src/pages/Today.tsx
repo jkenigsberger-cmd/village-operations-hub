@@ -270,10 +270,7 @@ const Today = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {dayUseGroups.map((group) => {
                 const groupMeals = getMealsForGroup(group.groupName);
-                const specialCount = groupMeals.reduce((acc, slot) => {
-                  const { vegetarian, vegan, glutenFree, lactoseFree, lifeThreatening, mehadrinKosher, sensitivities } = slot.specialDiets;
-                  return acc + vegetarian + vegan + glutenFree + lactoseFree + lifeThreatening + mehadrinKosher + sensitivities;
-                }, 0);
+                const specialCount = groupMeals.reduce((acc, slot) => acc + getTotalSpecialCount(slot.specialDiets), 0);
 
                 return (
                   <Card key={group.id} className="border-amber-200 dark:border-amber-800">
