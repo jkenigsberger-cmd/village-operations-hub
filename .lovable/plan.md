@@ -1,32 +1,31 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Fix: Guest Form Link Uses Published URL
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## Problem
+The "שאלון לקוח" button copies the preview URL (`cb53f979...lovableproject.com/guest-form`), which requires a Lovable account to access. It should copy the published URL (`glowhadorhaba.lovable.app/guest-form`).
 
 ## Solution
+Hardcode the published base URL for the guest form link in `AdminQuotes.tsx`. This ensures the copied link always points to the public published site.
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+### Change in `src/pages/AdminQuotes.tsx` (line ~414)
+Replace:
+```ts
+navigator.clipboard.writeText(`${window.location.origin}/guest-form`);
+```
+With:
+```ts
+const base = window.location.hostname.includes('lovableproject.com')
+  ? 'https://glowhadorhaba.lovable.app'
+  : window.location.origin;
+navigator.clipboard.writeText(`${base}/guest-form`);
+```
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
+This way:
+- In the preview/dev environment, it copies the published URL
+- In production (published site), it copies the current origin as expected
 
-### Technical Details
-
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
-
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
-
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+| File | Change |
+|------|--------|
+| `src/pages/AdminQuotes.tsx` | Use published URL for clipboard copy |
 
