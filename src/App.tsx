@@ -72,7 +72,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Routes>
-        <Route path="/guest-form/:groupId" element={<GuestForm />} />
+        <Route path="/guest-form" element={<GuestForm />} />
         <Route path="/*" element={<AuthenticatedApp />} />
       </Routes>
     </BrowserRouter>

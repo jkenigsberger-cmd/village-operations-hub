@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useGuestFormSubmissions, GuestFormSubmission } from '@/hooks/useGuestFormSubmissions';
-import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Copy, Plus, Eye, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -18,69 +17,28 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 };
 
 export default function AdminGuestForms() {
-  const { submissions, isLoading, createForGroup, updateStatus, load } = useGuestFormSubmissions();
-  const { groups } = useAdminGroups();
+  const { submissions, isLoading, updateStatus } = useGuestFormSubmissions();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const activeGroups = groups;
-  const groupsWithForm = new Set(submissions.map(s => s.group_id));
-
-  const copyLink = async (sub: GuestFormSubmission) => {
-    const url = `${window.location.origin}/guest-form/${sub.group_id}`;
-    await navigator.clipboard.writeText(url);
-    if (sub.status === 'pending') {
-      await updateStatus(sub.id, 'sent');
-    }
-    toast({ title: 'הקישור הועתק!', description: url });
-  };
-
-  const handleCreate = async (groupId: string) => {
-    const { error } = await createForGroup(groupId);
-    if (error) {
-      toast({ title: 'שגיאה', description: 'לא ניתן ליצור טופס', variant: 'destructive' });
-    } else {
-      toast({ title: 'טופס נוצר בהצלחה' });
-    }
-  };
 
   const handleReview = async (id: string) => {
     await updateStatus(id, 'reviewed');
     toast({ title: 'סומן כנבדק' });
   };
 
-  const getGroupName = (groupId: string) => {
-    return groups.find(g => g.id === groupId)?.groupName || groupId;
-  };
-
   return (
-    <AdminLayout title="שאלון לקוח" subtitle="שלחו שאלון הכנה ללקוחות וקבלו תשובות" section="management">
+    <AdminLayout title="שאלון לקוח" subtitle="תשובות שאלוני הכנה מלקוחות" section="management">
       <div className="space-y-6">
-        {/* Groups without forms */}
-        {activeGroups.filter(g => !groupsWithForm.has(g.id)).length > 0 && (
-          <Card className="p-4">
-            <h3 className="font-bold mb-3">קבוצות ללא שאלון</h3>
-            <div className="flex flex-wrap gap-2">
-              {activeGroups.filter(g => !groupsWithForm.has(g.id)).map(g => (
-                <Button key={g.id} variant="outline" size="sm" onClick={() => handleCreate(g.id)}>
-                  <Plus className="w-4 h-4 ml-1" />
-                  {g.groupName}
-                </Button>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Submissions table */}
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">טוען...</p>
         ) : submissions.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">אין שאלונים עדיין. צרו שאלון לקבוצה מהרשימה למעלה.</p>
+          <p className="text-center text-muted-foreground py-8">אין שאלונים עדיין. העתיקו את הקישור מדף הצעות המחיר ושלחו ללקוחות.</p>
         ) : (
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>קבוצה</TableHead>
+                  <TableHead>שם קבוצה</TableHead>
+                  <TableHead>איש קשר</TableHead>
                   <TableHead>סטטוס</TableHead>
                   <TableHead>נשלח</TableHead>
                   <TableHead>פעולות</TableHead>
@@ -92,8 +50,9 @@ export default function AdminGuestForms() {
                   const isExpanded = expandedId === sub.id;
                   return (
                     <React.Fragment key={sub.id}>
-                      <TableRow className="cursor-pointer" onClick={() => sub.status === 'submitted' || sub.status === 'reviewed' ? setExpandedId(isExpanded ? null : sub.id) : null}>
-                        <TableCell className="font-medium">{getGroupName(sub.group_id)}</TableCell>
+                      <TableRow className="cursor-pointer" onClick={() => (sub.status === 'submitted' || sub.status === 'reviewed') ? setExpandedId(isExpanded ? null : sub.id) : null}>
+                        <TableCell className="font-medium">{sub.group_name || sub.group_id || '—'}</TableCell>
+                        <TableCell className="text-sm">{sub.client_name || '—'}</TableCell>
                         <TableCell>
                           <Badge className={config.className}>{config.label}</Badge>
                         </TableCell>
@@ -102,10 +61,7 @@ export default function AdminGuestForms() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                            <Button variant="ghost" size="sm" onClick={() => copyLink(sub)} title="העתק קישור">
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                            {(sub.status === 'submitted') && (
+                            {sub.status === 'submitted' && (
                               <Button variant="ghost" size="sm" onClick={() => handleReview(sub.id)} title="סמן כנבדק">
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
@@ -120,7 +76,7 @@ export default function AdminGuestForms() {
                       </TableRow>
                       {isExpanded && (
                         <TableRow>
-                          <TableCell colSpan={4} className="bg-muted/30 p-4">
+                          <TableCell colSpan={5} className="bg-muted/30 p-4">
                             <SubmissionDetail sub={sub} />
                           </TableCell>
                         </TableRow>
@@ -151,6 +107,7 @@ function SubmissionDetail({ sub }: { sub: GuestFormSubmission }) {
   return (
     <div className="space-y-2">
       <h4 className="font-bold text-sm mb-2">תשובות הלקוח</h4>
+      {field('שם קבוצה', sub.group_name)}
       {field('שם', sub.client_name)}
       {field('ארגון', sub.client_org)}
       {field('טלפון', sub.client_phone)}

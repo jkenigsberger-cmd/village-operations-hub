@@ -20,10 +20,10 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { group_id, client_name, client_org, client_phone, client_email, total_pax, staff_count, participant_count, boys_count, girls_count, group_type, special_diets, tent_distribution_notes, schedule_notes, general_notes } = body;
+    const { group_name, client_name, client_org, client_phone, client_email, total_pax, staff_count, participant_count, boys_count, girls_count, group_type, special_diets, tent_distribution_notes, schedule_notes, general_notes } = body;
 
-    if (!group_id || typeof group_id !== "string") {
-      return new Response(JSON.stringify({ error: "group_id is required" }), {
+    if (!group_name || typeof group_name !== "string" || !group_name.trim()) {
+      return new Response(JSON.stringify({ error: "group_name is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -34,45 +34,27 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Validate group exists
-    const { data: group, error: groupError } = await supabase
-      .from("groups")
-      .select("id, name")
-      .eq("id", group_id)
-      .maybeSingle();
-
-    if (groupError || !group) {
-      return new Response(JSON.stringify({ error: "Group not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Upsert submission
     const { data, error } = await supabase
       .from("guest_form_submissions")
-      .upsert(
-        {
-          group_id,
-          status: "submitted",
-          client_name: client_name?.slice(0, 200) || null,
-          client_org: client_org?.slice(0, 200) || null,
-          client_phone: client_phone?.slice(0, 50) || null,
-          client_email: client_email?.slice(0, 255) || null,
-          total_pax: total_pax ? Number(total_pax) : null,
-          staff_count: staff_count ? Number(staff_count) : null,
-          participant_count: participant_count ? Number(participant_count) : null,
-          boys_count: boys_count ? Number(boys_count) : null,
-          girls_count: girls_count ? Number(girls_count) : null,
-          group_type: group_type?.slice(0, 100) || null,
-          special_diets: special_diets || {},
-          tent_distribution_notes: tent_distribution_notes?.slice(0, 2000) || null,
-          schedule_notes: schedule_notes?.slice(0, 2000) || null,
-          general_notes: general_notes?.slice(0, 2000) || null,
-          submitted_at: new Date().toISOString(),
-        },
-        { onConflict: "group_id" }
-      )
+      .insert({
+        group_name: group_name.trim().slice(0, 200),
+        status: "submitted",
+        client_name: client_name?.slice(0, 200) || null,
+        client_org: client_org?.slice(0, 200) || null,
+        client_phone: client_phone?.slice(0, 50) || null,
+        client_email: client_email?.slice(0, 255) || null,
+        total_pax: total_pax ? Number(total_pax) : null,
+        staff_count: staff_count ? Number(staff_count) : null,
+        participant_count: participant_count ? Number(participant_count) : null,
+        boys_count: boys_count ? Number(boys_count) : null,
+        girls_count: girls_count ? Number(girls_count) : null,
+        group_type: group_type?.slice(0, 100) || null,
+        special_diets: special_diets || {},
+        tent_distribution_notes: tent_distribution_notes?.slice(0, 2000) || null,
+        schedule_notes: schedule_notes?.slice(0, 2000) || null,
+        general_notes: general_notes?.slice(0, 2000) || null,
+        submitted_at: new Date().toISOString(),
+      })
       .select()
       .single();
 

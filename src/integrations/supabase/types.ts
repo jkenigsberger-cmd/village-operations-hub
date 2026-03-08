@@ -575,7 +575,8 @@ export type Database = {
           created_at: string
           general_notes: string | null
           girls_count: number | null
-          group_id: string
+          group_id: string | null
+          group_name: string | null
           group_type: string | null
           id: string
           participant_count: number | null
@@ -597,7 +598,8 @@ export type Database = {
           created_at?: string
           general_notes?: string | null
           girls_count?: number | null
-          group_id: string
+          group_id?: string | null
+          group_name?: string | null
           group_type?: string | null
           id?: string
           participant_count?: number | null
@@ -619,7 +621,8 @@ export type Database = {
           created_at?: string
           general_notes?: string | null
           girls_count?: number | null
-          group_id?: string
+          group_id?: string | null
+          group_name?: string | null
           group_type?: string | null
           id?: string
           participant_count?: number | null
