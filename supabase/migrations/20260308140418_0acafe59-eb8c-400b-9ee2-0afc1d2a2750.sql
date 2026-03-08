@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_guest_form_submissions_group_id ON public.guest_form_submissions (group_id);

@@ -565,6 +565,75 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_form_submissions: {
+        Row: {
+          boys_count: number | null
+          client_email: string | null
+          client_name: string | null
+          client_org: string | null
+          client_phone: string | null
+          created_at: string
+          general_notes: string | null
+          girls_count: number | null
+          group_id: string
+          group_type: string | null
+          id: string
+          participant_count: number | null
+          schedule_notes: string | null
+          special_diets: Json | null
+          staff_count: number | null
+          status: string
+          submitted_at: string | null
+          tent_distribution_notes: string | null
+          total_pax: number | null
+          updated_at: string
+        }
+        Insert: {
+          boys_count?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          client_org?: string | null
+          client_phone?: string | null
+          created_at?: string
+          general_notes?: string | null
+          girls_count?: number | null
+          group_id: string
+          group_type?: string | null
+          id?: string
+          participant_count?: number | null
+          schedule_notes?: string | null
+          special_diets?: Json | null
+          staff_count?: number | null
+          status?: string
+          submitted_at?: string | null
+          tent_distribution_notes?: string | null
+          total_pax?: number | null
+          updated_at?: string
+        }
+        Update: {
+          boys_count?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          client_org?: string | null
+          client_phone?: string | null
+          created_at?: string
+          general_notes?: string | null
+          girls_count?: number | null
+          group_id?: string
+          group_type?: string | null
+          id?: string
+          participant_count?: number | null
+          schedule_notes?: string | null
+          special_diets?: Json | null
+          staff_count?: number | null
+          status?: string
+          submitted_at?: string | null
+          tent_distribution_notes?: string | null
+          total_pax?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       income: {
         Row: {
           amount: number
