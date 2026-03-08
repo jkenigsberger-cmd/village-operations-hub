@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useVillage } from '@/context/VillageContext';
+import { getTotalSpecialCount } from '@/types/kitchen';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
