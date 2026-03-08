@@ -320,6 +320,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
     <tr><td><strong>סה"כ משתתפים:</strong></td><td>${s.totalPax}</td></tr>
   </table>
 
+  <div class="pricing-section">
   <h2>פירוט תמחור</h2>
   <table>
     <tr><th>פריט</th><th>כמות</th><th>מחיר יחידה</th><th>סה"כ</th></tr>
@@ -341,6 +342,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
   </div>
 
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
+  </div>
 
   <div class="terms">
     <h2>תנאי ההסכם</h2>
