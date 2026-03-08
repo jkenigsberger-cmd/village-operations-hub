@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarEvent } from '@/types/village';
-import { MEAL_LABELS, DIET_LABELS, SpecialDiets, MealType } from '@/types/kitchen';
+import { MEAL_LABELS, DIETARY_CATEGORIES, SpecialDiets, MealType } from '@/types/kitchen';
 import {
   Dialog,
   DialogContent,
@@ -33,12 +33,10 @@ export const KitchenEventDetailModal: React.FC<KitchenEventDetailModalProps> = (
   const totalPax = metadata.totalPax as number;
   const specialDiets = metadata.specialDiets as SpecialDiets;
   const specialCount = metadata.specialCount as number;
-  const locationCode = metadata.locationCode as string;
   const updatedAt = metadata.updatedAt as string;
   const slotId = metadata.slotId as string;
 
   const handleOpenInKitchen = () => {
-    // Navigate to kitchen with date parameter
     navigate(`/kitchen?date=${event.startDate}&slot=${slotId}`);
     onClose();
   };
@@ -93,53 +91,22 @@ export const KitchenEventDetailModal: React.FC<KitchenEventDetailModalProps> = (
           <div>
             <h4 className="font-semibold mb-3">צרכים תזונתיים</h4>
             <div className="grid grid-cols-2 gap-2">
-              {specialDiets.vegetarian > 0 && (
-                <div className="flex justify-between p-2 bg-green-50 dark:bg-green-950/30 rounded">
-                  <span>{DIET_LABELS.vegetarian}</span>
-                  <span className="font-bold">{specialDiets.vegetarian}</span>
-                </div>
-              )}
-              {specialDiets.vegan > 0 && (
-                <div className="flex justify-between p-2 bg-green-50 dark:bg-green-950/30 rounded">
-                  <span>{DIET_LABELS.vegan}</span>
-                  <span className="font-bold">{specialDiets.vegan}</span>
-                </div>
-              )}
-              {specialDiets.glutenFree > 0 && (
-                <div className="flex justify-between p-2 bg-amber-50 dark:bg-amber-950/30 rounded">
-                  <span>{DIET_LABELS.glutenFree}</span>
-                  <span className="font-bold">{specialDiets.glutenFree}</span>
-                </div>
-              )}
-              {specialDiets.lactoseFree > 0 && (
-                <div className="flex justify-between p-2 bg-amber-50 dark:bg-amber-950/30 rounded">
-                  <span>{DIET_LABELS.lactoseFree}</span>
-                  <span className="font-bold">{specialDiets.lactoseFree}</span>
-                </div>
-              )}
-              {specialDiets.lifeThreatening > 0 && (
-                <div className="flex justify-between p-2 bg-red-50 dark:bg-red-950/30 rounded col-span-2">
-                  <span>{DIET_LABELS.lifeThreatening}</span>
-                  <span className="font-bold">{specialDiets.lifeThreatening}</span>
-                </div>
-              )}
-              {specialDiets.mehadrinKosher > 0 && (
-                <div className="flex justify-between p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
-                  <span>{DIET_LABELS.mehadrinKosher}</span>
-                  <span className="font-bold">{specialDiets.mehadrinKosher}</span>
-                </div>
-              )}
-              {specialDiets.sensitivities > 0 && (
-                <div className="flex justify-between p-2 bg-orange-50 dark:bg-orange-950/30 rounded">
-                  <span>{DIET_LABELS.sensitivities}</span>
-                  <span className="font-bold">{specialDiets.sensitivities}</span>
-                </div>
-              )}
+              {DIETARY_CATEGORIES.map(({ key, icon, label }) => {
+                const count = specialDiets[key] || 0;
+                if (count <= 0) return null;
+                const bg = key === 'lifeThreatening'
+                  ? 'bg-red-50 dark:bg-red-950/30 col-span-2'
+                  : 'bg-muted/50';
+                return (
+                  <div key={key} className={`flex justify-between p-2 rounded ${bg}`}>
+                    <span>{icon} {label}</span>
+                    <span className="font-bold">{count}</span>
+                  </div>
+                );
+              })}
             </div>
             {specialCount === 0 && (
-              <p className="text-muted-foreground text-sm text-center py-2">
-                אין צרכים מיוחדים
-              </p>
+              <p className="text-muted-foreground text-sm text-center py-2">אין צרכים מיוחדים</p>
             )}
           </div>
 
@@ -147,9 +114,7 @@ export const KitchenEventDetailModal: React.FC<KitchenEventDetailModalProps> = (
           {specialDiets.notes && (
             <div>
               <h4 className="font-semibold mb-2">הערות</h4>
-              <p className="text-sm p-3 bg-muted rounded-lg whitespace-pre-wrap">
-                {specialDiets.notes}
-              </p>
+              <p className="text-sm p-3 bg-muted rounded-lg whitespace-pre-wrap">{specialDiets.notes}</p>
             </div>
           )}
 
@@ -163,11 +128,7 @@ export const KitchenEventDetailModal: React.FC<KitchenEventDetailModalProps> = (
           <Separator />
 
           {/* Action Button */}
-          <Button
-            onClick={handleOpenInKitchen}
-            className="w-full gap-2"
-            size="lg"
-          >
+          <Button onClick={handleOpenInKitchen} className="w-full gap-2" size="lg">
             <ExternalLink className="w-4 h-4" />
             פתח במטבח
           </Button>

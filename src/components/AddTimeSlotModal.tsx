@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MealType, SpecialDiets, MEAL_LABELS, LOCATION_LABELS, DIET_LABELS } from '@/types/kitchen';
+import { MealType, SpecialDiets, MEAL_LABELS, LOCATION_LABELS, DIETARY_CATEGORIES, DIET_LABELS } from '@/types/kitchen';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,14 +21,7 @@ const DEFAULT_TIMES: Record<MealType, string> = {
 };
 
 const DEFAULT_SPECIAL_DIETS: SpecialDiets = {
-  vegetarian: 0,
-  vegan: 0,
-  glutenFree: 0,
-  lactoseFree: 0,
-  lifeThreatening: 0,
-  mehadrinKosher: 0,
-  sensitivities: 0,
-  notes: '',
+  vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, eggFree: 0, nutFree: 0, notes: '',
 };
 
 export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
@@ -44,7 +37,6 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
 
   const handleAdd = () => {
     onAdd(time, location, totalPax, specialDiets);
-    // Reset form
     setTime(DEFAULT_TIMES[mealType]);
     setLocation('DINING_HALL');
     setTotalPax(0);
@@ -56,14 +48,7 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
     setSpecialDiets(prev => ({ ...prev, [key]: Math.max(0, value) }));
   };
 
-  const totalSpecial = 
-    specialDiets.vegetarian + 
-    specialDiets.vegan + 
-    specialDiets.glutenFree + 
-    specialDiets.lactoseFree + 
-    specialDiets.lifeThreatening +
-    specialDiets.mehadrinKosher +
-    specialDiets.sensitivities;
+  const totalSpecial = DIETARY_CATEGORIES.reduce((sum, c) => sum + (specialDiets[c.key] || 0), 0);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -148,23 +133,18 @@ export const AddTimeSlotModal: React.FC<AddTimeSlotModalProps> = ({
             </Label>
             
             <div className="grid grid-cols-2 gap-3">
-              {(Object.keys(DIET_LABELS) as Array<keyof typeof DIET_LABELS>)
-                .filter(key => key !== 'notes')
-                .map(key => (
-                  <div key={key} className="flex items-center gap-2 bg-muted/30 rounded-lg p-3">
-                    <span className="text-sm flex-1">{DIET_LABELS[key]}</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={specialDiets[key as keyof Omit<SpecialDiets, 'notes'>]}
-                      onChange={e => updateDiet(
-                        key as keyof Omit<SpecialDiets, 'notes'>,
-                        parseInt(e.target.value) || 0
-                      )}
-                      className="w-16 h-10 text-center font-bold"
-                    />
-                  </div>
-                ))}
+              {DIETARY_CATEGORIES.map(({ key, icon, label }) => (
+                <div key={key} className="flex items-center gap-2 bg-muted/30 rounded-lg p-3">
+                  <span className="text-sm flex-1">{icon} {label}</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={specialDiets[key]}
+                    onChange={e => updateDiet(key, parseInt(e.target.value) || 0)}
+                    className="w-16 h-10 text-center font-bold"
+                  />
+                </div>
+              ))}
             </div>
 
             {/* Notes */}
