@@ -16,11 +16,14 @@ const STEPS = [
 ];
 
 const DIET_OPTIONS = [
-  { key: 'vegetarian', label: 'צמחוני' },
-  { key: 'vegan', label: 'טבעוני' },
-  { key: 'glutenFree', label: 'ללא גלוטן' },
-  { key: 'lactoseFree', label: 'ללא לקטוז' },
-  { key: 'allergies', label: 'אלרגיות' },
+  { key: 'vegetarian', label: '🥬 צמחוני' },
+  { key: 'vegan', label: '🌱 טבעוני' },
+  { key: 'glutenFree', label: '🌾 צליאק' },
+  { key: 'mehadrinKosher', label: '✡️ מהדרין' },
+  { key: 'lifeThreatening', label: '⚠️ מסכן חיים' },
+  { key: 'nutFree', label: '🥜 ללא אגוזים' },
+  { key: 'eggFree', label: '🥚 ללא ביצים' },
+  { key: 'lactoseFree', label: '🥛 ללא לקטוז' },
 ];
 
 export default function GuestForm() {

@@ -25,7 +25,8 @@ export interface MealPlanItem {
     lactoseFree: number;
     lifeThreatening: number;       // Life-threatening allergies count
     mehadrinKosher: number;        // Mehadrin Kosher count
-    sensitivities: number;         // Sensitivities count
+    eggFree?: number;              // Egg-free count (NEW)
+    nutFree?: number;              // Nut-free count (NEW)
     allergiesNotes: string;        // Free text notes
   };
 }
