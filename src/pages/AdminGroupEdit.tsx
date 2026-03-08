@@ -19,7 +19,7 @@ import {
   SPACE_ID_MAP 
 } from '@/types/adminGroups';
 import { DistributionPreference } from '@/types/distributionPreference';
-import { MealType, MEAL_LABELS } from '@/types/kitchen';
+import { MealType, MEAL_LABELS, DIETARY_CATEGORIES } from '@/types/kitchen';
 import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { VIPTentPlanner } from '@/components/VIPTentPlanner';
