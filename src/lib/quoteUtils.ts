@@ -336,8 +336,48 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
     <p>יתרה (70%): <strong>${formatCurrency(t.balancePayment)}</strong></p>
   </div>
 
-  <p class="note">הצעת מחיר זו בתוקף ל-30 יום מתאריך הפקה: ${formatDate(quote.createdAt)}</p>
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
+
+  <div class="terms">
+    <h2>תנאי ההסכם</h2>
+    <p>הצעת המחיר תקפה למשך 14 יום מיום שליחתה בכתב.</p>
+    <p>רק שליחה חזרה של מסמך זה חתום משמעה סגירת ההזמנה.</p>
+
+    <h3>תשלום</h3>
+    <p>תשלום מקדמה - בסך 30% מערך העסקה - ישולם חודש לפני הגעה | שאר התשלום - 70% מערך העסקה - ישולם ביום ההגעה.</p>
+
+    <h3>ביטול עסקה</h3>
+    <ul>
+      <li>עד 7 ימים לפני ההגעה - ייגבו דמי ביטול בסך 5% או 100 ש״ח - הנמוך מביניהם</li>
+      <li>פחות מ-7 ימים לפני ההגעה - ייגבו דמי ביטול בסך של 25% מערך ההזמנה</li>
+    </ul>
+
+    <h3>שינויים</h3>
+    <ul>
+      <li>ניתן לעשות שינויים בהזמנה לרבות מספר משתתפים וארוחות עד 10 ימים לפני הפעילות בבית</li>
+      <li>דרישת התשלום תישלח לפי מספר המשתתפים שנמסר 10 ימים לפני תחילת הפעילות או לפי מספר המגיעים בפועל - לפי הגבוה מביניהם</li>
+      <li>ניתן לעדכן בהעדפות ואלרגיות למזון עד 10 ימים לפני, לאחר מכן לא ניתן להבטיח שיהיה אוכל מתאים</li>
+    </ul>
+
+    <h3>כללי הבית</h3>
+    <ul>
+      <li>לא ניתן להכניס אוכל מכל סוג לבית הדור הבא</li>
+      <li>כל נזק לציוד או מתקני הבית יחויב בעלות תיקון הנזק</li>
+    </ul>
+
+    <div class="signature-block">
+      <h3>אישור ההצעה וחתימה</h3>
+      <div class="signature-row">
+        שם מלא: <span class="signature-line"></span>
+        תפקיד: <span class="signature-line"></span>
+        חתימה: <span class="signature-line"></span>
+      </div>
+      <div class="signature-row">
+        שם הגוף המשלם: <span class="signature-line"></span>
+        ח.פ / ע.ר: <span class="signature-line"></span>
+      </div>
+    </div>
+  </div>
 
   <div class="postcard">
     <div class="postcard-container">
