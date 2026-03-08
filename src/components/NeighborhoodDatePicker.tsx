@@ -55,7 +55,7 @@ export const NeighborhoodDatePicker: React.FC<NeighborhoodDatePickerProps> = ({
       <Button
         variant="outline"
         size="icon"
-        onClick={() => onChange(addDays(value, 1))}
+        onClick={() => onChange(subDays(value, 1))}
       >
         <ChevronLeft className="w-4 h-4" />
       </Button>

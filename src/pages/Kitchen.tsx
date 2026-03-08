@@ -149,7 +149,7 @@ const Kitchen: React.FC = () => {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setSelectedDate(d => addDays(d, 1))}
+              onClick={() => setSelectedDate(d => subDays(d, 1))}
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
