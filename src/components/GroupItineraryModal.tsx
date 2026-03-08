@@ -4,7 +4,7 @@ import { GroupRecord } from '@/types/adminGroups';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { useVillage } from '@/context/VillageContext';
-import { MEAL_LABELS, LOCATION_LABELS } from '@/types/kitchen';
+import { MEAL_LABELS, LOCATION_LABELS, DIETARY_CATEGORIES } from '@/types/kitchen';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { he } from 'date-fns/locale';
 import {
