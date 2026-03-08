@@ -411,7 +411,10 @@ const AdminQuotes = () => {
               variant="outline"
               className="gap-2"
               onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/guest-form`);
+                const base = window.location.hostname.includes('lovableproject.com')
+                  ? 'https://glowhadorhaba.lovable.app'
+                  : window.location.origin;
+                navigator.clipboard.writeText(`${base}/guest-form`);
                 toast({ title: 'הקישור הועתק! 📋', description: 'שלחו את הקישור ללקוח למילוי שאלון הכנה' });
               }}
             >
