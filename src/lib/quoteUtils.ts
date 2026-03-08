@@ -197,6 +197,14 @@ const commonStyles = `
     .postcard-container { max-width: 100%; width: 100%; margin: 0 auto; }
     .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
     .postcard-img { width: 100%; height: 200px; object-fit: contain; background: transparent; padding: 0; border-radius: 0; border: none; box-shadow: none; }
+    .terms { margin-top: 32px; page-break-before: auto; }
+    .terms h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
+    .terms h3 { font-size: 14px; margin-top: 14px; margin-bottom: 6px; font-weight: bold; }
+    .terms p, .terms li { font-size: 13px; line-height: 1.8; }
+    .terms ul { list-style: disc; padding-right: 20px; margin: 4px 0; }
+    .signature-block { margin-top: 32px; }
+    .signature-line { display: inline-block; min-width: 180px; border-bottom: 1px solid #333; margin: 0 8px; }
+    .signature-row { margin-top: 20px; font-size: 13px; line-height: 2.4; }
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
@@ -328,8 +336,48 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
     <p>יתרה (70%): <strong>${formatCurrency(t.balancePayment)}</strong></p>
   </div>
 
-  <p class="note">הצעת מחיר זו בתוקף ל-30 יום מתאריך הפקה: ${formatDate(quote.createdAt)}</p>
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
+
+  <div class="terms">
+    <h2>תנאי ההסכם</h2>
+    <p>הצעת המחיר תקפה למשך 14 יום מיום שליחתה בכתב.</p>
+    <p>רק שליחה חזרה של מסמך זה חתום משמעה סגירת ההזמנה.</p>
+
+    <h3>תשלום</h3>
+    <p>תשלום מקדמה - בסך 30% מערך העסקה - ישולם חודש לפני הגעה | שאר התשלום - 70% מערך העסקה - ישולם ביום ההגעה.</p>
+
+    <h3>ביטול עסקה</h3>
+    <ul>
+      <li>עד 7 ימים לפני ההגעה - ייגבו דמי ביטול בסך 5% או 100 ש״ח - הנמוך מביניהם</li>
+      <li>פחות מ-7 ימים לפני ההגעה - ייגבו דמי ביטול בסך של 25% מערך ההזמנה</li>
+    </ul>
+
+    <h3>שינויים</h3>
+    <ul>
+      <li>ניתן לעשות שינויים בהזמנה לרבות מספר משתתפים וארוחות עד 10 ימים לפני הפעילות בבית</li>
+      <li>דרישת התשלום תישלח לפי מספר המשתתפים שנמסר 10 ימים לפני תחילת הפעילות או לפי מספר המגיעים בפועל - לפי הגבוה מביניהם</li>
+      <li>ניתן לעדכן בהעדפות ואלרגיות למזון עד 10 ימים לפני, לאחר מכן לא ניתן להבטיח שיהיה אוכל מתאים</li>
+    </ul>
+
+    <h3>כללי הבית</h3>
+    <ul>
+      <li>לא ניתן להכניס אוכל מכל סוג לבית הדור הבא</li>
+      <li>כל נזק לציוד או מתקני הבית יחויב בעלות תיקון הנזק</li>
+    </ul>
+
+    <div class="signature-block">
+      <h3>אישור ההצעה וחתימה</h3>
+      <div class="signature-row">
+        שם מלא: <span class="signature-line"></span>
+        תפקיד: <span class="signature-line"></span>
+        חתימה: <span class="signature-line"></span>
+      </div>
+      <div class="signature-row">
+        שם הגוף המשלם: <span class="signature-line"></span>
+        ח.פ / ע.ר: <span class="signature-line"></span>
+      </div>
+    </div>
+  </div>
 
   <div class="postcard">
     <div class="postcard-container">
