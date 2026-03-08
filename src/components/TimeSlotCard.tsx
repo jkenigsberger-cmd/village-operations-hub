@@ -1,5 +1,5 @@
 import React from 'react';
-import { TimeSlot, LOCATION_LABELS } from '@/types/kitchen';
+import { TimeSlot, LOCATION_LABELS, getTotalSpecialCount } from '@/types/kitchen';
 import { Clock, MapPin, Users, AlertTriangle } from 'lucide-react';
 
 interface TimeSlotCardProps {
@@ -8,15 +8,7 @@ interface TimeSlotCardProps {
 }
 
 export const TimeSlotCard: React.FC<TimeSlotCardProps> = ({ slot, onClick }) => {
-  const totalSpecial = 
-    slot.specialDiets.vegetarian + 
-    slot.specialDiets.vegan + 
-    slot.specialDiets.glutenFree + 
-    slot.specialDiets.lactoseFree + 
-    slot.specialDiets.lifeThreatening +
-    slot.specialDiets.mehadrinKosher +
-    slot.specialDiets.sensitivities;
-
+  const totalSpecial = getTotalSpecialCount(slot.specialDiets);
   const locationLabel = LOCATION_LABELS[slot.location];
 
   return (

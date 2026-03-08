@@ -1,5 +1,5 @@
 import React from 'react';
-import { TimeSlot, MealType, MEAL_LABELS } from '@/types/kitchen';
+import { TimeSlot, MealType, MEAL_LABELS, getTotalSpecialCount } from '@/types/kitchen';
 import { TimeSlotCard } from './TimeSlotCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Sunrise, Sun, Moon } from 'lucide-react';
@@ -30,15 +30,7 @@ export const MealSection: React.FC<MealSectionProps> = ({
   onAddSlot,
 }) => {
   const totalPax = slots.reduce((sum, slot) => sum + slot.totalPax, 0);
-  const totalSpecial = slots.reduce((sum, slot) => 
-    sum + slot.specialDiets.vegetarian + 
-    slot.specialDiets.vegan + 
-    slot.specialDiets.glutenFree + 
-    slot.specialDiets.lactoseFree + 
-    slot.specialDiets.lifeThreatening +
-    slot.specialDiets.mehadrinKosher +
-    slot.specialDiets.sensitivities, 0
-  );
+  const totalSpecial = slots.reduce((sum, slot) => sum + getTotalSpecialCount(slot.specialDiets), 0);
 
   return (
     <div className={`rounded-2xl border-2 p-5 ${MEAL_COLORS[mealType]}`}>

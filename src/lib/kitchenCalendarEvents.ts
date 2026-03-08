@@ -1,4 +1,4 @@
-import { TimeSlot, MEAL_LABELS, LOCATION_LABELS, MealType } from '@/types/kitchen';
+import { TimeSlot, MEAL_LABELS, LOCATION_LABELS, MealType, getTotalSpecialCount } from '@/types/kitchen';
 import { CalendarEvent } from '@/types/village';
 
 export const KITCHEN_EVENT_COLOR = 'hsl(45, 80%, 45%)'; // Warm amber/gold color
@@ -13,10 +13,7 @@ const MEAL_DURATIONS: Record<MealType, number> = {
 /**
  * Calculate special diets count (excluding notes)
  */
-export const getSpecialCount = (slot: TimeSlot): number => {
-  const { vegetarian, vegan, glutenFree, lactoseFree, lifeThreatening, mehadrinKosher, sensitivities } = slot.specialDiets;
-  return vegetarian + vegan + glutenFree + lactoseFree + lifeThreatening + mehadrinKosher + sensitivities;
-};
+export const getSpecialCount = (slot: TimeSlot): number => getTotalSpecialCount(slot.specialDiets);
 
 /**
  * Calculate end time based on meal type
@@ -37,7 +34,6 @@ export const timeSlotToCalendarEvent = (slot: TimeSlot): CalendarEvent => {
   const mealLabel = MEAL_LABELS[slot.mealType];
   const locationLabel = LOCATION_LABELS[slot.location];
   
-  // Build title
   let title = `${mealLabel} – ${slot.totalPax} סועדים`;
   if (slot.location === 'OUTSIDE') {
     title += ` (${locationLabel})`;

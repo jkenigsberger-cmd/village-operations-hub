@@ -11,7 +11,8 @@ export interface SpecialDiets {
   lactoseFree: number;
   lifeThreatening: number;
   mehadrinKosher: number;
-  sensitivities: number;
+  eggFree: number;
+  nutFree: number;
   notes: string;
 }
 
@@ -40,7 +41,39 @@ export interface KitchenState {
   timeSlots: Record<string, TimeSlot>;
 }
 
-// Hebrew labels
+// ============================================================
+// SINGLE SOURCE OF TRUTH — Dietary categories
+// All UI components MUST import from here instead of hardcoding.
+// ============================================================
+
+export interface DietaryCategory {
+  key: keyof Omit<SpecialDiets, 'notes'>;
+  label: string;
+  icon: string;
+}
+
+/**
+ * Canonical list of the 8 dietary categories.
+ * Order here = display order everywhere.
+ */
+export const DIETARY_CATEGORIES: DietaryCategory[] = [
+  { key: 'vegetarian',      label: 'צמחוני',       icon: '🥬' },
+  { key: 'vegan',           label: 'טבעוני',       icon: '🌱' },
+  { key: 'glutenFree',      label: 'צליאק',        icon: '🌾' },
+  { key: 'mehadrinKosher',  label: 'מהדרין',       icon: '✡️' },
+  { key: 'lifeThreatening', label: 'מסכן חיים',    icon: '⚠️' },
+  { key: 'nutFree',         label: 'ללא אגוזים',   icon: '🥜' },
+  { key: 'eggFree',         label: 'ללא ביצים',    icon: '🥚' },
+  { key: 'lactoseFree',     label: 'ללא לקטוז',    icon: '🥛' },
+];
+
+/**
+ * Compute the total count of special-diet counters (excludes notes).
+ */
+export const getTotalSpecialCount = (diets: SpecialDiets): number =>
+  DIETARY_CATEGORIES.reduce((sum, c) => sum + (diets[c.key] || 0), 0);
+
+// Hebrew labels (kept for backward compat but now derived from DIETARY_CATEGORIES)
 export const MEAL_LABELS: Record<MealType, string> = {
   BREAKFAST: 'ארוחת בוקר',
   LUNCH: 'ארוחת צהריים',
@@ -52,13 +85,8 @@ export const LOCATION_LABELS = {
   OUTSIDE: 'מחוץ לחדר אוכל',
 };
 
-export const DIET_LABELS = {
-  vegetarian: '🌱 צמחוני',
-  vegan: '🥬 טבעוני',
-  glutenFree: '🚫 ללא גלוטן',
-  lactoseFree: '🥛 ללא לקטוז',
-  lifeThreatening: '⚠️ סכנת חיים',
-  mehadrinKosher: '✡️ כשר למהדרין',
-  sensitivities: '🤧 רגישויות',
-  notes: '✏️ דרישות מיוחדות',
-};
+// DIET_LABELS — derived from DIETARY_CATEGORIES for backward compat
+export const DIET_LABELS: Record<string, string> = Object.fromEntries([
+  ...DIETARY_CATEGORIES.map(c => [c.key, `${c.icon} ${c.label}`]),
+  ['notes', '✏️ הערות / דרישות מיוחדות'],
+]);

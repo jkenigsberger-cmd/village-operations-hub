@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TimeSlot, SpecialDiets, MealGroup, LOCATION_LABELS, DIET_LABELS } from '@/types/kitchen';
+import { TimeSlot, SpecialDiets, MealGroup, LOCATION_LABELS, DIETARY_CATEGORIES, DIET_LABELS } from '@/types/kitchen';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,14 +28,7 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
   const [location, setLocation] = useState<'DINING_HALL' | 'OUTSIDE'>('DINING_HALL');
   const [totalPax, setTotalPax] = useState(0);
   const [specialDiets, setSpecialDiets] = useState<SpecialDiets>({
-    vegetarian: 0,
-    vegan: 0,
-    glutenFree: 0,
-    lactoseFree: 0,
-    lifeThreatening: 0,
-    mehadrinKosher: 0,
-    sensitivities: 0,
-    notes: '',
+    vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, eggFree: 0, nutFree: 0, notes: '',
   });
   const [groups, setGroups] = useState<MealGroup[]>([]);
   const [groupsOpen, setGroupsOpen] = useState(false);
@@ -53,23 +46,12 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
   }, [slot]);
 
   const handleSave = () => {
-    onSave({
-      time,
-      location,
-      totalPax,
-      specialDiets,
-      groups,
-    });
+    onSave({ time, location, totalPax, specialDiets, groups });
     onClose();
   };
 
   const handleDelete = () => {
-    if (confirmDelete) {
-      onDelete();
-      onClose();
-    } else {
-      setConfirmDelete(true);
-    }
+    if (confirmDelete) { onDelete(); onClose(); } else { setConfirmDelete(true); }
   };
 
   const updateDiet = (key: keyof Omit<SpecialDiets, 'notes'>, value: number) => {
@@ -78,9 +60,7 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
 
   if (!slot) return null;
 
-  const updatedTime = slot.updatedAt 
-    ? format(new Date(slot.updatedAt), 'HH:mm')
-    : '';
+  const updatedTime = slot.updatedAt ? format(new Date(slot.updatedAt), 'HH:mm') : '';
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -99,57 +79,23 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
 
           {/* Time */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5" />
-              שעה
-            </Label>
-            <Input
-              type="time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="text-xl font-bold h-14 text-center"
-            />
+            <Label className="flex items-center gap-2 text-lg"><Clock className="w-5 h-5" />שעה</Label>
+            <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="text-xl font-bold h-14 text-center" />
           </div>
 
           {/* Location */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-lg">
-              <MapPin className="w-5 h-5" />
-              מיקום
-            </Label>
+            <Label className="flex items-center gap-2 text-lg"><MapPin className="w-5 h-5" />מיקום</Label>
             <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={location === 'DINING_HALL' ? 'default' : 'outline'}
-                onClick={() => setLocation('DINING_HALL')}
-                className="h-14 text-lg"
-              >
-                {LOCATION_LABELS.DINING_HALL}
-              </Button>
-              <Button
-                type="button"
-                variant={location === 'OUTSIDE' ? 'default' : 'outline'}
-                onClick={() => setLocation('OUTSIDE')}
-                className="h-14 text-lg"
-              >
-                {LOCATION_LABELS.OUTSIDE}
-              </Button>
+              <Button type="button" variant={location === 'DINING_HALL' ? 'default' : 'outline'} onClick={() => setLocation('DINING_HALL')} className="h-14 text-lg">{LOCATION_LABELS.DINING_HALL}</Button>
+              <Button type="button" variant={location === 'OUTSIDE' ? 'default' : 'outline'} onClick={() => setLocation('OUTSIDE')} className="h-14 text-lg">{LOCATION_LABELS.OUTSIDE}</Button>
             </div>
           </div>
 
           {/* Total Diners */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5" />
-              סה״כ סועדים
-            </Label>
-            <Input
-              type="number"
-              min={0}
-              value={totalPax}
-              onChange={e => setTotalPax(parseInt(e.target.value) || 0)}
-              className="text-3xl font-bold h-16 text-center"
-            />
+            <Label className="flex items-center gap-2 text-lg"><Users className="w-5 h-5" />סה״כ סועדים</Label>
+            <Input type="number" min={0} value={totalPax} onChange={e => setTotalPax(parseInt(e.target.value) || 0)} className="text-3xl font-bold h-16 text-center" />
           </div>
 
           {/* Special Diets */}
@@ -157,23 +103,18 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
             <Label className="text-lg font-bold">⚠️ דרישות מיוחדות</Label>
             
             <div className="grid grid-cols-2 gap-3">
-              {(Object.keys(DIET_LABELS) as Array<keyof typeof DIET_LABELS>)
-                .filter(key => key !== 'notes')
-                .map(key => (
-                  <div key={key} className="flex items-center gap-2 bg-muted/30 rounded-lg p-3">
-                    <span className="text-sm flex-1">{DIET_LABELS[key]}</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={specialDiets[key as keyof Omit<SpecialDiets, 'notes'>]}
-                      onChange={e => updateDiet(
-                        key as keyof Omit<SpecialDiets, 'notes'>,
-                        parseInt(e.target.value) || 0
-                      )}
-                      className="w-16 h-10 text-center font-bold"
-                    />
-                  </div>
-                ))}
+              {DIETARY_CATEGORIES.map(({ key, icon, label }) => (
+                <div key={key} className="flex items-center gap-2 bg-muted/30 rounded-lg p-3">
+                  <span className="text-sm flex-1">{icon} {label}</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={specialDiets[key]}
+                    onChange={e => updateDiet(key, parseInt(e.target.value) || 0)}
+                    className="w-16 h-10 text-center font-bold"
+                  />
+                </div>
+              ))}
             </div>
 
             {/* Notes */}
@@ -210,17 +151,9 @@ export const TimeSlotDetailModal: React.FC<TimeSlotDetailModalProps> = ({
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">
-            <Button onClick={handleSave} className="flex-1 h-14 text-lg gap-2">
-              <Save className="w-5 h-5" />
-              שמור
-            </Button>
-            <Button 
-              variant={confirmDelete ? 'destructive' : 'outline'} 
-              onClick={handleDelete}
-              className="h-14 text-lg gap-2"
-            >
-              <Trash2 className="w-5 h-5" />
-              {confirmDelete ? 'לחץ לאישור' : 'מחק'}
+            <Button onClick={handleSave} className="flex-1 h-14 text-lg gap-2"><Save className="w-5 h-5" />שמור</Button>
+            <Button variant={confirmDelete ? 'destructive' : 'outline'} onClick={handleDelete} className="h-14 text-lg gap-2">
+              <Trash2 className="w-5 h-5" />{confirmDelete ? 'לחץ לאישור' : 'מחק'}
             </Button>
           </div>
         </div>

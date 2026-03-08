@@ -4,7 +4,7 @@ import { GroupRecord } from '@/types/adminGroups';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
 import { useKitchenData } from '@/hooks/useKitchenData';
 import { useVillage } from '@/context/VillageContext';
-import { MEAL_LABELS, LOCATION_LABELS } from '@/types/kitchen';
+import { MEAL_LABELS, LOCATION_LABELS, DIETARY_CATEGORIES } from '@/types/kitchen';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { he } from 'date-fns/locale';
 import {
@@ -101,13 +101,10 @@ export const GroupItineraryModal: React.FC<GroupItineraryModalProps> = ({
       // Kitchen slots don't have group name association directly,
       // but we show all meals for the day as they serve all groups
       const specialDetails: string[] = [];
-      if (slot.specialDiets.vegetarian > 0) specialDetails.push(`צמחוני: ${slot.specialDiets.vegetarian}`);
-      if (slot.specialDiets.vegan > 0) specialDetails.push(`טבעוני: ${slot.specialDiets.vegan}`);
-      if (slot.specialDiets.glutenFree > 0) specialDetails.push(`ללא גלוטן: ${slot.specialDiets.glutenFree}`);
-      if (slot.specialDiets.lactoseFree > 0) specialDetails.push(`ללא לקטוז: ${slot.specialDiets.lactoseFree}`);
-      if (slot.specialDiets.lifeThreatening > 0) specialDetails.push(`סכנת חיים: ${slot.specialDiets.lifeThreatening}`);
-      if (slot.specialDiets.mehadrinKosher > 0) specialDetails.push(`כשר למהדרין: ${slot.specialDiets.mehadrinKosher}`);
-      if (slot.specialDiets.sensitivities > 0) specialDetails.push(`רגישויות: ${slot.specialDiets.sensitivities}`);
+      DIETARY_CATEGORIES.forEach(({ key, label }) => {
+        const count = (slot.specialDiets as any)[key] || 0;
+        if (count > 0) specialDetails.push(`${label}: ${count}`);
+      });
 
       items.push({
         time: slot.time,

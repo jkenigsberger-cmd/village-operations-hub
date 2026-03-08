@@ -1,0 +1,1 @@
+ALTER TABLE public.kitchen_time_slots ALTER COLUMN special_diets SET DEFAULT '{"vegetarian": 0, "vegan": 0, "glutenFree": 0, "lactoseFree": 0, "lifeThreatening": 0, "mehadrinKosher": 0, "eggFree": 0, "nutFree": 0, "notes": ""}'::jsonb;

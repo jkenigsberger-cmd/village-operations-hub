@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { KitchenState, TimeSlot, MealType, SpecialDiets, MealGroup } from '@/types/kitchen';
 
 const getDefaultSpecialDiets = (): SpecialDiets => ({
-  vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, sensitivities: 0, notes: '',
+  vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, eggFree: 0, nutFree: 0, notes: '',
 });
 
-/** Backward compat: map legacy 'allergies' key to 'lifeThreatening' */
+/** Backward compat: map legacy keys, default new keys to 0, drop sensitivities */
 const migrateSpecialDiets = (raw: any): SpecialDiets => {
   const defaults = getDefaultSpecialDiets();
   if (!raw || typeof raw !== 'object') return defaults;
@@ -18,7 +18,8 @@ const migrateSpecialDiets = (raw: any): SpecialDiets => {
     lactoseFree: raw.lactoseFree || 0,
     lifeThreatening: raw.lifeThreatening || raw.allergies || 0,
     mehadrinKosher: raw.mehadrinKosher || 0,
-    sensitivities: raw.sensitivities || 0,
+    eggFree: raw.eggFree || 0,
+    nutFree: raw.nutFree || 0,
     notes: raw.notes || '',
   };
 };

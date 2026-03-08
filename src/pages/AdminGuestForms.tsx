@@ -120,7 +120,29 @@ function SubmissionDetail({ sub }: { sub: GuestFormSubmission }) {
       {sub.special_diets && Object.keys(sub.special_diets).length > 0 && (
         <div>
           <span className="font-medium text-sm">דרישות תזונה:</span>
-          <pre className="text-xs bg-background p-2 rounded mt-1 whitespace-pre-wrap">{JSON.stringify(sub.special_diets, null, 2)}</pre>
+          <div className="text-sm bg-background p-2 rounded mt-1 space-y-1">
+            {Object.entries(sub.special_diets).map(([k, v]) => {
+              if (!v) return null;
+              // Map legacy 'allergies' key to display label
+              const labelMap: Record<string, string> = {
+                vegetarian: '🥬 צמחוני', vegan: '🌱 טבעוני', glutenFree: '🌾 צליאק',
+                mehadrinKosher: '✡️ מהדרין', lifeThreatening: '⚠️ מסכן חיים', allergies: '⚠️ מסכן חיים',
+                nutFree: '🥜 ללא אגוזים', eggFree: '🥚 ללא ביצים', lactoseFree: '🥛 ללא לקטוז',
+                notes: '✏️ הערות',
+              };
+              const display = labelMap[k] || k;
+              // Skip detail keys (shown inline with parent)
+              if (k.endsWith('_detail')) return null;
+              const detail = (sub.special_diets as any)[`${k}_detail`];
+              return (
+                <div key={k} className="flex gap-2">
+                  <span>{display}</span>
+                  {typeof v === 'boolean' ? null : <span className="text-muted-foreground">{String(v)}</span>}
+                  {detail && <span className="text-muted-foreground">({detail})</span>}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       {field('חלוקת אוהלים', sub.tent_distribution_notes)}

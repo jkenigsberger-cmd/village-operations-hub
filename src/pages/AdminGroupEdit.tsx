@@ -19,7 +19,7 @@ import {
   SPACE_ID_MAP 
 } from '@/types/adminGroups';
 import { DistributionPreference } from '@/types/distributionPreference';
-import { MealType, MEAL_LABELS } from '@/types/kitchen';
+import { MealType, MEAL_LABELS, DIETARY_CATEGORIES } from '@/types/kitchen';
 import { CapacityCheckResult } from '@/types/groupAllocation';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { VIPTentPlanner } from '@/components/VIPTentPlanner';
@@ -777,7 +777,7 @@ const AdminGroupEdit = () => {
       data.time,
       data.location,
       data.pax,
-      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, sensitivities: 0, notes: `קבוצה: ${formData.groupName}` },
+      { vegetarian: 0, vegan: 0, glutenFree: 0, lactoseFree: 0, lifeThreatening: 0, mehadrinKosher: 0, eggFree: 0, nutFree: 0, notes: `קבוצה: ${formData.groupName}` },
       [{ name: formData.groupName, pax: data.pax }]
     );
 
@@ -1613,18 +1613,10 @@ const AdminGroupEdit = () => {
                     {/* Special needs - always shown */}
                     <div className="mt-3 pt-3 border-t space-y-3">
                         <label className="text-xs font-medium text-muted-foreground">צרכים מיוחדים</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                          {([
-                            { key: 'vegetarian', label: '🌱 צמחוני' },
-                            { key: 'vegan', label: '🥬 טבעוני' },
-                            { key: 'glutenFree', label: '🚫 ללא גלוטן' },
-                            { key: 'lactoseFree', label: '🥛 ללא לקטוז' },
-                            { key: 'lifeThreatening', label: '⚠️ סכנת חיים' },
-                            { key: 'mehadrinKosher', label: '✡️ כשר למהדרין' },
-                            { key: 'sensitivities', label: '🤧 רגישויות' },
-                          ] as const).map(({ key, label }) => (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                          {DIETARY_CATEGORIES.map(({ key, icon, label }) => (
                             <div key={key} className="space-y-1">
-                              <label className="text-xs text-muted-foreground">{label}</label>
+                              <label className="text-xs text-muted-foreground">{icon} {label}</label>
                               <NumericInput
                                 value={(meal.specialDiets as any)?.[key] || 0}
                                 onChange={(val) => updateMealPlanItem(meal.id, { 
@@ -1635,7 +1627,8 @@ const AdminGroupEdit = () => {
                                     lactoseFree: meal.specialDiets?.lactoseFree || 0,
                                     lifeThreatening: meal.specialDiets?.lifeThreatening || 0,
                                     mehadrinKosher: meal.specialDiets?.mehadrinKosher || 0,
-                                    sensitivities: meal.specialDiets?.sensitivities || 0,
+                                    eggFree: (meal.specialDiets as any)?.eggFree || 0,
+                                    nutFree: (meal.specialDiets as any)?.nutFree || 0,
                                     allergiesNotes: meal.specialDiets?.allergiesNotes || '',
                                     [key]: val,
                                   } 
@@ -1647,7 +1640,7 @@ const AdminGroupEdit = () => {
                           ))}
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">✏️ הערות נוספות</label>
+                          <label className="text-xs text-muted-foreground">✏️ הערות / דרישות מיוחדות</label>
                           <Textarea
                             value={meal.specialDiets?.allergiesNotes || ''}
                             onChange={(e) => updateMealPlanItem(meal.id, { 
@@ -1658,7 +1651,8 @@ const AdminGroupEdit = () => {
                                 lactoseFree: meal.specialDiets?.lactoseFree || 0,
                                 lifeThreatening: meal.specialDiets?.lifeThreatening || 0,
                                 mehadrinKosher: meal.specialDiets?.mehadrinKosher || 0,
-                                sensitivities: meal.specialDiets?.sensitivities || 0,
+                                eggFree: (meal.specialDiets as any)?.eggFree || 0,
+                                nutFree: (meal.specialDiets as any)?.nutFree || 0,
                                 allergiesNotes: e.target.value
                               } 
                             })}

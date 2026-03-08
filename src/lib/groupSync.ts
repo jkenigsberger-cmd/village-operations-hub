@@ -43,17 +43,13 @@ const convertSpecialDiets = (meal: MealPlanItem): SpecialDiets => ({
   lactoseFree: meal.specialDiets?.lactoseFree || 0,
   lifeThreatening: meal.specialDiets?.lifeThreatening || 0,
   mehadrinKosher: meal.specialDiets?.mehadrinKosher || 0,
-  sensitivities: meal.specialDiets?.sensitivities || 0,
+  eggFree: (meal.specialDiets as any)?.eggFree || 0,
+  nutFree: (meal.specialDiets as any)?.nutFree || 0,
   notes: meal.specialDiets?.allergiesNotes || '',
 });
 
 /**
  * IDEMPOTENT SYNC: Syncs group meals and schedule items to Kitchen and Spaces
- * 
- * Steps:
- * 1. Remove all existing records with source='groupSync' AND groupId=group.id
- * 2. Create new kitchen slots from mealsPlan
- * 3. Create new space bookings from scheduleItems (with conflict detection)
  */
 export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult> => {
   console.log(`[GROUP SYNC] Starting sync for: ${group.groupName} (${group.id})`);
@@ -66,10 +62,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
   };
 
   try {
-    // ============================================
-    // STEP 1: Remove old synced kitchen slots for this group
-    // ============================================
-    
     const { error: deleteKitchenError } = await supabase
       .from('kitchen_time_slots')
       .delete()
@@ -81,10 +73,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
     } else {
       console.log(`[GROUP SYNC] Removed old kitchen slots for group ${group.id}`);
     }
-    
-    // ============================================
-    // STEP 2: Create kitchen slots from mealsPlan
-    // ============================================
     
     if (group.mealsPlan && group.mealsPlan.length > 0) {
       const slotsToInsert = group.mealsPlan
@@ -114,10 +102,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
       }
     }
 
-    // ============================================
-    // STEP 3: Remove old synced space bookings for this group
-    // ============================================
-    
     const { error: deleteError } = await supabase
       .from('activity_reservations')
       .delete()
@@ -128,10 +112,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
       console.error('[GROUP SYNC] Error removing old space bookings:', deleteError);
     }
 
-    // ============================================
-    // STEP 4: Create space bookings from scheduleItems
-    // ============================================
-    
     const bookableScheduleItems = (group.scheduleItems || []).filter(item => 
       BOOKABLE_SPACES.includes(item.location)
     );
@@ -146,7 +126,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
         
         const itemEnd = item.endTime || item.startTime;
         
-        // Use server-side RPC for atomic conflict detection + insert
         const rpcResult = await createActivityReservationSafe({
           spaceId,
           date: item.date,
@@ -162,7 +141,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
         if (rpcResult.success) {
           result.spaceBookingsCreated++;
         } else {
-          // RPC returned conflict
           result.conflicts.push({
             type: 'space',
             space: item.location,
@@ -189,7 +167,6 @@ export const syncGroupToModules = async (group: GroupRecord): Promise<SyncResult
 
 /**
  * PRE-SAVE VALIDATION: Check for conflicts without saving anything.
- * Call this BEFORE saving the group to prevent phantom schedule items.
  */
 export const preValidateScheduleConflicts = async (
   scheduleItems: ScheduleItem[],
@@ -201,7 +178,6 @@ export const preValidateScheduleConflicts = async (
   const bookableItems = scheduleItems.filter(item => BOOKABLE_SPACES.includes(item.location));
   if (bookableItems.length === 0) return conflicts;
 
-  // Collect unique space+date pairs to batch-fetch reservations
   const spaceIdDatePairs = new Map<string, Set<string>>();
   for (const item of bookableItems) {
     const spaceId = SPACE_ID_MAP[item.location];
@@ -210,7 +186,6 @@ export const preValidateScheduleConflicts = async (
     spaceIdDatePairs.get(spaceId)!.add(item.date);
   }
 
-  // Fetch all relevant existing reservations in one query per space
   const allReservations: Array<{
     space_id: string; date: string; start_time: string; end_time: string;
     group_name: string; id?: string; source?: string; group_id?: string;
@@ -226,7 +201,6 @@ export const preValidateScheduleConflicts = async (
     if (data) allReservations.push(...data);
   }
 
-  // Check each bookable item for conflicts
   for (const item of bookableItems) {
     const spaceId = SPACE_ID_MAP[item.location];
     if (!spaceId) continue;
@@ -259,13 +233,11 @@ export const preValidateScheduleConflicts = async (
 
 /**
  * Remove all synced records for a specific group
- * Called when group is permanently deleted
  */
 export const removeSyncedRecordsForGroup = async (groupId: string): Promise<void> => {
   console.log(`[GROUP SYNC] Removing synced records for groupId: ${groupId}`);
 
   try {
-    // Remove space bookings
     const { error } = await supabase
       .from('activity_reservations')
       .delete()
@@ -278,7 +250,6 @@ export const removeSyncedRecordsForGroup = async (groupId: string): Promise<void
       console.log(`[GROUP SYNC] Removed space bookings for group ${groupId}`);
     }
 
-    // Remove kitchen slots for this group
     const { error: kitchenError } = await supabase
       .from('kitchen_time_slots')
       .delete()
