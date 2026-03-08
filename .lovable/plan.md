@@ -1,23 +1,32 @@
 
 
-# Keep Pricing Table on Same Page in Quote PDF
+# Fix Admin Mobile Navigation Layout
 
-## Problem
-When printing the client quote as PDF, content can break across pages unpredictably — the pricing table, totals, and payment box may end up split across two pages, making it hard for the client to read.
+## Problems Identified
+1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
+2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
 
 ## Solution
-Add CSS `page-break-inside: avoid` rules to keep related sections together on the same page, and use `page-break-after: always` after the first "info" page to create a clean two-page structure:
 
-**Page 1**: Header + Client details + Activity details + Pricing table + Payment box + Version note  
-**Page 2**: Terms & conditions + Signature block + Footer photo
+### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
+- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
+- Increase horizontal padding on mobile for better touch targets and readability
+- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
 
-## Changes — Single file: `src/lib/quoteUtils.ts`
+### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
+- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
+- Reduce text size on mobile for breadcrumbs so they fit better
 
-Update `commonStyles` CSS to add:
-- `page-break-inside: avoid` on the pricing table, `.payment-box`, and `.total-row`
-- A wrapper class `.pricing-section` around the pricing table + payment box + note, with `page-break-inside: avoid` to keep them together
-- `page-break-before: always` on `.terms` so terms start on a new page (keeping all financial info on page 1)
-- Reduce some top margins/padding slightly to help everything fit on one A4 page
+### Technical Details
 
-Wrap the pricing table, payment box, and version note in a `<div class="pricing-section">` in the HTML template.
+**AdminLayout.tsx** - Update the nav tab styles:
+- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
+- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
+- Slightly increase padding for mobile readability
+
+**BreadcrumbNav.tsx** - Update breadcrumb container:
+- Add `flex-wrap` so items wrap instead of overlapping
+- Add smaller text on mobile with `text-base md:text-lg`
+
+These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
 

@@ -197,7 +197,8 @@ const commonStyles = `
     .postcard-container { max-width: 100%; width: 100%; margin: 0 auto; }
     .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
     .postcard-img { width: 100%; height: 200px; object-fit: contain; background: transparent; padding: 0; border-radius: 0; border: none; box-shadow: none; }
-    .terms { margin-top: 32px; page-break-before: auto; }
+    .pricing-section { page-break-inside: avoid; }
+    .terms { margin-top: 32px; page-break-before: always; }
     .terms h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
     .terms h3 { font-size: 14px; margin-top: 14px; margin-bottom: 6px; font-weight: bold; }
     .terms p, .terms li { font-size: 13px; line-height: 1.8; }
@@ -208,6 +209,9 @@ const commonStyles = `
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
+      .pricing-section { page-break-inside: avoid; }
+      .payment-box { page-break-inside: avoid; }
+      table { page-break-inside: avoid; }
     }
   </style>
 `;
@@ -316,6 +320,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
     <tr><td><strong>סה"כ משתתפים:</strong></td><td>${s.totalPax}</td></tr>
   </table>
 
+  <div class="pricing-section">
   <h2>פירוט תמחור</h2>
   <table>
     <tr><th>פריט</th><th>כמות</th><th>מחיר יחידה</th><th>סה"כ</th></tr>
@@ -337,6 +342,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
   </div>
 
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
+  </div>
 
   <div class="terms">
     <h2>תנאי ההסכם</h2>
