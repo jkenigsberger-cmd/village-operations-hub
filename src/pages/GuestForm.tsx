@@ -16,6 +16,13 @@ const STEPS = [
   'לוח פעילויות',
 ];
 
+const TENT_TYPES = [
+  { type: 'staff', label: 'אוהלי צוות', beds: 3, maxTents: 10, emoji: '🏕️' },
+  { type: 'chevruta', label: 'אוהלי חברותא', beds: 8, maxTents: 31, emoji: '⛺' },
+  { type: 'group', label: 'אוהלי קבוצה', beds: 6, maxTents: 9, emoji: '🎪' },
+  { type: 'accessible', label: 'אוהל נגיש', beds: 3, maxTents: 1, emoji: '♿' },
+];
+
 const DIET_OPTIONS = [
   { key: 'vegetarian', label: '🥬 צמחוני' },
   { key: 'vegan', label: '🌱 טבעוני' },
