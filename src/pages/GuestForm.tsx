@@ -55,6 +55,7 @@ export default function GuestForm() {
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
+    tent_distribution: TENT_TYPES.map(t => ({ type: t.type, girls: 0, boys: 0 })),
     tent_distribution_notes: '',
     schedule_notes: '',
     general_notes: '',
