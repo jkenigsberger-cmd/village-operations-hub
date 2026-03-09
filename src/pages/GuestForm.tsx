@@ -6,13 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown } from 'lucide-react';
 
 const STEPS = [
   'פרטי קבוצה',
   'העדפות מזון',
   'חלוקת אוהלים',
-  'לוח זמנים והערות',
+  'לוח פעילויות',
 ];
 
 const DIET_OPTIONS = [
@@ -31,6 +32,7 @@ export default function GuestForm() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const [form, setForm] = useState({
     group_name: '',
@@ -98,7 +100,7 @@ export default function GuestForm() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-[#faf7f2] flex flex-col items-center justify-center p-6" dir="rtl">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
         <img src={hadorHabaLogo} alt="הדור הבא" className="h-20 mb-6" />
         <CheckCircle2 className="w-16 h-16 text-green-600 mb-4" />
         <h1 className="text-2xl font-bold mb-2">תודה רבה!</h1>
@@ -111,111 +113,178 @@ export default function GuestForm() {
   const progress = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#faf7f2]" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Header */}
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
         <img src={hadorHabaLogo} alt="הדור הבא" className="h-16 md:h-20 mb-4" />
-        <h1 className="text-xl md:text-2xl font-bold text-[#3d3929]">שאלון הכנה לאירוח</h1>
-        <p className="text-sm text-[#8a7e6b] mt-1">מלאו את הפרטים כדי שנוכל להתכונן לקראתכם</p>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">שאלון הכנה לקבוצה מתארחת</h1>
+        <p className="text-sm text-gray-500 mt-1">נא למלא את כל הפרטים לפני ההגעה</p>
       </div>
 
-      {/* Progress */}
-      <div className="max-w-lg mx-auto px-4 mb-6">
-        <div className="flex justify-between mb-2">
+      {/* Blue accent bar */}
+      <div className="h-1 bg-blue-600 max-w-2xl mx-auto rounded-full" />
+
+      {/* Stepper */}
+      <div className="max-w-2xl mx-auto px-4 mt-6 mb-2">
+        <div className="flex justify-between mb-3">
           {STEPS.map((s, i) => (
             <div key={i} className="flex flex-col items-center flex-1">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${
-                i <= step ? 'bg-[#b5a07a] text-white border-[#b5a07a]' : 'bg-white text-[#c4b89a] border-[#ddd5c4]'
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${
+                i <= step
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-400 border-gray-300'
               }`}>
-                {i + 1}
+                {i < step ? <CheckCircle2 className="w-5 h-5" /> : i + 1}
               </div>
-              <span className="text-[10px] mt-1 text-[#8a7e6b] text-center leading-tight hidden md:block">{s}</span>
+              <span className="text-[11px] mt-1.5 text-gray-500 text-center leading-tight">{s}</span>
             </div>
           ))}
         </div>
-        <div className="h-2 bg-[#e8e0d0] rounded-full overflow-hidden">
-          <div className="h-full bg-[#b5a07a] transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
+        {/* Progress bar */}
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-600 transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
       {/* Form Card */}
-      <div className="max-w-lg mx-auto px-4 pb-12">
-        <Card className="p-6 bg-white/90 border-[#e8e0d0] shadow-sm">
-          <h2 className="text-lg font-bold text-[#3d3929] mb-4">{STEPS[step]}</h2>
+      <div className="max-w-2xl mx-auto px-4 pb-12 mt-4">
+        <Card className="p-6 md:p-8 bg-white border-gray-200 shadow-md">
+          {/* Section title with accent underline */}
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-800">{STEPS[step]}</h2>
+            <div className="h-0.5 w-12 bg-amber-500 mt-1 rounded-full" />
+          </div>
 
           {step === 0 && (
-            <div className="space-y-4">
-              <div><Label>שם הקבוצה *</Label><Input value={form.group_name} onChange={e => set('group_name', e.target.value)} placeholder="למשל: תנועת הצופים - גדוד 12" /></div>
-              <div><Label>שם איש קשר</Label><Input value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="שם מלא" /></div>
-              <div><Label>ארגון / חברה</Label><Input value={form.client_org} onChange={e => set('client_org', e.target.value)} placeholder="שם הארגון" /></div>
-              <div><Label>טלפון</Label><Input type="tel" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} placeholder="050-0000000" /></div>
-              <div><Label>אימייל</Label><Input type="email" value={form.client_email} onChange={e => set('client_email', e.target.value)} placeholder="email@example.com" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>סה"כ משתתפים</Label><Input type="number" value={form.total_pax} onChange={e => set('total_pax', e.target.value)} /></div>
-                <div><Label>צוות / מדריכים</Label><Input type="number" value={form.staff_count} onChange={e => set('staff_count', e.target.value)} /></div>
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-700">שם הקבוצה *</Label>
+                  <Input value={form.group_name} onChange={e => set('group_name', e.target.value)} placeholder="למשל: תנועת הצופים - גדוד 12" className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-gray-700">סה"כ משתתפים</Label>
+                  <Input type="number" value={form.total_pax} onChange={e => set('total_pax', e.target.value)} placeholder="מספר" className="mt-1" />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>בנים</Label><Input type="number" value={form.boys_count} onChange={e => set('boys_count', e.target.value)} /></div>
-                <div><Label>בנות</Label><Input type="number" value={form.girls_count} onChange={e => set('girls_count', e.target.value)} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-700">אפיון קבוצה</Label>
+                  <Input value={form.group_type} onChange={e => set('group_type', e.target.value)} placeholder='למשל: תנועת נוער, בי"ס, חברה...' className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-gray-700">שם איש קשר</Label>
+                  <Input value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="שם מלא" className="mt-1" />
+                </div>
               </div>
-              <div><Label>סוג קבוצה</Label><Input value={form.group_type} onChange={e => set('group_type', e.target.value)} placeholder='למשל: תנועת נוער, בי"ס, חברה...' /></div>
+              <div>
+                <Label className="text-gray-700">טלפון</Label>
+                <Input type="tel" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} placeholder="050-0000000" className="mt-1" />
+              </div>
+
+              {/* Collapsible extra details */}
+              <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                    <ChevronDown className={`w-4 h-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
+                    פירוט נוסף
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-700">ארגון / חברה</Label>
+                      <Input value={form.client_org} onChange={e => set('client_org', e.target.value)} placeholder="שם הארגון" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-gray-700">אימייל</Label>
+                      <Input type="email" value={form.client_email} onChange={e => set('client_email', e.target.value)} placeholder="email@example.com" className="mt-1" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-700">צוות / מדריכים</Label>
+                      <Input type="number" value={form.staff_count} onChange={e => set('staff_count', e.target.value)} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-gray-700">משתתפים (ללא צוות)</Label>
+                      <Input type="number" value={form.participant_count} onChange={e => set('participant_count', e.target.value)} className="mt-1" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-700">בנים</Label>
+                      <Input type="number" value={form.boys_count} onChange={e => set('boys_count', e.target.value)} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-gray-700">בנות</Label>
+                      <Input type="number" value={form.girls_count} onChange={e => set('girls_count', e.target.value)} className="mt-1" />
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           )}
 
           {step === 1 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">סמנו דרישות תזונה מיוחדות:</p>
-              {DIET_OPTIONS.map(opt => (
-                <div key={opt.key} className="flex items-center gap-3">
-                  <Checkbox
-                    checked={!!form.special_diets[opt.key]}
-                    onCheckedChange={v => set('special_diets', { ...form.special_diets, [opt.key]: v })}
-                  />
-                  <Label className="cursor-pointer">{opt.label}</Label>
-                  {form.special_diets[opt.key] && (
-                    <Input
-                      className="flex-1"
-                      placeholder="כמות / פירוט"
-                      value={String(form.special_diets[`${opt.key}_detail`] || '')}
-                      onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_detail`]: e.target.value })}
+              <p className="text-sm text-gray-500">סמנו דרישות תזונה מיוחדות:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {DIET_OPTIONS.map(opt => (
+                  <div key={opt.key} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
+                    <Checkbox
+                      checked={!!form.special_diets[opt.key]}
+                      onCheckedChange={v => set('special_diets', { ...form.special_diets, [opt.key]: v })}
                     />
-                  )}
-                </div>
-              ))}
-              <div><Label>הערות נוספות לגבי מזון</Label><Textarea value={form.diet_notes} onChange={e => set('diet_notes', e.target.value)} placeholder="אלרגיות ספציפיות, העדפות מיוחדות..." /></div>
+                    <Label className="cursor-pointer text-gray-700 flex-shrink-0">{opt.label}</Label>
+                    {form.special_diets[opt.key] && (
+                      <Input
+                        className="flex-1"
+                        placeholder="כמות / פירוט"
+                        value={String(form.special_diets[`${opt.key}_detail`] || '')}
+                        onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_detail`]: e.target.value })}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <Label className="text-gray-700">הערות נוספות לגבי מזון</Label>
+                <Textarea value={form.diet_notes} onChange={e => set('diet_notes', e.target.value)} placeholder="אלרגיות ספציפיות, העדפות מיוחדות..." className="mt-1" />
+              </div>
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">ספרו לנו על העדפות חלוקת האוהלים:</p>
+              <p className="text-sm text-gray-500">ספרו לנו על העדפות חלוקת האוהלים:</p>
               <Textarea
                 value={form.tent_distribution_notes}
                 onChange={e => set('tent_distribution_notes', e.target.value)}
                 placeholder="למשל: הפרדה בין בנים לבנות, מספר אנשים לאוהל, דרישות נגישות..."
-                className="min-h-[120px]"
+                className="min-h-[140px]"
               />
             </div>
           )}
 
           {step === 3 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <Label>העדפות לוח זמנים / פעילויות</Label>
+                <Label className="text-gray-700">העדפות לוח זמנים / פעילויות</Label>
                 <Textarea
                   value={form.schedule_notes}
                   onChange={e => set('schedule_notes', e.target.value)}
                   placeholder="למשל: שעות פעילות מועדפות, פעילויות מבוקשות..."
-                  className="min-h-[100px]"
+                  className="min-h-[110px] mt-1"
                 />
               </div>
               <div>
-                <Label>הערות כלליות</Label>
+                <Label className="text-gray-700">הערות כלליות</Label>
                 <Textarea
                   value={form.general_notes}
                   onChange={e => set('general_notes', e.target.value)}
                   placeholder="כל דבר נוסף שחשוב שנדע..."
-                  className="min-h-[100px]"
+                  className="min-h-[110px] mt-1"
                 />
               </div>
             </div>
@@ -223,26 +292,30 @@ export default function GuestForm() {
 
           {error && <p className="text-destructive text-sm mt-3">{error}</p>}
 
-          <div className="flex justify-between mt-6 gap-3">
-            {step > 0 && (
-              <Button variant="outline" onClick={() => setStep(s => s - 1)} className="border-[#ddd5c4] text-[#3d3929]">
+          {/* Navigation buttons */}
+          <div className="flex justify-between mt-8 gap-3">
+            {step > 0 ? (
+              <Button variant="outline" onClick={() => setStep(s => s - 1)} className="border-gray-300 text-gray-600 gap-1">
                 הקודם
+                <ArrowRight className="w-4 h-4" />
               </Button>
+            ) : (
+              <div />
             )}
-            <div className="flex-1" />
             {step < STEPS.length - 1 ? (
-              <Button onClick={() => setStep(s => s + 1)} className="bg-[#b5a07a] hover:bg-[#a08c6a] text-white">
+              <Button onClick={() => setStep(s => s + 1)} className="bg-blue-600 hover:bg-blue-700 text-white gap-1">
+                <ArrowLeft className="w-4 h-4" />
                 הבא
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={submitting} className="bg-[#b5a07a] hover:bg-[#a08c6a] text-white">
+              <Button onClick={handleSubmit} disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'שליחה'}
               </Button>
             )}
           </div>
         </Card>
 
-        <p className="text-center text-xs text-[#b5a07a] mt-8">בית הדור הבא · מקום לחוויות ישראליות</p>
+        <p className="text-center text-xs text-gray-400 mt-8">בית הדור הבא · מקום לחוויות ישראליות</p>
       </div>
     </div>
   );
