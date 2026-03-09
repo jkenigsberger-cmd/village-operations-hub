@@ -206,6 +206,7 @@ const commonStyles = `
     .signature-block { margin-top: 32px; }
     .signature-line { display: inline-block; min-width: 180px; border-bottom: 1px solid #333; margin: 0 8px; }
     .signature-row { margin-top: 20px; font-size: 13px; line-height: 2.4; }
+    .org-details { background: #f8f9fc; border: 1px solid #d0d5e4; padding: 14px 18px; border-radius: 8px; margin-top: 18px; font-size: 13px; line-height: 1.8; }
     @media print {
       body { padding: 20px; margin: 0; }
       @page { size: A4; margin: 15mm; }
@@ -342,6 +343,11 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
   </div>
 
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
+  </div>
+
+  <div class="org-details">
+    <p><strong>ח.פ:</strong> קרן שמש הדור הבא (ע"ר) — 580786812</p>
+    <p><strong>פרטי חשבון הבנק:</strong> קרן שמש הדור הבא (ע"ר) בנק הפועלים- 12 סניף- 170 חשבון- 368365</p>
   </div>
 
   <div class="terms">
