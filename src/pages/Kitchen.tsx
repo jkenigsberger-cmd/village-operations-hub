@@ -30,12 +30,15 @@ const Kitchen: React.FC = () => {
   const navigate = useNavigate();
   const {
     isLoading,
+    getTimeSlotsForDate,
     getTimeSlotsForMeal,
     addTimeSlot,
     updateTimeSlot,
     deleteTimeSlot,
     getTimeSlot,
   } = useKitchenData();
+
+  const [viewMode, setViewMode] = useState<KitchenViewMode>('list');
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
