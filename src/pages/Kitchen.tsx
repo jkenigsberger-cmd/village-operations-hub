@@ -5,10 +5,12 @@ import { MealType, TimeSlot, MEAL_LABELS } from '@/types/kitchen';
 import { MealSection } from '@/components/MealSection';
 import { TimeSlotDetailModal } from '@/components/TimeSlotDetailModal';
 import { AddTimeSlotModal } from '@/components/AddTimeSlotModal';
+import { KitchenWeekView } from '@/components/KitchenWeekView';
+import { KitchenMonthView } from '@/components/KitchenMonthView';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, addDays, subDays, isToday } from 'date-fns';
+import { format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isToday } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { 
   ArrowRight, 
@@ -16,8 +18,13 @@ import {
   Calendar, 
   ChevronLeft, 
   ChevronRight,
-  Loader2
+  Loader2,
+  List,
+  CalendarDays,
+  CalendarRange
 } from 'lucide-react';
+
+type KitchenViewMode = 'list' | 'week' | 'month';
 
 const Kitchen: React.FC = () => {
   const navigate = useNavigate();
