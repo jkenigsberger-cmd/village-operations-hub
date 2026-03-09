@@ -345,6 +345,11 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
   <p class="note">גרסה: ${quote.version} | סטטוס: ${QUOTE_STATUS_LABELS[quote.status]}</p>
   </div>
 
+  <div class="org-details">
+    <p><strong>ח.פ:</strong> קרן שמש הדור הבא (ע"ר) — 580786812</p>
+    <p><strong>פרטי חשבון הבנק:</strong> קרן שמש הדור הבא (ע"ר) בנק הפועלים- 12 סניף- 170 חשבון- 368365</p>
+  </div>
+
   <div class="terms">
     <h2>תנאי ההסכם</h2>
     <p>הצעת המחיר תקפה למשך 14 יום מיום שליחתה בכתב.</p>
