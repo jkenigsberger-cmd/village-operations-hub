@@ -90,7 +90,15 @@ export default function GuestForm() {
             girls_count: form.girls_count ? Number(form.girls_count) : null,
             group_type: form.group_type,
             special_diets: { ...form.special_diets, notes: form.diet_notes },
-            tent_distribution_notes: form.tent_distribution_notes,
+            tent_distribution_notes: [
+              ...form.tent_distribution.map((row, i) => {
+                const t = TENT_TYPES[i];
+                const total = row.boys + row.girls;
+                if (total === 0) return null;
+                return `${t.label} (${t.beds} מיטות): ${row.girls} בנות, ${row.boys} בנים (סה"כ ${total})`;
+              }).filter(Boolean),
+              form.tent_distribution_notes ? `הערות: ${form.tent_distribution_notes}` : null,
+            ].filter(Boolean).join('\n') || null,
             schedule_notes: form.schedule_notes,
             general_notes: form.general_notes,
           }),
