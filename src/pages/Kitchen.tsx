@@ -39,7 +39,6 @@ const Kitchen: React.FC = () => {
   } = useKitchenData();
 
   const [viewMode, setViewMode] = useState<KitchenViewMode>('list');
-
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -48,7 +47,6 @@ const Kitchen: React.FC = () => {
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
-  // Get slots for each meal type
   const breakfastSlots = useMemo(() => getTimeSlotsForMeal(dateStr, 'BREAKFAST'), [dateStr, getTimeSlotsForMeal]);
   const lunchSlots = useMemo(() => getTimeSlotsForMeal(dateStr, 'LUNCH'), [dateStr, getTimeSlotsForMeal]);
   const dinnerSlots = useMemo(() => getTimeSlotsForMeal(dateStr, 'DINNER'), [dateStr, getTimeSlotsForMeal]);
@@ -70,7 +68,6 @@ const Kitchen: React.FC = () => {
   const handleSaveSlot = (updates: Partial<Omit<TimeSlot, 'id' | 'date' | 'mealType'>>) => {
     if (selectedSlot) {
       updateTimeSlot(selectedSlot.id, updates);
-      // Refresh the slot
       const updated = getTimeSlot(selectedSlot.id);
       if (updated) setSelectedSlot(updated);
     }
@@ -81,6 +78,14 @@ const Kitchen: React.FC = () => {
       deleteTimeSlot(selectedSlot.id);
       setSelectedSlot(null);
     }
+  };
+
+  const navigateDate = (direction: 1 | -1) => {
+    setSelectedDate((d) => {
+      if (viewMode === 'month') return direction === 1 ? addMonths(d, 1) : subMonths(d, 1);
+      if (viewMode === 'week') return direction === 1 ? addWeeks(d, 1) : subWeeks(d, 1);
+      return direction === 1 ? addDays(d, 1) : subDays(d, 1);
+    });
   };
 
   if (isLoading) {
@@ -96,42 +101,50 @@ const Kitchen: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header - Compact on mobile */}
+      {/* Header */}
       <header className="bg-card border-b-2 border-border sticky top-0 z-10">
         <div className="container py-3 md:py-4">
           <div className="flex items-center gap-3 md:gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="shrink-0"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="shrink-0">
               <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
             </Button>
             <div className="flex items-center gap-2 md:gap-3 flex-1">
               <ChefHat className="w-6 h-6 md:w-8 md:h-8 text-primary" />
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-foreground">
-                  🍽️ מטבח / ארוחות
-                </h1>
-                <p className="text-muted-foreground text-xs md:text-sm hidden sm:block">
-                  תכנון ארוחות יומי
-                </p>
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">🍽️ מטבח / ארוחות</h1>
+                <p className="text-muted-foreground text-xs md:text-sm hidden sm:block">תכנון ארוחות יומי</p>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Date Selector */}
+      {/* View Switcher + Date Navigation */}
       <div className="bg-muted/30 border-b border-border">
-        <div className="container py-4">
+        <div className="container py-4 space-y-3">
+          {/* View mode tabs */}
+          <div className="flex items-center justify-center gap-1 bg-muted rounded-xl p-1 max-w-xs mx-auto">
+            {([
+              { mode: 'list' as KitchenViewMode, label: 'רשימה', icon: List },
+              { mode: 'week' as KitchenViewMode, label: 'שבוע', icon: CalendarDays },
+              { mode: 'month' as KitchenViewMode, label: 'חודש', icon: CalendarRange },
+            ]).map(({ mode, label, icon: Icon }) => (
+              <Button
+                key={mode}
+                variant={viewMode === mode ? 'default' : 'ghost'}
+                size="sm"
+                className="flex-1 gap-1.5"
+                onClick={() => setViewMode(mode)}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Date navigation */}
           <div className="flex items-center justify-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedDate(d => subDays(d, 1))}
-            >
+            <Button variant="outline" size="icon" onClick={() => navigateDate(-1)}>
               <ChevronLeft className="w-5 h-5" />
             </Button>
 
@@ -139,11 +152,11 @@ const Kitchen: React.FC = () => {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="min-w-[200px] h-12 text-lg gap-2">
                   <Calendar className="w-5 h-5" />
-                  {isToday(selectedDate) ? (
-                    <span className="font-bold">היום</span>
-                  ) : (
-                    format(selectedDate, 'EEEE, d בMMMM', { locale: he })
-                  )}
+                  {viewMode === 'month'
+                    ? format(selectedDate, 'MMMM yyyy', { locale: he })
+                    : isToday(selectedDate)
+                      ? <span className="font-bold">היום</span>
+                      : format(selectedDate, 'EEEE, d בMMMM', { locale: he })}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
@@ -156,27 +169,18 @@ const Kitchen: React.FC = () => {
               </PopoverContent>
             </Popover>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedDate(d => addDays(d, 1))}
-            >
+            <Button variant="outline" size="icon" onClick={() => navigateDate(1)}>
               <ChevronRight className="w-5 h-5" />
             </Button>
 
             {!isToday(selectedDate) && (
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedDate(new Date())}
-                className="text-sm"
-              >
+              <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="text-sm">
                 חזור להיום
               </Button>
             )}
           </div>
 
-          {/* Date Display */}
-          <p className="text-center mt-2 text-lg text-muted-foreground">
+          <p className="text-center text-lg text-muted-foreground">
             {format(selectedDate, 'EEEE, d בMMMM yyyy', { locale: he })}
           </p>
         </div>
@@ -184,29 +188,21 @@ const Kitchen: React.FC = () => {
 
       {/* Main Content */}
       <main className="container py-6 space-y-6">
-        {/* Breakfast */}
-        <MealSection
-          mealType="BREAKFAST"
-          slots={breakfastSlots}
-          onSlotClick={handleSlotClick}
-          onAddSlot={() => handleAddSlot('BREAKFAST')}
-        />
+        {viewMode === 'list' && (
+          <>
+            <MealSection mealType="BREAKFAST" slots={breakfastSlots} onSlotClick={handleSlotClick} onAddSlot={() => handleAddSlot('BREAKFAST')} />
+            <MealSection mealType="LUNCH" slots={lunchSlots} onSlotClick={handleSlotClick} onAddSlot={() => handleAddSlot('LUNCH')} />
+            <MealSection mealType="DINNER" slots={dinnerSlots} onSlotClick={handleSlotClick} onAddSlot={() => handleAddSlot('DINNER')} />
+          </>
+        )}
 
-        {/* Lunch */}
-        <MealSection
-          mealType="LUNCH"
-          slots={lunchSlots}
-          onSlotClick={handleSlotClick}
-          onAddSlot={() => handleAddSlot('LUNCH')}
-        />
+        {viewMode === 'week' && (
+          <KitchenWeekView selectedDate={selectedDate} getTimeSlotsForDate={getTimeSlotsForDate} onSlotClick={handleSlotClick} />
+        )}
 
-        {/* Dinner */}
-        <MealSection
-          mealType="DINNER"
-          slots={dinnerSlots}
-          onSlotClick={handleSlotClick}
-          onAddSlot={() => handleAddSlot('DINNER')}
-        />
+        {viewMode === 'month' && (
+          <KitchenMonthView selectedDate={selectedDate} getTimeSlotsForDate={getTimeSlotsForDate} onSlotClick={handleSlotClick} />
+        )}
       </main>
 
       {/* Detail Modal */}
