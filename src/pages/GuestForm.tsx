@@ -227,30 +227,35 @@ export default function GuestForm() {
           )}
 
           {step === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <p className="text-sm text-gray-500">סמנו דרישות תזונה מיוחדות:</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {DIET_OPTIONS.map(opt => (
-                  <div key={opt.key} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
-                    <Checkbox
-                      checked={!!form.special_diets[opt.key]}
-                      onCheckedChange={v => set('special_diets', { ...form.special_diets, [opt.key]: v })}
-                    />
-                    <Label className="cursor-pointer text-gray-700 flex-shrink-0">{opt.label}</Label>
-                    {form.special_diets[opt.key] && (
-                      <Input
-                        className="flex-1"
-                        placeholder="כמות / פירוט"
-                        value={String(form.special_diets[`${opt.key}_detail`] || '')}
-                        onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_detail`]: e.target.value })}
-                      />
-                    )}
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {DIET_OPTIONS.map(opt => {
+                  const checked = !!form.special_diets[opt.key];
+                  return (
+                    <div key={opt.key} className="space-y-2">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={v => set('special_diets', { ...form.special_diets, [opt.key]: v })}
+                        />
+                        <span className="text-gray-700 text-sm font-medium">{opt.label}</span>
+                      </label>
+                      {checked && (
+                        <Input
+                          className="mr-8 max-w-xs"
+                          placeholder="כמות / פירוט"
+                          value={String(form.special_diets[`${opt.key}_detail`] || '')}
+                          onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_detail`]: e.target.value })}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <div>
                 <Label className="text-gray-700">הערות נוספות לגבי מזון</Label>
-                <Textarea value={form.diet_notes} onChange={e => set('diet_notes', e.target.value)} placeholder="אלרגיות ספציפיות, העדפות מיוחדות..." className="mt-1" />
+                <Textarea value={form.diet_notes} onChange={e => set('diet_notes', e.target.value)} placeholder="אלרגיות ספציפיות, העדפות מיוחדות..." className="mt-1 bg-amber-50/50" />
               </div>
             </div>
           )}
