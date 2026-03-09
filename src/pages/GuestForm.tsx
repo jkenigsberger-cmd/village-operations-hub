@@ -227,32 +227,36 @@ export default function GuestForm() {
           )}
 
           {step === 1 && (
-            <div className="space-y-5">
-              <p className="text-sm text-gray-500">סמנו דרישות תזונה מיוחדות:</p>
-              <div className="space-y-3">
-                {DIET_OPTIONS.map(opt => {
-                  const checked = !!form.special_diets[opt.key];
-                  return (
-                    <div key={opt.key} className="space-y-2">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={v => set('special_diets', { ...form.special_diets, [opt.key]: v })}
-                        />
-                        <span className="text-gray-700 text-sm font-medium">{opt.label}</span>
-                      </label>
-                      {checked && (
-                        <Input
-                          className="mr-8 max-w-xs"
-                          placeholder="כמות / פירוט"
-                          value={String(form.special_diets[`${opt.key}_detail`] || '')}
-                          onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_detail`]: e.target.value })}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+            <div className="space-y-6">
+              <p className="text-sm text-gray-500 text-center">נא לרשום את מספר המשתתפים עבור כל העדפה</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {DIET_OPTIONS.map(opt => (
+                  <div key={opt.key} className="bg-gray-50 rounded-xl p-4 flex flex-col items-center gap-2 border border-gray-200">
+                    <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      className="text-center bg-white max-w-[80px]"
+                      value={String(form.special_diets[`${opt.key}_count`] || '0')}
+                      onChange={e => set('special_diets', { ...form.special_diets, [`${opt.key}_count`]: e.target.value })}
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                ))}
               </div>
+
+              {/* Upgraded coffee add-on */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                <h3 className="text-base font-bold text-gray-800 text-center mb-3">תוספות בתשלום</h3>
+                <label className="flex items-center justify-center gap-3 cursor-pointer">
+                  <span className="text-sm text-gray-700">☕ פינת קפה משודרגת</span>
+                  <Checkbox
+                    checked={!!form.special_diets['upgraded_coffee']}
+                    onCheckedChange={v => set('special_diets', { ...form.special_diets, upgraded_coffee: v })}
+                  />
+                </label>
+              </div>
+
               <div>
                 <Label className="text-gray-700">הערות נוספות לגבי מזון</Label>
                 <Textarea value={form.diet_notes} onChange={e => set('diet_notes', e.target.value)} placeholder="אלרגיות ספציפיות, העדפות מיוחדות..." className="mt-1 bg-amber-50/50" />
