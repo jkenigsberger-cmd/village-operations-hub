@@ -273,14 +273,80 @@ export default function GuestForm() {
           )}
 
           {step === 2 && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-500">ספרו לנו על העדפות חלוקת האוהלים:</p>
-              <Textarea
-                value={form.tent_distribution_notes}
-                onChange={e => set('tent_distribution_notes', e.target.value)}
-                placeholder="למשל: הפרדה בין בנים לבנות, מספר אנשים לאוהל, דרישות נגישות..."
-                className="min-h-[140px]"
-              />
+            <div className="space-y-5">
+              {/* Info box */}
+              <div className="bg-gray-100 rounded-xl p-4 text-sm text-gray-600 space-y-1">
+                <p className="font-semibold text-gray-700 mb-2">סוגי האוהלים הזמינים:</p>
+                {TENT_TYPES.map(t => (
+                  <p key={t.type}>{t.emoji} {t.label} — {t.beds} מיטות באוהל (עד {t.maxTents} אוהלים)</p>
+                ))}
+              </div>
+
+              <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור בנים ובנות</p>
+
+              {/* Table */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                {/* Header */}
+                <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
+                  <div className="p-3">סוג האוהל</div>
+                  <div className="p-3 text-center">מס׳ אוהלים — בנות</div>
+                  <div className="p-3 text-center">מס׳ אוהלים — בנים</div>
+                </div>
+                {/* Rows */}
+                {TENT_TYPES.map((t, idx) => {
+                  const row = form.tent_distribution[idx];
+                  const otherGender = (gender: 'boys' | 'girls') => gender === 'boys' ? row.girls : row.boys;
+                  return (
+                    <div key={t.type} className={`grid grid-cols-3 items-center border-b border-gray-100 last:border-b-0 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                      <div className="p-3 text-sm font-medium text-gray-700">
+                        {t.emoji} {t.label} ({t.beds} מיטות)
+                      </div>
+                      <div className="p-3 flex justify-center">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={t.maxTents - otherGender('girls')}
+                          className="text-center bg-white max-w-[70px]"
+                          value={String(row.girls || '0')}
+                          onChange={e => {
+                            const val = Math.max(0, Math.min(Number(e.target.value) || 0, t.maxTents - row.boys));
+                            const updated = [...form.tent_distribution];
+                            updated[idx] = { ...row, girls: val };
+                            set('tent_distribution', updated);
+                          }}
+                          onFocus={e => e.target.select()}
+                        />
+                      </div>
+                      <div className="p-3 flex justify-center">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={t.maxTents - otherGender('boys')}
+                          className="text-center bg-white max-w-[70px]"
+                          value={String(row.boys || '0')}
+                          onChange={e => {
+                            const val = Math.max(0, Math.min(Number(e.target.value) || 0, t.maxTents - row.girls));
+                            const updated = [...form.tent_distribution];
+                            updated[idx] = { ...row, boys: val };
+                            set('tent_distribution', updated);
+                          }}
+                          onFocus={e => e.target.select()}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div>
+                <Label className="text-gray-700">הערות נוספות לגבי חלוקת אוהלים</Label>
+                <Textarea
+                  value={form.tent_distribution_notes}
+                  onChange={e => set('tent_distribution_notes', e.target.value)}
+                  placeholder="למשל: הפרדה מיוחדת, דרישות נגישות נוספות..."
+                  className="min-h-[80px] mt-1"
+                />
+              </div>
             </div>
           )}
 
