@@ -229,11 +229,11 @@ export default function GuestForm() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-700">בנים</Label>
+                      <Label className="text-gray-700">גברים</Label>
                       <Input type="number" value={form.boys_count} onChange={e => set('boys_count', e.target.value)} className="mt-1" />
                     </div>
                     <div>
-                      <Label className="text-gray-700">בנות</Label>
+                      <Label className="text-gray-700">נשים</Label>
                       <Input type="number" value={form.girls_count} onChange={e => set('girls_count', e.target.value)} className="mt-1" />
                     </div>
                   </div>
