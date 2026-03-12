@@ -580,6 +580,7 @@ export type Database = {
           group_type: string | null
           id: string
           participant_count: number | null
+          quote_id: string | null
           schedule_notes: string | null
           special_diets: Json | null
           staff_count: number | null
@@ -603,6 +604,7 @@ export type Database = {
           group_type?: string | null
           id?: string
           participant_count?: number | null
+          quote_id?: string | null
           schedule_notes?: string | null
           special_diets?: Json | null
           staff_count?: number | null
@@ -626,6 +628,7 @@ export type Database = {
           group_type?: string | null
           id?: string
           participant_count?: number | null
+          quote_id?: string | null
           schedule_notes?: string | null
           special_diets?: Json | null
           staff_count?: number | null
@@ -635,7 +638,15 @@ export type Database = {
           total_pax?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "guest_form_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       income: {
         Row: {
