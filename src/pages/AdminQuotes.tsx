@@ -630,7 +630,7 @@ const AdminQuotes = () => {
                     דף תפעול לצוות
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" onClick={handleNewVersion} disabled={isSaving} className="gap-1 rounded-xl text-sm">
                     <Copy className="w-3.5 h-3.5" />
                     גרסה חדשה
@@ -639,11 +639,41 @@ const AdminQuotes = () => {
                     <Send className="w-3.5 h-3.5" />
                     סמן כנשלח
                   </Button>
-                  <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="gap-1 rounded-xl text-sm">
-                    <Trash2 className="w-3.5 h-3.5" />
-                    מחק
-                  </Button>
                 </div>
+                {selectedQuote?.status !== 'approved' && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl text-sm border-green-300 text-green-700 hover:bg-green-50"
+                    onClick={async () => {
+                      if (!selectedQuoteId) return;
+                      await updateQuote(selectedQuoteId, { status: 'approved' });
+                      toast({ title: 'הצעת המחיר אושרה ✅' });
+                    }}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    סמן כאושר (לקוח אישר)
+                  </Button>
+                )}
+                {selectedQuote?.status === 'approved' && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl text-sm border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => {
+                      const base = window.location.hostname.includes('lovableproject.com')
+                        ? 'https://glowhadorhaba.lovable.app'
+                        : window.location.origin;
+                      navigator.clipboard.writeText(`${base}/guest-form?quote=${selectedQuoteId}`);
+                      toast({ title: 'הקישור הועתק! 📋', description: 'שלחו את הקישור ללקוח למילוי שאלון הכנה' });
+                    }}
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    העתק קישור שאלון לקוח
+                  </Button>
+                )}
+                <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="w-full gap-1 rounded-xl text-sm">
+                  <Trash2 className="w-3.5 h-3.5" />
+                  מחק
+                </Button>
               </>
             )}
           </div>
