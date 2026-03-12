@@ -95,7 +95,7 @@ export default function GuestForm() {
                 const t = TENT_TYPES[i];
                 const total = row.boys + row.girls;
                 if (total === 0) return null;
-                return `${t.label} (${t.beds} מיטות): ${row.girls} בנות, ${row.boys} בנים (סה"כ ${total})`;
+                return `${t.label} (${t.beds} מיטות): ${row.girls} נשים, ${row.boys} גברים (סה"כ ${total})`;
               }).filter(Boolean),
               form.tent_distribution_notes ? `הערות: ${form.tent_distribution_notes}` : null,
             ].filter(Boolean).join('\n') || null,
@@ -229,11 +229,11 @@ export default function GuestForm() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-700">בנים</Label>
+                      <Label className="text-gray-700">גברים</Label>
                       <Input type="number" value={form.boys_count} onChange={e => set('boys_count', e.target.value)} className="mt-1" />
                     </div>
                     <div>
-                      <Label className="text-gray-700">בנות</Label>
+                      <Label className="text-gray-700">נשים</Label>
                       <Input type="number" value={form.girls_count} onChange={e => set('girls_count', e.target.value)} className="mt-1" />
                     </div>
                   </div>
@@ -290,15 +290,15 @@ export default function GuestForm() {
                 ))}
               </div>
 
-              <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור בנים ובנות</p>
+              <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור גברים ונשים</p>
 
               {/* Table */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 {/* Header */}
                 <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
                   <div className="p-3">סוג האוהל</div>
-                  <div className="p-3 text-center">מס׳ אוהלים — בנות</div>
-                  <div className="p-3 text-center">מס׳ אוהלים — בנים</div>
+                  <div className="p-3 text-center">מס׳ אוהלים — נשים</div>
+                  <div className="p-3 text-center">מס׳ אוהלים — גברים</div>
                 </div>
                 {/* Rows */}
                 {TENT_TYPES.map((t, idx) => {

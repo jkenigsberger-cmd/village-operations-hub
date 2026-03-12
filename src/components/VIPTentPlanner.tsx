@@ -109,8 +109,8 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                 key={config.id}
                 className={cn(
                   "p-4 rounded-lg border-2 bg-background relative",
-                  config.gender === 'female' && "border-pink-300 bg-pink-50/50 dark:bg-pink-950/20",
-                  config.gender === 'male' && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20",
+                  config.gender === 'female' && "border-gender-female bg-gender-female-light dark:bg-gender-female/10",
+                  config.gender === 'male' && "border-gender-male bg-gender-male-light dark:bg-gender-male/10",
                   !config.gender && "border-border"
                 )}
               >
@@ -178,8 +178,8 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_none">ללא</SelectItem>
-                    <SelectItem value="female">♀️ נקבה</SelectItem>
-                    <SelectItem value="male">♂️ זכר</SelectItem>
+                    <SelectItem value="female">נשים</SelectItem>
+                    <SelectItem value="male">גברים</SelectItem>
                   </SelectContent>
                 </Select>
 

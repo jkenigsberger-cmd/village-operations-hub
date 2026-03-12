@@ -22,11 +22,11 @@ const getGenderStyles = (gender?: TentGender, hasReservation?: boolean) => {
   
   switch (gender) {
     case 'FEMALE':
-      return 'border-l-4 border-l-pink-400 bg-gradient-to-r from-pink-50 to-card';
+      return 'border-l-4 border-l-gender-female bg-gradient-to-r from-gender-female-light to-card';
     case 'MALE':
-      return 'border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-card';
+      return 'border-l-4 border-l-gender-male bg-gradient-to-r from-gender-male-light to-card';
     case 'MIXED':
-      return 'border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-card';
+      return 'border-l-4 border-l-gender-mixed bg-gradient-to-r from-gender-mixed-light to-card';
     default:
       return '';
   }
@@ -39,11 +39,11 @@ const getGenderBadge = (gender?: TentGender, hasReservation?: boolean) => {
   
   switch (gender) {
     case 'FEMALE':
-      return { label: '♀️', className: 'bg-pink-100 text-pink-700' };
+      return { label: 'נשים', className: 'bg-gender-female text-white' };
     case 'MALE':
-      return { label: '♂️', className: 'bg-blue-100 text-blue-700' };
+      return { label: 'גברים', className: 'bg-gender-male text-white' };
     case 'MIXED':
-      return { label: '👥', className: 'bg-purple-100 text-purple-700' };
+      return { label: 'מעורב', className: 'bg-gender-mixed text-white' };
     default:
       return null;
   }

@@ -34,9 +34,9 @@ import { cn } from '@/lib/utils';
 
 function distributionGenderStyle(gender?: TentGender): { bg: string; border: string } {
   switch (gender) {
-    case 'BOYS':  return { bg: 'hsl(210, 55%, 92%)', border: 'hsl(210, 60%, 70%)' };
-    case 'GIRLS': return { bg: 'hsl(330, 55%, 92%)', border: 'hsl(330, 60%, 70%)' };
-    case 'MIXED': return { bg: 'hsl(270, 40%, 92%)', border: 'hsl(270, 50%, 70%)' };
+    case 'BOYS':  return { bg: 'hsl(228, 70%, 92%)', border: 'hsl(228, 90%, 44%)' };
+    case 'GIRLS': return { bg: 'hsl(147, 60%, 92%)', border: 'hsl(147, 69%, 40%)' };
+    case 'MIXED': return { bg: 'hsl(17, 80%, 92%)', border: 'hsl(17, 99%, 53%)' };
     default:      return { bg: '', border: '' };
   }
 }
@@ -57,8 +57,8 @@ const DISTRIBUTION_MODE_LABELS: Record<DistributionMode, string> = {
 };
 
 const GENDER_LABELS: Record<TentGender, string> = {
-  BOYS: 'בנים',
-  GIRLS: 'בנות',
+  BOYS: 'גברים',
+  GIRLS: 'נשים',
   MIXED: 'מעורב',
 };
 
@@ -363,7 +363,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                 </label>
                 {hasGenderCounts && (
                   <span className="text-xs text-muted-foreground mr-auto">
-                    (בנים: {boysCount || 0}, בנות: {girlsCount || 0})
+                    (גברים: {boysCount || 0}, נשים: {girlsCount || 0})
                   </span>
                 )}
               </div>
@@ -589,14 +589,14 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                   genderValidation.boysMatch ? "text-green-600" : "text-amber-600 bg-amber-50 dark:bg-amber-950/20"
                 )}>
                   {genderValidation.boysMatch ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                  <span>בנים: {genderValidation.boysSum} / {boysCount || 0}</span>
+                  <span>גברים: {genderValidation.boysSum} / {boysCount || 0}</span>
                 </div>
                 <div className={cn(
                   "flex items-center gap-2 text-sm p-2 rounded-lg",
                   genderValidation.girlsMatch ? "text-green-600" : "text-amber-600 bg-amber-50 dark:bg-amber-950/20"
                 )}>
                   {genderValidation.girlsMatch ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                  <span>בנות: {genderValidation.girlsSum} / {girlsCount || 0}</span>
+                  <span>נשים: {genderValidation.girlsSum} / {girlsCount || 0}</span>
                 </div>
               </div>
             )}

@@ -17,18 +17,18 @@ export const VIPConfigCard: React.FC<VIPConfigCardProps> = ({
   onClick,
 }) => {
   const totalBeds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
-  const genderLabel = config.gender === 'female' ? '♀️ נקבה' : config.gender === 'male' ? '♂️ זכר' : '---';
+  const genderLabel = config.gender === 'female' ? 'נשים' : config.gender === 'male' ? 'גברים' : '---';
   
   const borderColor = config.gender === 'female' 
-    ? 'border-pink-400' 
+    ? 'border-gender-female' 
     : config.gender === 'male' 
-      ? 'border-blue-400' 
+      ? 'border-gender-male' 
       : 'border-muted';
 
   const bgColor = config.gender === 'female'
-    ? 'bg-pink-50 dark:bg-pink-950/20'
+    ? 'bg-gender-female-light dark:bg-gender-female/10'
     : config.gender === 'male'
-      ? 'bg-blue-50 dark:bg-blue-950/20'
+      ? 'bg-gender-male-light dark:bg-gender-male/10'
       : 'bg-muted/30';
 
   return (
@@ -60,8 +60,8 @@ export const VIPConfigCard: React.FC<VIPConfigCardProps> = ({
       
       <div className={cn(
         'text-sm font-medium px-2 py-1 rounded-lg',
-        config.gender === 'female' && 'bg-pink-200/50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
-        config.gender === 'male' && 'bg-blue-200/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        config.gender === 'female' && 'bg-gender-female/15 text-gender-female',
+        config.gender === 'male' && 'bg-gender-male/15 text-gender-male',
         !config.gender && 'bg-muted text-muted-foreground'
       )}>
         {genderLabel}

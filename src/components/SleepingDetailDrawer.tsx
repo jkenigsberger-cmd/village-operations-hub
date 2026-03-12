@@ -78,14 +78,14 @@ export const SleepingDetailDrawer: React.FC<SleepingDetailDrawerProps> = ({ row,
             <div className="flex gap-4 p-3 rounded-lg bg-muted/50">
               {row.boysCount != null && (
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(210, 60%, 70%)' }} />
-                  <span>בנים: {row.boysCount}</span>
+                  <span className="w-3 h-3 rounded-full bg-gender-male" />
+                  <span>גברים: {row.boysCount}</span>
                 </div>
               )}
               {row.girlsCount != null && (
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(330, 60%, 70%)' }} />
-                  <span>בנות: {row.girlsCount}</span>
+                  <span className="w-3 h-3 rounded-full bg-gender-female" />
+                  <span>נשים: {row.girlsCount}</span>
                 </div>
               )}
             </div>

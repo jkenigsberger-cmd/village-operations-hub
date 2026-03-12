@@ -1080,7 +1080,7 @@ const AdminGroupEdit = () => {
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-sm font-medium">בנים</label>
+                      <label className="text-sm font-medium">גברים</label>
                       <NumericInput
                         value={formData.boysCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
@@ -1089,7 +1089,7 @@ const AdminGroupEdit = () => {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-sm font-medium">בנות</label>
+                      <label className="text-sm font-medium">נשים</label>
                       <NumericInput
                         value={formData.girlsCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, girlsCount: val || undefined }))}
@@ -1117,7 +1117,7 @@ const AdminGroupEdit = () => {
                       return (
                         <div className="flex items-center gap-2 text-green-600 text-sm">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>בנים ({formData.boysCount || 0}) + בנות ({formData.girlsCount || 0}) = {sum} ✓</span>
+                          <span>גברים ({formData.boysCount || 0}) + נשים ({formData.girlsCount || 0}) = {sum} ✓</span>
                         </div>
                       );
                     })()

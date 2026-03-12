@@ -6,8 +6,8 @@ import { Tent, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GENDER_LABELS: Record<TentGender, string> = {
-  BOYS: 'בנים',
-  GIRLS: 'בנות',
+  BOYS: 'גברים',
+  GIRLS: 'נשים',
   MIXED: 'מעורב',
 };
 
@@ -78,8 +78,8 @@ export const DistributionPreferenceDisplay: React.FC<DistributionPreferenceDispl
           <div className="p-3 bg-muted/30 rounded-lg space-y-1">
             <h5 className="text-sm font-medium">פירוט מגדרי:</h5>
             <div className="flex gap-4 text-sm">
-              {boysCount !== undefined && boysCount > 0 && <span>בנים: <strong>{boysCount}</strong></span>}
-              {girlsCount !== undefined && girlsCount > 0 && <span>בנות: <strong>{girlsCount}</strong></span>}
+              {boysCount !== undefined && boysCount > 0 && <span>גברים: <strong>{boysCount}</strong></span>}
+              {girlsCount !== undefined && girlsCount > 0 && <span>נשים: <strong>{girlsCount}</strong></span>}
             </div>
           </div>
         )}

@@ -2,27 +2,22 @@ import React from "react";
 import { TentNode } from "./NeighborhoodMap";
 import { TentGender } from "@/types/village";
 
-// Gender-based colors for tent fill - only when tent has reservation
 function genderColor(gender?: TentGender, hasReservation?: boolean): string {
-  // Only show gender colors if there's an active reservation
-  if (!hasReservation) return "hsl(40, 30%, 96%)"; // Default/neutral
-  
+  if (!hasReservation) return "hsl(40, 30%, 96%)";
   switch (gender) {
-    case 'FEMALE': return "hsl(330, 70%, 75%)"; // Pink
-    case 'MALE': return "hsl(210, 70%, 65%)"; // Blue
-    case 'MIXED': return "hsl(270, 60%, 70%)"; // Purple
-    default: return "hsl(40, 30%, 96%)"; // Default/empty
+    case 'FEMALE': return "hsl(147, 69%, 40%)";
+    case 'MALE': return "hsl(228, 90%, 44%)";
+    case 'MIXED': return "hsl(17, 99%, 53%)";
+    default: return "hsl(40, 30%, 96%)";
   }
 }
 
 function genderStroke(gender?: TentGender, hasReservation?: boolean): string {
-  // Only show gender stroke if there's an active reservation
   if (!hasReservation) return "hsl(30, 10%, 50%)";
-  
   switch (gender) {
-    case 'FEMALE': return "hsl(330, 60%, 50%)";
-    case 'MALE': return "hsl(210, 60%, 45%)";
-    case 'MIXED': return "hsl(270, 50%, 50%)";
+    case 'FEMALE': return "hsl(147, 69%, 30%)";
+    case 'MALE': return "hsl(228, 90%, 34%)";
+    case 'MIXED': return "hsl(17, 99%, 43%)";
     default: return "hsl(30, 10%, 50%)";
   }
 }
@@ -117,15 +112,15 @@ export default function VIPNeighborhoodMap({ nodes }: { nodes: TentNode[] }) {
           <span>לא משובץ</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(330, 70%, 75%)" }} />
-          <span>♀ נקבה</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(147, 69%, 40%)" }} />
+          <span>נשים</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(210, 70%, 65%)" }} />
-          <span>♂ זכר</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(228, 90%, 44%)" }} />
+          <span>גברים</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(270, 60%, 70%)" }} />
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(17, 99%, 53%)" }} />
           <span>מעורב</span>
         </div>
       </div>

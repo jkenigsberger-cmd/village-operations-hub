@@ -76,13 +76,13 @@ export const VIPAllocationTab: React.FC<VIPAllocationTabProps> = ({ group, onUpd
     : 0;
 
   const genderLabel = selectedConfig?.gender === 'female' 
-    ? '♀️ נקבה' 
+    ? 'נשים' 
     : selectedConfig?.gender === 'male' 
-      ? '♂️ זכר' 
+      ? 'גברים' 
       : 'לא הוגדר';
 
   const getGenderLabel = (gender?: 'male' | 'female') => {
-    return gender === 'female' ? '♀️' : gender === 'male' ? '♂️' : '';
+    return gender === 'female' ? 'נ' : gender === 'male' ? 'ג' : '';
   };
 
   return (

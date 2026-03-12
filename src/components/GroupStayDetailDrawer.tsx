@@ -67,14 +67,14 @@ export const GroupStayDetailDrawer: React.FC<GroupStayDetailDrawerProps> = ({ st
             <div className="flex gap-4 p-3 rounded-lg bg-muted/50">
               {stay.boysCount != null && (
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(210, 60%, 70%)' }} />
-                  <span>בנים: {stay.boysCount}</span>
+                  <span className="w-3 h-3 rounded-full bg-gender-male" />
+                  <span>גברים: {stay.boysCount}</span>
                 </div>
               )}
               {stay.girlsCount != null && (
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(330, 60%, 70%)' }} />
-                  <span>בנות: {stay.girlsCount}</span>
+                  <span className="w-3 h-3 rounded-full bg-gender-female" />
+                  <span>נשים: {stay.girlsCount}</span>
                 </div>
               )}
             </div>

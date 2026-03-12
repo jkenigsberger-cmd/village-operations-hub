@@ -655,9 +655,9 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   const currentGender = tentGenders[tent.id] || tent.gender || 'MIXED';
                   
                   const genderBorderColor = isSelected ? (
-                    currentGender === 'FEMALE' ? 'border-pink-500 bg-pink-50' :
-                    currentGender === 'MALE' ? 'border-blue-500 bg-blue-50' :
-                    'border-purple-500 bg-purple-50'
+                    currentGender === 'FEMALE' ? 'border-gender-female bg-gender-female-light' :
+                    currentGender === 'MALE' ? 'border-gender-male bg-gender-male-light' :
+                    'border-gender-mixed bg-gender-mixed-light'
                   ) : '';
                   
                   return (
@@ -702,11 +702,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                             className={cn(
                               'flex-1 py-1 rounded text-xs font-medium transition-all',
                               currentGender === 'FEMALE' 
-                                ? 'bg-pink-500 text-white' 
-                                : 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                                ? 'bg-gender-female text-white' 
+                                : 'bg-gender-female/10 text-gender-female hover:bg-gender-female/20'
                             )}
                           >
-                            ♀ נשים
+                            נשים
                           </button>
                           <button
                             type="button"
@@ -714,11 +714,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                             className={cn(
                               'flex-1 py-1 rounded text-xs font-medium transition-all',
                               currentGender === 'MALE' 
-                                ? 'bg-blue-500 text-white' 
-                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                ? 'bg-gender-male text-white' 
+                                : 'bg-gender-male/10 text-gender-male hover:bg-gender-male/20'
                             )}
                           >
-                            ♂ גברים
+                            גברים
                           </button>
                           <button
                             type="button"
@@ -726,11 +726,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                             className={cn(
                               'flex-1 py-1 rounded text-xs font-medium transition-all',
                               currentGender === 'MIXED' 
-                                ? 'bg-purple-500 text-white' 
-                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                ? 'bg-gender-mixed text-white' 
+                                : 'bg-gender-mixed/10 text-gender-mixed hover:bg-gender-mixed/20'
                             )}
                           >
-                            ⚥ מעורב
+                            מעורב
                           </button>
                         </div>
                       )}
@@ -747,13 +747,13 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   {/* Show gender breakdown */}
                   <div className="flex justify-center gap-3 flex-wrap text-xs">
                     {Object.values(tentGenders).filter(g => g === 'FEMALE').length > 0 && (
-                      <span className="text-pink-600">♀ {Object.values(tentGenders).filter(g => g === 'FEMALE').length}</span>
+                      <span className="text-gender-female">נשים {Object.values(tentGenders).filter(g => g === 'FEMALE').length}</span>
                     )}
                     {Object.values(tentGenders).filter(g => g === 'MALE').length > 0 && (
-                      <span className="text-blue-600">♂ {Object.values(tentGenders).filter(g => g === 'MALE').length}</span>
+                      <span className="text-gender-male">גברים {Object.values(tentGenders).filter(g => g === 'MALE').length}</span>
                     )}
                     {Object.values(tentGenders).filter(g => g === 'MIXED').length > 0 && (
-                      <span className="text-purple-600">⚥ {Object.values(tentGenders).filter(g => g === 'MIXED').length}</span>
+                      <span className="text-gender-mixed">מעורב {Object.values(tentGenders).filter(g => g === 'MIXED').length}</span>
                     )}
                   </div>
                 </div>
@@ -773,8 +773,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <div className="grid grid-cols-3 gap-3">
                 {/* Female */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-pink-600">
-                    <span className="w-3 h-3 rounded-full bg-pink-500" />
+                  <Label className="flex items-center gap-2 text-gender-female">
+                    <span className="w-3 h-3 rounded-full bg-gender-female" />
                     נשים
                   </Label>
                   <div className="flex items-center gap-2">
@@ -788,7 +788,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     >
                       -
                     </Button>
-                    <span className="w-8 text-center font-semibold text-pink-600">{genderCounts.female}</span>
+                    <span className="w-8 text-center font-semibold text-gender-female">{genderCounts.female}</span>
                     <Button
                       type="button"
                       variant="outline"
@@ -804,8 +804,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 
                 {/* Male */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-blue-600">
-                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                  <Label className="flex items-center gap-2 text-gender-male">
+                    <span className="w-3 h-3 rounded-full bg-gender-male" />
                     גברים
                   </Label>
                   <div className="flex items-center gap-2">
@@ -819,7 +819,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     >
                       -
                     </Button>
-                    <span className="w-8 text-center font-semibold text-blue-600">{genderCounts.male}</span>
+                    <span className="w-8 text-center font-semibold text-gender-male">{genderCounts.male}</span>
                     <Button
                       type="button"
                       variant="outline"
@@ -835,8 +835,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 
                 {/* Mixed */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-purple-600">
-                    <span className="w-3 h-3 rounded-full bg-purple-500" />
+                  <Label className="flex items-center gap-2 text-gender-mixed">
+                    <span className="w-3 h-3 rounded-full bg-gender-mixed" />
                     מעורב
                   </Label>
                   <div className="flex items-center gap-2">
@@ -850,7 +850,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     >
                       -
                     </Button>
-                    <span className="w-8 text-center font-semibold text-purple-600">{genderCounts.mixed}</span>
+                    <span className="w-8 text-center font-semibold text-gender-mixed">{genderCounts.mixed}</span>
                     <Button
                       type="button"
                       variant="outline"
@@ -869,13 +869,13 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="text-sm text-center p-3 bg-primary/10 rounded-lg space-y-1">
                   <div className="flex justify-center gap-4 flex-wrap">
                     {genderCounts.female > 0 && (
-                      <span className="text-pink-600">♀ {genderCounts.female} אוהלים</span>
+                      <span className="text-gender-female">נשים {genderCounts.female} אוהלים</span>
                     )}
                     {genderCounts.male > 0 && (
-                      <span className="text-blue-600">♂ {genderCounts.male} אוהלים</span>
+                      <span className="text-gender-male">גברים {genderCounts.male} אוהלים</span>
                     )}
                     {genderCounts.mixed > 0 && (
-                      <span className="text-purple-600">⚥ {genderCounts.mixed} אוהלים</span>
+                      <span className="text-gender-mixed">מעורב {genderCounts.mixed} אוהלים</span>
                     )}
                   </div>
                   <div>

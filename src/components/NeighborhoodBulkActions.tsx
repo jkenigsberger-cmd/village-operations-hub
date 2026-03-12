@@ -497,18 +497,18 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                         <p className="text-sm font-medium mb-2">התפלגות לפי מגדר:</p>
                         <div className="flex gap-2 flex-wrap">
                           {(selectedReservation.genderDistribution?.female || details.genderSummary.female > 0) && (
-                            <span className="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full">
-                              ♀ {selectedReservation.genderDistribution?.female || details.genderSummary.female} נשים
+                            <span className="text-sm bg-gender-female/10 text-gender-female px-3 py-1 rounded-full">
+                              {selectedReservation.genderDistribution?.female || details.genderSummary.female} נשים
                             </span>
                           )}
                           {(selectedReservation.genderDistribution?.male || details.genderSummary.male > 0) && (
-                            <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
-                              ♂ {selectedReservation.genderDistribution?.male || details.genderSummary.male} גברים
+                            <span className="text-sm bg-gender-male/10 text-gender-male px-3 py-1 rounded-full">
+                              {selectedReservation.genderDistribution?.male || details.genderSummary.male} גברים
                             </span>
                           )}
                           {(selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed > 0) && (
-                            <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
-                              👥 {selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed} מעורב
+                            <span className="text-sm bg-gender-mixed/10 text-gender-mixed px-3 py-1 rounded-full">
+                              {selectedReservation.genderDistribution?.mixed || details.genderSummary.mixed} מעורב
                             </span>
                           )}
                         </div>
@@ -526,9 +526,9 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                             key={tent.id} 
                             className={cn(
                               "text-sm px-3 py-1 rounded-full border",
-                              tent.gender === 'FEMALE' ? "bg-pink-50 border-pink-300 text-pink-700" :
-                              tent.gender === 'MALE' ? "bg-blue-50 border-blue-300 text-blue-700" :
-                              "bg-purple-50 border-purple-300 text-purple-700"
+                              tent.gender === 'FEMALE' ? "bg-gender-female-light border-gender-female text-gender-female" :
+                              tent.gender === 'MALE' ? "bg-gender-male-light border-gender-male text-gender-male" :
+                              "bg-gender-mixed-light border-gender-mixed text-gender-mixed"
                             )}
                           >
                             {tent.code} ({tent.beds.length} מיטות)
