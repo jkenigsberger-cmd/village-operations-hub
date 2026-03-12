@@ -66,6 +66,7 @@ import {
   ArrowRight,
   Receipt,
   ClipboardList,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { NumericInput } from '@/components/NumericInput';
