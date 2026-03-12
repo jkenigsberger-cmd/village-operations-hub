@@ -747,13 +747,13 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   {/* Show gender breakdown */}
                   <div className="flex justify-center gap-3 flex-wrap text-xs">
                     {Object.values(tentGenders).filter(g => g === 'FEMALE').length > 0 && (
-                      <span className="text-pink-600">♀ {Object.values(tentGenders).filter(g => g === 'FEMALE').length}</span>
+                      <span className="text-gender-female">נשים {Object.values(tentGenders).filter(g => g === 'FEMALE').length}</span>
                     )}
                     {Object.values(tentGenders).filter(g => g === 'MALE').length > 0 && (
-                      <span className="text-blue-600">♂ {Object.values(tentGenders).filter(g => g === 'MALE').length}</span>
+                      <span className="text-gender-male">גברים {Object.values(tentGenders).filter(g => g === 'MALE').length}</span>
                     )}
                     {Object.values(tentGenders).filter(g => g === 'MIXED').length > 0 && (
-                      <span className="text-purple-600">⚥ {Object.values(tentGenders).filter(g => g === 'MIXED').length}</span>
+                      <span className="text-gender-mixed">מעורב {Object.values(tentGenders).filter(g => g === 'MIXED').length}</span>
                     )}
                   </div>
                 </div>
