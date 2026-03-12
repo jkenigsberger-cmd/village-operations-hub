@@ -1117,7 +1117,7 @@ const AdminGroupEdit = () => {
                       return (
                         <div className="flex items-center gap-2 text-green-600 text-sm">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>בנים ({formData.boysCount || 0}) + בנות ({formData.girlsCount || 0}) = {sum} ✓</span>
+                          <span>גברים ({formData.boysCount || 0}) + נשים ({formData.girlsCount || 0}) = {sum} ✓</span>
                         </div>
                       );
                     })()

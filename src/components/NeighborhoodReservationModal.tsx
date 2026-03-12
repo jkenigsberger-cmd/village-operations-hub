@@ -869,13 +869,13 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 <div className="text-sm text-center p-3 bg-primary/10 rounded-lg space-y-1">
                   <div className="flex justify-center gap-4 flex-wrap">
                     {genderCounts.female > 0 && (
-                      <span className="text-pink-600">♀ {genderCounts.female} אוהלים</span>
+                      <span className="text-gender-female">נשים {genderCounts.female} אוהלים</span>
                     )}
                     {genderCounts.male > 0 && (
-                      <span className="text-blue-600">♂ {genderCounts.male} אוהלים</span>
+                      <span className="text-gender-male">גברים {genderCounts.male} אוהלים</span>
                     )}
                     {genderCounts.mixed > 0 && (
-                      <span className="text-purple-600">⚥ {genderCounts.mixed} אוהלים</span>
+                      <span className="text-gender-mixed">מעורב {genderCounts.mixed} אוהלים</span>
                     )}
                   </div>
                   <div>

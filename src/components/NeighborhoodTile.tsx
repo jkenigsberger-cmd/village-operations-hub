@@ -89,7 +89,7 @@ export const NeighborhoodTile: React.FC<NeighborhoodTileProps> = ({
             <span className="text-xs text-muted-foreground">
               {bookingPax} איש
               {bookingBoys != null && bookingGirls != null && (
-                <> (ב:{bookingBoys} בנ:{bookingGirls})</>
+                <> (ג:{bookingBoys} נ:{bookingGirls})</>
               )}
             </span>
           )}

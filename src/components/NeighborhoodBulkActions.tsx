@@ -526,9 +526,9 @@ export const NeighborhoodBulkActions: React.FC<NeighborhoodBulkActionsProps> = (
                             key={tent.id} 
                             className={cn(
                               "text-sm px-3 py-1 rounded-full border",
-                              tent.gender === 'FEMALE' ? "bg-pink-50 border-pink-300 text-pink-700" :
-                              tent.gender === 'MALE' ? "bg-blue-50 border-blue-300 text-blue-700" :
-                              "bg-purple-50 border-purple-300 text-purple-700"
+                              tent.gender === 'FEMALE' ? "bg-gender-female-light border-gender-female text-gender-female" :
+                              tent.gender === 'MALE' ? "bg-gender-male-light border-gender-male text-gender-male" :
+                              "bg-gender-mixed-light border-gender-mixed text-gender-mixed"
                             )}
                           >
                             {tent.code} ({tent.beds.length} מיטות)
