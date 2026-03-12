@@ -34,9 +34,9 @@ import { cn } from '@/lib/utils';
 
 function distributionGenderStyle(gender?: TentGender): { bg: string; border: string } {
   switch (gender) {
-    case 'BOYS':  return { bg: 'hsl(210, 55%, 92%)', border: 'hsl(210, 60%, 70%)' };
-    case 'GIRLS': return { bg: 'hsl(330, 55%, 92%)', border: 'hsl(330, 60%, 70%)' };
-    case 'MIXED': return { bg: 'hsl(270, 40%, 92%)', border: 'hsl(270, 50%, 70%)' };
+    case 'BOYS':  return { bg: 'hsl(228, 70%, 92%)', border: 'hsl(228, 90%, 44%)' };
+    case 'GIRLS': return { bg: 'hsl(147, 60%, 92%)', border: 'hsl(147, 69%, 40%)' };
+    case 'MIXED': return { bg: 'hsl(17, 80%, 92%)', border: 'hsl(17, 99%, 53%)' };
     default:      return { bg: '', border: '' };
   }
 }
