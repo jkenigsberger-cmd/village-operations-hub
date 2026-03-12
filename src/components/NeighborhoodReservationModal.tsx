@@ -702,11 +702,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                             className={cn(
                               'flex-1 py-1 rounded text-xs font-medium transition-all',
                               currentGender === 'FEMALE' 
-                                ? 'bg-pink-500 text-white' 
-                                : 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                                ? 'bg-gender-female text-white' 
+                                : 'bg-gender-female/10 text-gender-female hover:bg-gender-female/20'
                             )}
                           >
-                            ♀ נשים
+                            נשים
                           </button>
                           <button
                             type="button"
@@ -714,11 +714,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                             className={cn(
                               'flex-1 py-1 rounded text-xs font-medium transition-all',
                               currentGender === 'MALE' 
-                                ? 'bg-blue-500 text-white' 
-                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                ? 'bg-gender-male text-white' 
+                                : 'bg-gender-male/10 text-gender-male hover:bg-gender-male/20'
                             )}
                           >
-                            ♂ גברים
+                            גברים
                           </button>
                           <button
                             type="button"
@@ -726,11 +726,11 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                             className={cn(
                               'flex-1 py-1 rounded text-xs font-medium transition-all',
                               currentGender === 'MIXED' 
-                                ? 'bg-purple-500 text-white' 
-                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                ? 'bg-gender-mixed text-white' 
+                                : 'bg-gender-mixed/10 text-gender-mixed hover:bg-gender-mixed/20'
                             )}
                           >
-                            ⚥ מעורב
+                            מעורב
                           </button>
                         </div>
                       )}
