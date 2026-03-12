@@ -363,7 +363,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                 </label>
                 {hasGenderCounts && (
                   <span className="text-xs text-muted-foreground mr-auto">
-                    (בנים: {boysCount || 0}, בנות: {girlsCount || 0})
+                    (גברים: {boysCount || 0}, נשים: {girlsCount || 0})
                   </span>
                 )}
               </div>
