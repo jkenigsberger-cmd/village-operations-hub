@@ -17,18 +17,18 @@ export const VIPConfigCard: React.FC<VIPConfigCardProps> = ({
   onClick,
 }) => {
   const totalBeds = config.bedsPlanned + (config.hasExtraBed ? 1 : 0);
-  const genderLabel = config.gender === 'female' ? '♀️ נקבה' : config.gender === 'male' ? '♂️ זכר' : '---';
+  const genderLabel = config.gender === 'female' ? 'נשים' : config.gender === 'male' ? 'גברים' : '---';
   
   const borderColor = config.gender === 'female' 
-    ? 'border-pink-400' 
+    ? 'border-gender-female' 
     : config.gender === 'male' 
-      ? 'border-blue-400' 
+      ? 'border-gender-male' 
       : 'border-muted';
 
   const bgColor = config.gender === 'female'
-    ? 'bg-pink-50 dark:bg-pink-950/20'
+    ? 'bg-gender-female-light dark:bg-gender-female/10'
     : config.gender === 'male'
-      ? 'bg-blue-50 dark:bg-blue-950/20'
+      ? 'bg-gender-male-light dark:bg-gender-male/10'
       : 'bg-muted/30';
 
   return (
