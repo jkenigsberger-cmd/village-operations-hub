@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { addDays, parseISO, format, differenceInCalendarDays } from 'date-fns';
+import { he } from 'date-fns/locale';
 import hadorHabaLogo from '@/assets/hador-haba-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,16 +9,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown, AlertTriangle, Sandwich, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
+// ---- Steps ----
 
 const STEPS = [
   'פרטי קבוצה',
   'העדפות מזון',
+  'תפריט ארוחות',
   'חלוקת אוהלים',
   'לוח פעילויות',
 ];
+
+// ---- Constants ----
 
 const TENT_TYPES = [
   { type: 'staff', label: 'אוהלי צוות', beds: 3, maxTents: 10, emoji: '🏕️' },
@@ -36,6 +44,68 @@ const DIET_OPTIONS = [
   { key: 'lactoseFree', label: '🥛 ללא לקטוז' },
 ];
 
+type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER';
+
+const MEAL_LABELS: Record<MealType, string> = {
+  BREAKFAST: '🌅 ארוחת בוקר',
+  LUNCH: '☀️ ארוחת צהריים',
+  DINNER: '🌙 ארוחת ערב',
+};
+
+interface GeneratedMeal {
+  date: string;
+  mealType: MealType;
+  sandwichInstead: boolean;
+}
+
+interface MealPreferences {
+  arrivalLunch: boolean;
+  departureLunch: boolean;
+  generatedMeals: GeneratedMeal[];
+}
+
+// ---- Meal generation logic ----
+
+function generateMeals(
+  startDate: string,
+  endDate: string,
+  arrivalLunch: boolean,
+  departureLunch: boolean,
+): GeneratedMeal[] {
+  if (!startDate || !endDate) return [];
+
+  const start = parseISO(startDate);
+  const end = parseISO(endDate);
+  const nights = differenceInCalendarDays(end, start);
+  if (nights <= 0) return [];
+
+  const meals: GeneratedMeal[] = [];
+
+  // Arrival day
+  if (arrivalLunch) {
+    meals.push({ date: startDate, mealType: 'LUNCH', sandwichInstead: false });
+  }
+  meals.push({ date: startDate, mealType: 'DINNER', sandwichInstead: false });
+
+  // Full days in between (day after arrival to day before departure)
+  for (let d = 1; d < nights; d++) {
+    const dayStr = format(addDays(start, d), 'yyyy-MM-dd');
+    meals.push({ date: dayStr, mealType: 'BREAKFAST', sandwichInstead: false });
+    meals.push({ date: dayStr, mealType: 'LUNCH', sandwichInstead: false });
+    meals.push({ date: dayStr, mealType: 'DINNER', sandwichInstead: false });
+  }
+
+  // Departure day
+  meals.push({ date: endDate, mealType: 'BREAKFAST', sandwichInstead: false });
+  if (departureLunch) {
+    meals.push({ date: endDate, mealType: 'LUNCH', sandwichInstead: false });
+  }
+
+  return meals;
+}
+
+// ---- Quote data type ----
+
 interface QuoteData {
   id: string;
   status: string;
@@ -44,6 +114,10 @@ interface QuoteData {
   snapshot: any;
   client_details: any;
 }
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 export default function GuestForm() {
   const [searchParams] = useSearchParams();
@@ -60,6 +134,7 @@ export default function GuestForm() {
   const [quoteError, setQuoteError] = useState('');
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
 
+  // Main form state
   const [form, setForm] = useState({
     group_name: '',
     client_name: '',
@@ -80,9 +155,78 @@ export default function GuestForm() {
     general_notes: '',
   });
 
+  // Meal preferences state (separate for clarity)
+  const [mealPrefs, setMealPrefs] = useState<MealPreferences>({
+    arrivalLunch: false,
+    departureLunch: false,
+    generatedMeals: [],
+  });
+
   const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
-  // Load quote data on mount if quoteId is present
+  // Derive dates from quote
+  const stayStartDate = quoteData?.snapshot?.startDate || '';
+  const stayEndDate = quoteData?.snapshot?.endDate || '';
+  const stayNights = useMemo(() => {
+    if (!stayStartDate || !stayEndDate) return 0;
+    try {
+      return Math.max(0, differenceInCalendarDays(parseISO(stayEndDate), parseISO(stayStartDate)));
+    } catch { return 0; }
+  }, [stayStartDate, stayEndDate]);
+
+  const isSleepingGroup = stayNights > 0;
+
+  // Regenerate meals when dates or lunch preferences change
+  useEffect(() => {
+    if (!isSleepingGroup) {
+      setMealPrefs(prev => ({ ...prev, generatedMeals: [] }));
+      return;
+    }
+
+    setMealPrefs(prev => {
+      const newMeals = generateMeals(stayStartDate, stayEndDate, prev.arrivalLunch, prev.departureLunch);
+
+      // Preserve sandwich selections from previous meals where date+type match
+      const prevMap = new Map(
+        prev.generatedMeals.map(m => [`${m.date}_${m.mealType}`, m.sandwichInstead])
+      );
+
+      return {
+        ...prev,
+        generatedMeals: newMeals.map(m => ({
+          ...m,
+          sandwichInstead: prevMap.get(`${m.date}_${m.mealType}`) ?? false,
+        })),
+      };
+    });
+  }, [stayStartDate, stayEndDate, isSleepingGroup, mealPrefs.arrivalLunch, mealPrefs.departureLunch]);
+
+  const handleLunchToggle = useCallback((type: 'arrival' | 'departure') => {
+    setMealPrefs(prev => ({
+      ...prev,
+      arrivalLunch: type === 'arrival' ? !prev.arrivalLunch : false,
+      departureLunch: type === 'departure' ? !prev.departureLunch : false,
+    }));
+  }, []);
+
+  const handleNoLunch = useCallback(() => {
+    setMealPrefs(prev => ({
+      ...prev,
+      arrivalLunch: false,
+      departureLunch: false,
+    }));
+  }, []);
+
+  const toggleSandwich = useCallback((index: number) => {
+    setMealPrefs(prev => ({
+      ...prev,
+      generatedMeals: prev.generatedMeals.map((m, i) =>
+        i === index ? { ...m, sandwichInstead: !m.sandwichInstead } : m
+      ),
+    }));
+  }, []);
+
+  // Load quote data on mount
   useEffect(() => {
     if (!quoteId) {
       setQuoteLoading(false);
@@ -111,7 +255,6 @@ export default function GuestForm() {
 
         setQuoteData(data as QuoteData);
 
-        // Prefill form fields from quote
         const snapshot = data.snapshot as any || {};
         const client = data.client_details as any || {};
 
@@ -137,6 +280,7 @@ export default function GuestForm() {
     loadQuote();
   }, [quoteId]);
 
+  // Submit
   const handleSubmit = async () => {
     if (!form.group_name.trim()) {
       setError('יש למלא שם קבוצה');
@@ -146,6 +290,14 @@ export default function GuestForm() {
     setError('');
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+      // Build special_diets payload with meal preferences included
+      const specialDietsPayload = {
+        ...form.special_diets,
+        notes: form.diet_notes,
+        mealPreferences: isSleepingGroup ? mealPrefs : undefined,
+      };
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/submit-guest-form`,
         {
@@ -163,7 +315,7 @@ export default function GuestForm() {
             boys_count: form.boys_count ? Number(form.boys_count) : null,
             girls_count: form.girls_count ? Number(form.girls_count) : null,
             group_type: form.group_type,
-            special_diets: { ...form.special_diets, notes: form.diet_notes },
+            special_diets: specialDietsPayload,
             tent_distribution_notes: [
               ...form.tent_distribution.map((row, i) => {
                 const t = TENT_TYPES[i];
@@ -189,7 +341,8 @@ export default function GuestForm() {
     }
   };
 
-  // Loading state for quote
+  // ---- Early return screens ----
+
   if (quoteLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
@@ -200,7 +353,6 @@ export default function GuestForm() {
     );
   }
 
-  // Error state for invalid/unapproved quote
   if (quoteError) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
@@ -213,7 +365,6 @@ export default function GuestForm() {
     );
   }
 
-  // If no quoteId at all, show an error (form requires quote)
   if (!quoteId) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
@@ -240,9 +391,23 @@ export default function GuestForm() {
     );
   }
 
-  const progress = ((step + 1) / STEPS.length) * 100;
+  // ---- Computed UI values ----
 
-  // Determine which fields are prefilled from quote (read-only)
+  // If not a sleeping group, skip the meal step (step 2)
+  const activeSteps = isSleepingGroup ? STEPS : STEPS.filter((_, i) => i !== 2);
+  const totalSteps = activeSteps.length;
+  const progress = ((step + 1) / totalSteps) * 100;
+
+  // Map visual step index to logical step content index
+  const getLogicalStep = (visualStep: number): number => {
+    if (isSleepingGroup) return visualStep;
+    // Non-sleeping: skip step 2 (meal plan), so visual 2->3, visual 3->4
+    if (visualStep >= 2) return visualStep + 1;
+    return visualStep;
+  };
+
+  const logicalStep = getLogicalStep(step);
+
   const isFromQuote = !!quoteData;
   const prefillFields = isFromQuote ? {
     group_name: !!quoteData.snapshot?.groupName || !!quoteData.title,
@@ -252,19 +417,43 @@ export default function GuestForm() {
     client_email: !!quoteData.client_details?.clientEmail,
   } : {};
 
-  // Quote info banner
   const quoteBanner = isFromQuote ? (
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm text-blue-800">
       <p className="font-semibold mb-1">📋 שאלון זה מקושר להצעת מחיר מאושרת</p>
       <p>חלק מהפרטים מולאו אוטומטית מההצעה. נא להשלים את הפרטים התפעוליים הנוספים.</p>
-      {quoteData.snapshot?.startDate && quoteData.snapshot?.endDate && (
+      {stayStartDate && stayEndDate && (
         <p className="mt-1">
-          <strong>תאריכים:</strong> {quoteData.snapshot.startDate} — {quoteData.snapshot.endDate}
-          {quoteData.snapshot.nights > 0 && ` (${quoteData.snapshot.nights} לילות)`}
+          <strong>תאריכים:</strong> {stayStartDate} — {stayEndDate}
+          {stayNights > 0 && ` (${stayNights} לילות)`}
         </p>
       )}
     </div>
   ) : null;
+
+  // Group meals by date for display
+  const mealsByDate = useMemo(() => {
+    const map = new Map<string, { meal: GeneratedMeal; index: number }[]>();
+    mealPrefs.generatedMeals.forEach((m, idx) => {
+      if (!map.has(m.date)) map.set(m.date, []);
+      map.get(m.date)!.push({ meal: m, index: idx });
+    });
+    return Array.from(map.entries());
+  }, [mealPrefs.generatedMeals]);
+
+  const formatDateHe = (dateStr: string) => {
+    try {
+      const d = parseISO(dateStr);
+      return format(d, 'EEEE, d בMMMM', { locale: he });
+    } catch { return dateStr; }
+  };
+
+  const getDayLabel = (dateStr: string): string | null => {
+    if (dateStr === stayStartDate) return 'יום הגעה';
+    if (dateStr === stayEndDate) return 'יום עזיבה';
+    return null;
+  };
+
+  // ---- Render ----
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -275,13 +464,12 @@ export default function GuestForm() {
         <p className="text-sm text-gray-500 mt-1">נא למלא את כל הפרטים לפני ההגעה</p>
       </div>
 
-      {/* Blue accent bar */}
       <div className="h-1 bg-blue-600 max-w-2xl mx-auto rounded-full" />
 
       {/* Stepper */}
       <div className="max-w-2xl mx-auto px-4 mt-6 mb-2">
         <div className="flex justify-between mb-3">
-          {STEPS.map((s, i) => (
+          {activeSteps.map((s, i) => (
             <div key={i} className="flex flex-col items-center flex-1">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${
                 i <= step
@@ -294,7 +482,6 @@ export default function GuestForm() {
             </div>
           ))}
         </div>
-        {/* Progress bar */}
         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
           <div className="h-full bg-blue-600 transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
         </div>
@@ -302,16 +489,16 @@ export default function GuestForm() {
 
       {/* Form Card */}
       <div className="max-w-2xl mx-auto px-4 pb-12 mt-4">
-        {step === 0 && quoteBanner}
+        {logicalStep === 0 && quoteBanner}
 
         <Card className="p-6 md:p-8 bg-white border-gray-200 shadow-md">
-          {/* Section title with accent underline */}
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-800">{STEPS[step]}</h2>
+            <h2 className="text-lg font-bold text-gray-800">{activeSteps[step]}</h2>
             <div className="h-0.5 w-12 bg-amber-500 mt-1 rounded-full" />
           </div>
 
-          {step === 0 && (
+          {/* ========== STEP 0: Group Details ========== */}
+          {logicalStep === 0 && (
             <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -360,7 +547,6 @@ export default function GuestForm() {
                 />
               </div>
 
-              {/* Collapsible extra details */}
               <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
                 <CollapsibleTrigger asChild>
                   <button className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
@@ -419,7 +605,8 @@ export default function GuestForm() {
             </div>
           )}
 
-          {step === 1 && (
+          {/* ========== STEP 1: Diet Preferences ========== */}
+          {logicalStep === 1 && (
             <div className="space-y-6">
               <p className="text-sm text-gray-500 text-center">נא לרשום את מספר המשתתפים עבור כל העדפה</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -438,7 +625,6 @@ export default function GuestForm() {
                 ))}
               </div>
 
-              {/* Upgraded coffee add-on */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                 <h3 className="text-base font-bold text-gray-800 text-center mb-3">תוספות בתשלום</h3>
                 <label className="flex items-center justify-center gap-3 cursor-pointer">
@@ -457,9 +643,152 @@ export default function GuestForm() {
             </div>
           )}
 
-          {step === 2 && (
+          {/* ========== STEP 2: Meal Plan (sleeping groups only) ========== */}
+          {logicalStep === 2 && isSleepingGroup && (
+            <div className="space-y-6">
+              {/* Stay info banner */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                <div className="flex flex-wrap gap-x-6 gap-y-1">
+                  <span><strong>צ׳ק-אין:</strong> {formatDateHe(stayStartDate)}</span>
+                  <span><strong>צ׳ק-אאוט:</strong> {formatDateHe(stayEndDate)}</span>
+                  <span><strong>לילות:</strong> {stayNights}</span>
+                </div>
+              </div>
+
+              {/* Arrival / departure lunch selection */}
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-gray-800">בחירת ארוחת צהריים נוספת</h3>
+                <p className="text-sm text-gray-500">
+                  ניתן לבחור ארוחת צהריים ביום ההגעה <strong>או</strong> ביום העזיבה (לא שניהם).
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Arrival lunch */}
+                  <button
+                    type="button"
+                    onClick={() => handleLunchToggle('arrival')}
+                    className={`rounded-xl border-2 p-4 text-center transition-all ${
+                      mealPrefs.arrivalLunch
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">🍽️</div>
+                    <div className="text-sm font-semibold">צהריים ביום ההגעה</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{formatDateHe(stayStartDate)}</div>
+                  </button>
+
+                  {/* Departure lunch */}
+                  <button
+                    type="button"
+                    onClick={() => handleLunchToggle('departure')}
+                    className={`rounded-xl border-2 p-4 text-center transition-all ${
+                      mealPrefs.departureLunch
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">🍽️</div>
+                    <div className="text-sm font-semibold">צהריים ביום העזיבה</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{formatDateHe(stayEndDate)}</div>
+                  </button>
+
+                  {/* No extra lunch */}
+                  <button
+                    type="button"
+                    onClick={handleNoLunch}
+                    className={`rounded-xl border-2 p-4 text-center transition-all ${
+                      !mealPrefs.arrivalLunch && !mealPrefs.departureLunch
+                        ? 'border-gray-500 bg-gray-50 text-gray-800 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">✖️</div>
+                    <div className="text-sm font-semibold">ללא צהריים נוספת</div>
+                    <div className="text-xs text-gray-400 mt-0.5">רק ארוחות השהייה</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Generated meal list by day */}
+              {mealsByDate.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-base font-semibold text-gray-800">ארוחות במהלך השהייה</h3>
+                  <p className="text-sm text-gray-500">
+                    עבור כל ארוחה, ניתן לבקש סנדוויץ׳ במקום ארוחה רגילה.
+                  </p>
+
+                  {mealsByDate.map(([dateStr, meals]) => {
+                    const dayLabel = getDayLabel(dateStr);
+                    return (
+                      <div key={dateStr} className="border border-gray-200 rounded-xl overflow-hidden">
+                        {/* Day header */}
+                        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-semibold text-gray-700">{formatDateHe(dateStr)}</span>
+                            {dayLabel && (
+                              <span className="mr-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                {dayLabel}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-400">{meals.length} ארוחות</span>
+                        </div>
+
+                        {/* Meals */}
+                        <div className="divide-y divide-gray-100">
+                          {meals.map(({ meal, index }) => (
+                            <div
+                              key={index}
+                              className={`flex items-center justify-between px-4 py-3 transition-colors ${
+                                meal.sandwichInstead ? 'bg-amber-50/60' : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {meal.sandwichInstead ? (
+                                  <Sandwich className="w-5 h-5 text-amber-600" />
+                                ) : (
+                                  <UtensilsCrossed className="w-5 h-5 text-gray-400" />
+                                )}
+                                <div>
+                                  <span className={`text-sm font-medium ${meal.sandwichInstead ? 'text-amber-700' : 'text-gray-700'}`}>
+                                    {MEAL_LABELS[meal.mealType]}
+                                  </span>
+                                  {meal.sandwichInstead && (
+                                    <span className="block text-xs text-amber-600 font-medium">→ סנדוויץ׳ במקום ארוחה</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400">סנדוויץ׳</span>
+                                <Switch
+                                  checked={meal.sandwichInstead}
+                                  onCheckedChange={() => toggleSandwich(index)}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Summary */}
+                  <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1">
+                      <span>סה״כ ארוחות: <strong>{mealPrefs.generatedMeals.length}</strong></span>
+                      <span>ארוחות רגילות: <strong>{mealPrefs.generatedMeals.filter(m => !m.sandwichInstead).length}</strong></span>
+                      <span>סנדוויצ׳ים: <strong className="text-amber-600">{mealPrefs.generatedMeals.filter(m => m.sandwichInstead).length}</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========== STEP 3: Tent Distribution ========== */}
+          {logicalStep === 3 && (
             <div className="space-y-5">
-              {/* Info box */}
               <div className="bg-gray-100 rounded-xl p-4 text-sm text-gray-600 space-y-1">
                 <p className="font-semibold text-gray-700 mb-2">סוגי האוהלים הזמינים:</p>
                 {TENT_TYPES.map(t => (
@@ -469,15 +798,12 @@ export default function GuestForm() {
 
               <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור גברים ונשים</p>
 
-              {/* Table */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
-                {/* Header */}
                 <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
                   <div className="p-3">סוג האוהל</div>
                   <div className="p-3 text-center">מס׳ אוהלים — נשים</div>
                   <div className="p-3 text-center">מס׳ אוהלים — גברים</div>
                 </div>
-                {/* Rows */}
                 {TENT_TYPES.map((t, idx) => {
                   const row = form.tent_distribution[idx];
                   const otherGender = (gender: 'boys' | 'girls') => gender === 'boys' ? row.girls : row.boys;
@@ -535,7 +861,8 @@ export default function GuestForm() {
             </div>
           )}
 
-          {step === 3 && (
+          {/* ========== STEP 4: Activities Schedule ========== */}
+          {logicalStep === 4 && (
             <div className="space-y-5">
               <div>
                 <Label className="text-gray-700">העדפות לוח זמנים / פעילויות</Label>
@@ -570,7 +897,7 @@ export default function GuestForm() {
             ) : (
               <div />
             )}
-            {step < STEPS.length - 1 ? (
+            {step < totalSteps - 1 ? (
               <Button onClick={() => setStep(s => s + 1)} className="bg-blue-600 hover:bg-blue-700 text-white gap-1">
                 <ArrowLeft className="w-4 h-4" />
                 הבא
