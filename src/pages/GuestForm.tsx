@@ -95,7 +95,7 @@ export default function GuestForm() {
                 const t = TENT_TYPES[i];
                 const total = row.boys + row.girls;
                 if (total === 0) return null;
-                return `${t.label} (${t.beds} מיטות): ${row.girls} בנות, ${row.boys} בנים (סה"כ ${total})`;
+                return `${t.label} (${t.beds} מיטות): ${row.girls} נשים, ${row.boys} גברים (סה"כ ${total})`;
               }).filter(Boolean),
               form.tent_distribution_notes ? `הערות: ${form.tent_distribution_notes}` : null,
             ].filter(Boolean).join('\n') || null,
