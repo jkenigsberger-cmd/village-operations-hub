@@ -835,8 +835,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                 
                 {/* Mixed */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-purple-600">
-                    <span className="w-3 h-3 rounded-full bg-purple-500" />
+                  <Label className="flex items-center gap-2 text-gender-mixed">
+                    <span className="w-3 h-3 rounded-full bg-gender-mixed" />
                     מעורב
                   </Label>
                   <div className="flex items-center gap-2">
@@ -850,7 +850,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     >
                       -
                     </Button>
-                    <span className="w-8 text-center font-semibold text-purple-600">{genderCounts.mixed}</span>
+                    <span className="w-8 text-center font-semibold text-gender-mixed">{genderCounts.mixed}</span>
                     <Button
                       type="button"
                       variant="outline"
