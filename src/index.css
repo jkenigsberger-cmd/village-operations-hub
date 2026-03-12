@@ -90,13 +90,13 @@
     --vip: 45 80% 50%;
     --vip-foreground: 30 30% 15%;
     
-    /* Gender colors */
-    --gender-female: 340 65% 55%;
-    --gender-female-light: 340 55% 92%;
-    --gender-male: 210 65% 50%;
-    --gender-male-light: 210 55% 92%;
-    --gender-unisex: 270 50% 55%;
-    --gender-unisex-light: 270 40% 92%;
+    /* Gender colors — Foundation palette */
+    --gender-female: 147 69% 40%;
+    --gender-female-light: 147 60% 92%;
+    --gender-male: 228 90% 44%;
+    --gender-male-light: 228 70% 92%;
+    --gender-mixed: 17 99% 53%;
+    --gender-mixed-light: 17 80% 92%;
   }
 
   .dark {
