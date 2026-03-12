@@ -459,6 +459,24 @@ const AdminQuotes = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
+                          {q.status === 'approved' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const base = window.location.hostname.includes('lovableproject.com')
+                                  ? 'https://glowhadorhaba.lovable.app'
+                                  : window.location.origin;
+                                navigator.clipboard.writeText(`${base}/guest-form?quote=${q.id}`);
+                                toast({ title: 'הקישור הועתק! 📋', description: 'שלחו את הקישור ללקוח למילוי שאלון הכנה' });
+                              }}
+                            >
+                              <ClipboardList className="w-3.5 h-3.5" />
+                              שאלון לקוח
+                            </Button>
+                          )}
                           <span className="font-bold text-lg">{fc(q.totals.totalAfterDiscount)}</span>
                           <Badge className={STATUS_COLORS[q.status]}>
                             {QUOTE_STATUS_LABELS[q.status]}
