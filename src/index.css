@@ -285,9 +285,9 @@
     border-color: hsl(var(--gender-male));
   }
 
-  .bg-gender-unisex {
-    background-color: hsl(var(--gender-unisex-light));
-    border-color: hsl(var(--gender-unisex));
+  .bg-gender-mixed {
+    background-color: hsl(var(--gender-mixed-light));
+    border-color: hsl(var(--gender-mixed));
   }
 }
 
