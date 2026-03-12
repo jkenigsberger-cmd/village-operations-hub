@@ -589,7 +589,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                   genderValidation.boysMatch ? "text-green-600" : "text-amber-600 bg-amber-50 dark:bg-amber-950/20"
                 )}>
                   {genderValidation.boysMatch ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                  <span>בנים: {genderValidation.boysSum} / {boysCount || 0}</span>
+                  <span>גברים: {genderValidation.boysSum} / {boysCount || 0}</span>
                 </div>
                 <div className={cn(
                   "flex items-center gap-2 text-sm p-2 rounded-lg",
