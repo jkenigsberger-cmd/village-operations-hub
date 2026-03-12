@@ -655,9 +655,9 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                   const currentGender = tentGenders[tent.id] || tent.gender || 'MIXED';
                   
                   const genderBorderColor = isSelected ? (
-                    currentGender === 'FEMALE' ? 'border-pink-500 bg-pink-50' :
-                    currentGender === 'MALE' ? 'border-blue-500 bg-blue-50' :
-                    'border-purple-500 bg-purple-50'
+                    currentGender === 'FEMALE' ? 'border-gender-female bg-gender-female-light' :
+                    currentGender === 'MALE' ? 'border-gender-male bg-gender-male-light' :
+                    'border-gender-mixed bg-gender-mixed-light'
                   ) : '';
                   
                   return (
