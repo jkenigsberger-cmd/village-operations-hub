@@ -6,8 +6,8 @@ import { Tent, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GENDER_LABELS: Record<TentGender, string> = {
-  BOYS: 'בנים',
-  GIRLS: 'בנות',
+  BOYS: 'גברים',
+  GIRLS: 'נשים',
   MIXED: 'מעורב',
 };
 
