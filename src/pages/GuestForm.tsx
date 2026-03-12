@@ -437,16 +437,6 @@ export default function GuestForm() {
     </div>
   ) : null;
 
-  // Group meals by date for display
-  const mealsByDate = useMemo(() => {
-    const map = new Map<string, { meal: GeneratedMeal; index: number }[]>();
-    mealPrefs.generatedMeals.forEach((m, idx) => {
-      if (!map.has(m.date)) map.set(m.date, []);
-      map.get(m.date)!.push({ meal: m, index: idx });
-    });
-    return Array.from(map.entries());
-  }, [mealPrefs.generatedMeals]);
-
   const formatDateHe = (dateStr: string) => {
     try {
       const d = parseISO(dateStr);
