@@ -98,6 +98,14 @@ export default {
           DEFAULT: "hsl(var(--vip))",
           foreground: "hsl(var(--vip-foreground))",
         },
+        gender: {
+          female: "hsl(var(--gender-female))",
+          "female-light": "hsl(var(--gender-female-light))",
+          male: "hsl(var(--gender-male))",
+          "male-light": "hsl(var(--gender-male-light))",
+          mixed: "hsl(var(--gender-mixed))",
+          "mixed-light": "hsl(var(--gender-mixed-light))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

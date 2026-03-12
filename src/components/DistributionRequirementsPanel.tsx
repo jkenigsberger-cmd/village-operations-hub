@@ -115,10 +115,10 @@ export const DistributionRequirementsPanel: React.FC<DistributionRequirementsPan
             <h5 className="text-sm font-medium">פירוט מגדרי:</h5>
             <div className="flex gap-4 text-sm">
               {boysCount !== undefined && boysCount > 0 && (
-                <span>בנים: <strong>{boysCount}</strong></span>
+                <span>גברים: <strong>{boysCount}</strong></span>
               )}
               {girlsCount !== undefined && girlsCount > 0 && (
-                <span>בנות: <strong>{girlsCount}</strong></span>
+                <span>נשים: <strong>{girlsCount}</strong></span>
               )}
             </div>
             {hasGenderTags && genderGrouped.length > 0 && (

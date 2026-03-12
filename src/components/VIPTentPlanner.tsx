@@ -178,8 +178,8 @@ export const VIPTentPlanner: React.FC<VIPTentPlannerProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_none">ללא</SelectItem>
-                    <SelectItem value="female">♀️ נקבה</SelectItem>
-                    <SelectItem value="male">♂️ זכר</SelectItem>
+                    <SelectItem value="female">נשים</SelectItem>
+                    <SelectItem value="male">גברים</SelectItem>
                   </SelectContent>
                 </Select>
 

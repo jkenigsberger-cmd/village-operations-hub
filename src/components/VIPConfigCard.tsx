@@ -60,8 +60,8 @@ export const VIPConfigCard: React.FC<VIPConfigCardProps> = ({
       
       <div className={cn(
         'text-sm font-medium px-2 py-1 rounded-lg',
-        config.gender === 'female' && 'bg-pink-200/50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
-        config.gender === 'male' && 'bg-blue-200/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        config.gender === 'female' && 'bg-gender-female/15 text-gender-female',
+        config.gender === 'male' && 'bg-gender-male/15 text-gender-male',
         !config.gender && 'bg-muted text-muted-foreground'
       )}>
         {genderLabel}
