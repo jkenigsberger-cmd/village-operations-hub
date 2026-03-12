@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import hadorHabaLogo from '@/assets/hador-haba-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown } from 'lucide-react';
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown, AlertTriangle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const STEPS = [
   'פרטי קבוצה',
@@ -34,12 +36,29 @@ const DIET_OPTIONS = [
   { key: 'lactoseFree', label: '🥛 ללא לקטוז' },
 ];
 
+interface QuoteData {
+  id: string;
+  status: string;
+  title: string | null;
+  group_id: string | null;
+  snapshot: any;
+  client_details: any;
+}
+
 export default function GuestForm() {
+  const [searchParams] = useSearchParams();
+  const quoteId = searchParams.get('quote');
+
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Quote loading state
+  const [quoteLoading, setQuoteLoading] = useState(!!quoteId);
+  const [quoteError, setQuoteError] = useState('');
+  const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
 
   const [form, setForm] = useState({
     group_name: '',
@@ -62,6 +81,61 @@ export default function GuestForm() {
   });
 
   const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Load quote data on mount if quoteId is present
+  useEffect(() => {
+    if (!quoteId) {
+      setQuoteLoading(false);
+      return;
+    }
+
+    const loadQuote = async () => {
+      try {
+        const { data, error: fetchErr } = await supabase
+          .from('quotes')
+          .select('id, status, title, group_id, snapshot, client_details')
+          .eq('id', quoteId)
+          .single();
+
+        if (fetchErr || !data) {
+          setQuoteError('הצעת המחיר לא נמצאה. ייתכן שהקישור אינו תקין.');
+          setQuoteLoading(false);
+          return;
+        }
+
+        if (data.status !== 'approved') {
+          setQuoteError('הצעת המחיר טרם אושרה. לא ניתן למלא את השאלון כרגע.');
+          setQuoteLoading(false);
+          return;
+        }
+
+        setQuoteData(data as QuoteData);
+
+        // Prefill form fields from quote
+        const snapshot = data.snapshot as any || {};
+        const client = data.client_details as any || {};
+
+        setForm(prev => ({
+          ...prev,
+          group_name: snapshot.groupName || data.title || prev.group_name,
+          client_name: client.contactPerson || client.clientName || prev.client_name,
+          client_org: client.clientOrg || prev.client_org,
+          client_phone: client.clientPhone || prev.client_phone,
+          client_email: client.clientEmail || prev.client_email,
+          total_pax: snapshot.totalPax ? String(snapshot.totalPax) : prev.total_pax,
+          staff_count: snapshot.staffTotal ? String(snapshot.staffTotal) : prev.staff_count,
+          participant_count: snapshot.studentsTotal ? String(snapshot.studentsTotal) : prev.participant_count,
+          group_type: snapshot.groupType || prev.group_type,
+        }));
+      } catch {
+        setQuoteError('שגיאה בטעינת נתוני ההצעה.');
+      } finally {
+        setQuoteLoading(false);
+      }
+    };
+
+    loadQuote();
+  }, [quoteId]);
 
   const handleSubmit = async () => {
     if (!form.group_name.trim()) {
@@ -101,6 +175,7 @@ export default function GuestForm() {
             ].filter(Boolean).join('\n') || null,
             schedule_notes: form.schedule_notes,
             general_notes: form.general_notes,
+            quote_id: quoteId || null,
           }),
         }
       );
@@ -113,6 +188,45 @@ export default function GuestForm() {
       setSubmitting(false);
     }
   };
+
+  // Loading state for quote
+  if (quoteLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
+        <img src={hadorHabaLogo} alt="הדור הבא" className="h-20 mb-6" />
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+        <p className="text-muted-foreground">טוען נתוני הצעת מחיר...</p>
+      </div>
+    );
+  }
+
+  // Error state for invalid/unapproved quote
+  if (quoteError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
+        <img src={hadorHabaLogo} alt="הדור הבא" className="h-20 mb-6" />
+        <AlertTriangle className="w-16 h-16 text-orange-500 mb-4" />
+        <h1 className="text-xl font-bold mb-2">לא ניתן לפתוח את השאלון</h1>
+        <p className="text-muted-foreground text-center max-w-md">{quoteError}</p>
+        <p className="text-sm text-muted-foreground mt-6">בית הדור הבא · מקום לחוויות ישראליות</p>
+      </div>
+    );
+  }
+
+  // If no quoteId at all, show an error (form requires quote)
+  if (!quoteId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
+        <img src={hadorHabaLogo} alt="הדור הבא" className="h-20 mb-6" />
+        <AlertTriangle className="w-16 h-16 text-orange-500 mb-4" />
+        <h1 className="text-xl font-bold mb-2">קישור לא תקין</h1>
+        <p className="text-muted-foreground text-center max-w-md">
+          שאלון ההכנה נשלח רק מתוך הצעת מחיר מאושרת. אנא פנו לצוות בית הדור הבא לקבלת קישור תקין.
+        </p>
+        <p className="text-sm text-muted-foreground mt-6">בית הדור הבא · מקום לחוויות ישראליות</p>
+      </div>
+    );
+  }
 
   if (done) {
     return (
@@ -127,6 +241,30 @@ export default function GuestForm() {
   }
 
   const progress = ((step + 1) / STEPS.length) * 100;
+
+  // Determine which fields are prefilled from quote (read-only)
+  const isFromQuote = !!quoteData;
+  const prefillFields = isFromQuote ? {
+    group_name: !!quoteData.snapshot?.groupName || !!quoteData.title,
+    client_name: !!(quoteData.client_details?.contactPerson || quoteData.client_details?.clientName),
+    client_org: !!quoteData.client_details?.clientOrg,
+    client_phone: !!quoteData.client_details?.clientPhone,
+    client_email: !!quoteData.client_details?.clientEmail,
+  } : {};
+
+  // Quote info banner
+  const quoteBanner = isFromQuote ? (
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm text-blue-800">
+      <p className="font-semibold mb-1">📋 שאלון זה מקושר להצעת מחיר מאושרת</p>
+      <p>חלק מהפרטים מולאו אוטומטית מההצעה. נא להשלים את הפרטים התפעוליים הנוספים.</p>
+      {quoteData.snapshot?.startDate && quoteData.snapshot?.endDate && (
+        <p className="mt-1">
+          <strong>תאריכים:</strong> {quoteData.snapshot.startDate} — {quoteData.snapshot.endDate}
+          {quoteData.snapshot.nights > 0 && ` (${quoteData.snapshot.nights} לילות)`}
+        </p>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -164,6 +302,8 @@ export default function GuestForm() {
 
       {/* Form Card */}
       <div className="max-w-2xl mx-auto px-4 pb-12 mt-4">
+        {step === 0 && quoteBanner}
+
         <Card className="p-6 md:p-8 bg-white border-gray-200 shadow-md">
           {/* Section title with accent underline */}
           <div className="mb-6">
@@ -176,7 +316,14 @@ export default function GuestForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-700">שם הקבוצה *</Label>
-                  <Input value={form.group_name} onChange={e => set('group_name', e.target.value)} placeholder="למשל: תנועת הצופים - גדוד 12" className="mt-1" />
+                  <Input
+                    value={form.group_name}
+                    onChange={e => set('group_name', e.target.value)}
+                    placeholder="למשל: תנועת הצופים - גדוד 12"
+                    className="mt-1"
+                    readOnly={!!prefillFields.group_name}
+                    disabled={!!prefillFields.group_name}
+                  />
                 </div>
                 <div>
                   <Label className="text-gray-700">סה"כ משתתפים</Label>
@@ -190,12 +337,27 @@ export default function GuestForm() {
                 </div>
                 <div>
                   <Label className="text-gray-700">שם איש קשר</Label>
-                  <Input value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="שם מלא" className="mt-1" />
+                  <Input
+                    value={form.client_name}
+                    onChange={e => set('client_name', e.target.value)}
+                    placeholder="שם מלא"
+                    className="mt-1"
+                    readOnly={!!prefillFields.client_name}
+                    disabled={!!prefillFields.client_name}
+                  />
                 </div>
               </div>
               <div>
                 <Label className="text-gray-700">טלפון</Label>
-                <Input type="tel" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} placeholder="050-0000000" className="mt-1" />
+                <Input
+                  type="tel"
+                  value={form.client_phone}
+                  onChange={e => set('client_phone', e.target.value)}
+                  placeholder="050-0000000"
+                  className="mt-1"
+                  readOnly={!!prefillFields.client_phone}
+                  disabled={!!prefillFields.client_phone}
+                />
               </div>
 
               {/* Collapsible extra details */}
@@ -210,11 +372,26 @@ export default function GuestForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-700">ארגון / חברה</Label>
-                      <Input value={form.client_org} onChange={e => set('client_org', e.target.value)} placeholder="שם הארגון" className="mt-1" />
+                      <Input
+                        value={form.client_org}
+                        onChange={e => set('client_org', e.target.value)}
+                        placeholder="שם הארגון"
+                        className="mt-1"
+                        readOnly={!!prefillFields.client_org}
+                        disabled={!!prefillFields.client_org}
+                      />
                     </div>
                     <div>
                       <Label className="text-gray-700">אימייל</Label>
-                      <Input type="email" value={form.client_email} onChange={e => set('client_email', e.target.value)} placeholder="email@example.com" className="mt-1" />
+                      <Input
+                        type="email"
+                        value={form.client_email}
+                        onChange={e => set('client_email', e.target.value)}
+                        placeholder="email@example.com"
+                        className="mt-1"
+                        readOnly={!!prefillFields.client_email}
+                        disabled={!!prefillFields.client_email}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

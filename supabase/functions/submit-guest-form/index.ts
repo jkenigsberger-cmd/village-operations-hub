@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { group_name, client_name, client_org, client_phone, client_email, total_pax, staff_count, participant_count, boys_count, girls_count, group_type, special_diets, tent_distribution_notes, schedule_notes, general_notes } = body;
+    const { group_name, client_name, client_org, client_phone, client_email, total_pax, staff_count, participant_count, boys_count, girls_count, group_type, special_diets, tent_distribution_notes, schedule_notes, general_notes, quote_id } = body;
 
     if (!group_name || typeof group_name !== "string" || !group_name.trim()) {
       return new Response(JSON.stringify({ error: "group_name is required" }), {
@@ -33,6 +33,29 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // If quote_id provided, validate it exists and is approved
+    if (quote_id) {
+      const { data: quote, error: quoteErr } = await supabase
+        .from("quotes")
+        .select("id, status")
+        .eq("id", quote_id)
+        .single();
+
+      if (quoteErr || !quote) {
+        return new Response(JSON.stringify({ error: "Quote not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (quote.status !== "approved") {
+        return new Response(JSON.stringify({ error: "Quote must be approved before submitting a form" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const { data, error } = await supabase
       .from("guest_form_submissions")
@@ -54,6 +77,7 @@ Deno.serve(async (req) => {
         schedule_notes: schedule_notes?.slice(0, 2000) || null,
         general_notes: general_notes?.slice(0, 2000) || null,
         submitted_at: new Date().toISOString(),
+        quote_id: quote_id || null,
       })
       .select()
       .single();
