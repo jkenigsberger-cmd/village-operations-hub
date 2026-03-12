@@ -235,24 +235,31 @@ export default function GuestForm() {
 
     const loadQuote = async () => {
       try {
-        const { data, error: fetchErr } = await supabase
-          .from('quotes')
-          .select('id, status, title, group_id, snapshot, client_details')
-          .eq('id', quoteId)
-          .single();
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/get-quote-for-form?quote_id=${encodeURIComponent(quoteId)}`,
+          { headers: { 'Content-Type': 'application/json' } }
+        );
 
-        if (fetchErr || !data) {
+        if (res.status === 404) {
           setQuoteError('הצעת המחיר לא נמצאה. ייתכן שהקישור אינו תקין.');
           setQuoteLoading(false);
           return;
         }
 
-        if (data.status !== 'approved') {
+        if (res.status === 403) {
           setQuoteError('הצעת המחיר טרם אושרה. לא ניתן למלא את השאלון כרגע.');
           setQuoteLoading(false);
           return;
         }
 
+        if (!res.ok) {
+          setQuoteError('שגיאה בטעינת נתוני ההצעה.');
+          setQuoteLoading(false);
+          return;
+        }
+
+        const data = await res.json();
         setQuoteData(data as QuoteData);
 
         const snapshot = data.snapshot as any || {};
