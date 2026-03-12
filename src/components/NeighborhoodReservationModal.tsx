@@ -773,8 +773,8 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
               <div className="grid grid-cols-3 gap-3">
                 {/* Female */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-pink-600">
-                    <span className="w-3 h-3 rounded-full bg-pink-500" />
+                  <Label className="flex items-center gap-2 text-gender-female">
+                    <span className="w-3 h-3 rounded-full bg-gender-female" />
                     נשים
                   </Label>
                   <div className="flex items-center gap-2">
@@ -788,7 +788,7 @@ export const NeighborhoodReservationModal: React.FC<NeighborhoodReservationModal
                     >
                       -
                     </Button>
-                    <span className="w-8 text-center font-semibold text-pink-600">{genderCounts.female}</span>
+                    <span className="w-8 text-center font-semibold text-gender-female">{genderCounts.female}</span>
                     <Button
                       type="button"
                       variant="outline"
