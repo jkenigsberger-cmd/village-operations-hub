@@ -1,32 +1,38 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Fix: Guest Form Link Not Working
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## Problem
+
+The guest form at `/guest-form?quote=<id>` fails to load quote data because:
+
+1. The page is **public** (outside `AuthGate` in `App.tsx`)
+2. It queries the `quotes` table directly using the Supabase client
+3. The `quotes` table has RLS requiring `authenticated` role for SELECT
+4. An unauthenticated visitor gets no data back, triggering "הצעת המחיר לא נמצאה"
 
 ## Solution
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+Move the quote-fetching logic to the **edge function** (`submit-guest-form`) or create a **new lightweight edge function** that fetches the quote data server-side using the service role key, bypassing RLS.
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
+**Approach: New edge function `get-quote-for-form`**
 
-### Technical Details
+This is cleaner because the existing `submit-guest-form` handles POST submissions only.
 
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
+### 1. Create `supabase/functions/get-quote-for-form/index.ts`
+- Accepts GET with `?quote_id=<uuid>`
+- Uses service role key to query `quotes` table
+- Validates quote exists and status is `approved`
+- Returns only the fields needed for prefill: `id`, `status`, `title`, `group_id`, `snapshot`, `client_details`
+- No auth required (public endpoint, read-only, returns limited data)
 
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
+### 2. Update `src/pages/GuestForm.tsx`
+- Replace the direct `supabase.from('quotes').select(...)` call with a `fetch()` to the new edge function
+- Same error handling, same prefill logic — just a different data source
 
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+### Files Changed
+- **New**: `supabase/functions/get-quote-for-form/index.ts`
+- **Modified**: `src/pages/GuestForm.tsx` (lines ~236-277, swap supabase query for fetch call)
+
+No database or RLS changes needed.
 
