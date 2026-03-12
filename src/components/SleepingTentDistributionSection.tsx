@@ -596,7 +596,7 @@ export const SleepingTentDistributionSection: React.FC<SleepingTentDistributionS
                   genderValidation.girlsMatch ? "text-green-600" : "text-amber-600 bg-amber-50 dark:bg-amber-950/20"
                 )}>
                   {genderValidation.girlsMatch ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                  <span>בנות: {genderValidation.girlsSum} / {girlsCount || 0}</span>
+                  <span>נשים: {genderValidation.girlsSum} / {girlsCount || 0}</span>
                 </div>
               </div>
             )}

@@ -290,15 +290,15 @@ export default function GuestForm() {
                 ))}
               </div>
 
-              <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור בנים ובנות</p>
+              <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור גברים ונשים</p>
 
               {/* Table */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 {/* Header */}
                 <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
                   <div className="p-3">סוג האוהל</div>
-                  <div className="p-3 text-center">מס׳ אוהלים — בנות</div>
-                  <div className="p-3 text-center">מס׳ אוהלים — בנים</div>
+                  <div className="p-3 text-center">מס׳ אוהלים — נשים</div>
+                  <div className="p-3 text-center">מס׳ אוהלים — גברים</div>
                 </div>
                 {/* Rows */}
                 {TENT_TYPES.map((t, idx) => {
