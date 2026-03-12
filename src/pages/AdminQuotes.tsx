@@ -407,19 +407,6 @@ const AdminQuotes = () => {
               <Plus className="w-4 h-4" />
               הצעה חדשה (עצמאית)
             </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => {
-                const base = window.location.hostname.includes('lovableproject.com')
-                  ? 'https://glowhadorhaba.lovable.app'
-                  : window.location.origin;
-                navigator.clipboard.writeText(`${base}/guest-form`);
-                toast({ title: 'הקישור הועתק! 📋', description: 'שלחו את הקישור ללקוח למילוי שאלון הכנה' });
-              }}
-            >
-              שאלון לקוח 📋
-            </Button>
             <Select onValueChange={(v) => handleNewQuote(v)}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="הצעה חדשה מקבוצה..." />
