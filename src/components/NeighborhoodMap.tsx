@@ -249,15 +249,15 @@ export default function NeighborhoodMap({ title, nodes, isDoubleTentNeighborhood
           <span>לא משובץ</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(330, 70%, 75%)" }} />
-          <span>♀ נקבה</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(147, 69%, 40%)" }} />
+          <span>נשים</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(210, 70%, 65%)" }} />
-          <span>♂ זכר</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(228, 90%, 44%)" }} />
+          <span>גברים</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(270, 60%, 70%)" }} />
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: "hsl(17, 99%, 53%)" }} />
           <span>מעורב</span>
         </div>
       </div>
