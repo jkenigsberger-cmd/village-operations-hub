@@ -22,11 +22,11 @@ const getGenderStyles = (gender?: TentGender, hasReservation?: boolean) => {
   
   switch (gender) {
     case 'FEMALE':
-      return 'border-l-4 border-l-pink-400 bg-gradient-to-r from-pink-50 to-card';
+      return 'border-l-4 border-l-gender-female bg-gradient-to-r from-gender-female-light to-card';
     case 'MALE':
-      return 'border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-card';
+      return 'border-l-4 border-l-gender-male bg-gradient-to-r from-gender-male-light to-card';
     case 'MIXED':
-      return 'border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-card';
+      return 'border-l-4 border-l-gender-mixed bg-gradient-to-r from-gender-mixed-light to-card';
     default:
       return '';
   }
