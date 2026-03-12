@@ -348,6 +348,16 @@ export default function GuestForm() {
     }
   };
 
+  // Group meals by date for display (must be before early returns to keep hook order stable)
+  const mealsByDate = useMemo(() => {
+    const map = new Map<string, { meal: GeneratedMeal; index: number }[]>();
+    mealPrefs.generatedMeals.forEach((m, idx) => {
+      if (!map.has(m.date)) map.set(m.date, []);
+      map.get(m.date)!.push({ meal: m, index: idx });
+    });
+    return Array.from(map.entries());
+  }, [mealPrefs.generatedMeals]);
+
   // ---- Early return screens ----
 
   if (quoteLoading) {
