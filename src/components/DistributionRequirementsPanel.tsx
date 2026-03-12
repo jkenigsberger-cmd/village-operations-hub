@@ -14,8 +14,8 @@ interface DistributionRequirementsPanelProps {
 }
 
 const GENDER_LABELS: Record<TentGender, string> = {
-  BOYS: 'בנים',
-  GIRLS: 'בנות',
+  BOYS: 'גברים',
+  GIRLS: 'נשים',
   MIXED: 'מעורב',
 };
 
