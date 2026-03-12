@@ -1080,7 +1080,7 @@ const AdminGroupEdit = () => {
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-sm font-medium">בנים</label>
+                      <label className="text-sm font-medium">גברים</label>
                       <NumericInput
                         value={formData.boysCount ?? 0}
                         onChange={(val) => setFormData(prev => ({ ...prev, boysCount: val || undefined }))}
