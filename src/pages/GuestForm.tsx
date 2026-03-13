@@ -345,12 +345,7 @@ export default function GuestForm() {
       const boysCount = Number(form.boys_count) || 0;
       const girlsCount = Number(form.girls_count) || 0;
       const studentsTotal = boysCount + girlsCount;
-      const staffMen = Number(form.staff_men_count) || 0;
-      const staffWomen = Number(form.staff_women_count) || 0;
-      const securityCount = Number(form.security_count) || 0;
-      const driversCount = Number(form.drivers_count) || 0;
-      const othersCount = Number(form.others_count) || 0;
-      const staffTotal = staffMen + staffWomen + securityCount + driversCount + othersCount;
+      const staffTotal = Number(form.staff_count) || 0;
       const derivedTotal = studentsTotal + staffTotal;
 
       // Build sleeping notes for tent_distribution_notes field
