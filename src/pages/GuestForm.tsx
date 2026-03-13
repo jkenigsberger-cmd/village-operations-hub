@@ -66,6 +66,7 @@ interface ScheduleItem {
   location: LocationType | '';
   activityName: string;
   notes: string;
+  participantCount: string;
 }
 
 interface MealPreferences {
