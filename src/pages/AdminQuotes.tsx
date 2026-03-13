@@ -253,26 +253,37 @@ const AdminQuotes = () => {
         toast({ title: `הוסרו ${removedCount} תכנים שאינם זמינים לקהל שנבחר` });
       }
 
+      const activityType = prev.activityType || 'midweek_lodging';
       return {
         ...prev,
         audience,
-        activityType: audience === 'students' ? (prev.activityType || 'midweek_lodging') : undefined,
+        activityType,
         accommodationPricePerPerson: audience === 'students'
-          ? STUDENT_PRICES[prev.activityType || 'midweek_lodging']
+          ? STUDENT_PRICES[activityType]
           : undefined,
-        accommodationPriceTent3: audience === 'adults' ? ADULT_TENT_PRICES.tent3 : undefined,
-        accommodationPriceTent68: audience === 'adults' ? ADULT_TENT_PRICES.tent68 : undefined,
+        accommodationPriceTent3: (audience === 'adults' && activityType !== 'day_activity') ? ADULT_TENT_PRICES.tent3 : undefined,
+        accommodationPriceTent68: (audience === 'adults' && activityType !== 'day_activity') ? ADULT_TENT_PRICES.tent68 : undefined,
         workshops: updatedWorkshops,
       };
     });
   };
 
   const handleActivityTypeChange = (type: StudentActivityType) => {
-    setEditPricing(prev => ({
-      ...prev,
-      activityType: type,
-      accommodationPricePerPerson: STUDENT_PRICES[type],
-    }));
+    setEditPricing(prev => {
+      if (prev.audience === 'adults') {
+        return {
+          ...prev,
+          activityType: type,
+          accommodationPriceTent3: type !== 'day_activity' ? ADULT_TENT_PRICES.tent3 : undefined,
+          accommodationPriceTent68: type !== 'day_activity' ? ADULT_TENT_PRICES.tent68 : undefined,
+        };
+      }
+      return {
+        ...prev,
+        activityType: type,
+        accommodationPricePerPerson: STUDENT_PRICES[type],
+      };
+    });
   };
 
   // Workshop helpers - catalog based
@@ -701,19 +712,17 @@ const AdminQuotes = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {editPricing.audience === 'students' && (
-                  <div>
-                    <Label>סוג פעילות</Label>
-                    <Select value={editPricing.activityType || 'midweek_lodging'} onValueChange={(v) => handleActivityTypeChange(v as StudentActivityType)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(ACTIVITY_TYPE_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div>
+                  <Label>סוג פעילות</Label>
+                  <Select value={editPricing.activityType || 'midweek_lodging'} onValueChange={(v) => handleActivityTypeChange(v as StudentActivityType)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ACTIVITY_TYPE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Accommodation pricing inline */}
