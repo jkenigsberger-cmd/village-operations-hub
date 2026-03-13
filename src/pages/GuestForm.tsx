@@ -313,6 +313,12 @@ export default function GuestForm() {
       const staffTotal = staffMen + staffWomen + securityCount + driversCount + othersCount;
       const derivedTotal = studentsTotal + staffTotal;
 
+      // Build sleeping notes for tent_distribution_notes field
+      const sleepingNotesParts = [
+        form.student_sleeping_notes ? `צרכי לינה תלמידים: ${form.student_sleeping_notes}` : null,
+        form.other_sleeping_notes ? `צרכי לינה צוות/מלווים: ${form.other_sleeping_notes}` : null,
+      ].filter(Boolean).join('\n');
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/submit-guest-form`,
         {
@@ -324,9 +330,9 @@ export default function GuestForm() {
             client_org: form.client_org,
             client_phone: form.client_phone,
             client_email: form.client_email,
-            total_pax: derivedTotal || (form.total_pax ? Number(form.total_pax) : null),
-            staff_count: otherMembersCount || (form.staff_count ? Number(form.staff_count) : null),
-            participant_count: (girlsCount + boysCount) || (form.participant_count ? Number(form.participant_count) : null),
+            total_pax: derivedTotal || null,
+            staff_count: staffTotal || null,
+            participant_count: studentsTotal || null,
             boys_count: boysCount || null,
             girls_count: girlsCount || null,
             group_type: form.group_type,
