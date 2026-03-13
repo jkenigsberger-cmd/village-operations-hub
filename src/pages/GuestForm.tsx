@@ -66,6 +66,7 @@ interface ScheduleItem {
   location: LocationType | '';
   activityName: string;
   notes: string;
+  participantCount: string;
 }
 
 interface MealPreferences {
@@ -154,12 +155,8 @@ export default function GuestForm() {
     // Student breakdown
     boys_count: '',
     girls_count: '',
-    // Staff/escorts breakdown
-    staff_men_count: '',
-    staff_women_count: '',
-    security_count: '',
-    drivers_count: '',
-    others_count: '',
+    // Staff/escorts — single count
+    staff_count: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
@@ -180,6 +177,7 @@ export default function GuestForm() {
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
 
   const addScheduleItem = () => {
+    const currentTotal = (Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0);
     setScheduleItems(prev => [...prev, {
       id: crypto.randomUUID(),
       date: stayStartDate || '',
@@ -188,6 +186,7 @@ export default function GuestForm() {
       location: '',
       activityName: '',
       notes: '',
+      participantCount: String(currentTotal || ''),
     }]);
   };
 
@@ -311,8 +310,7 @@ export default function GuestForm() {
           client_email: client.clientEmail || prev.client_email,
           boys_count: snapshot.studentsTotal ? String(Math.floor(snapshot.studentsTotal / 2)) : prev.boys_count,
           girls_count: snapshot.studentsTotal ? String(Math.ceil(snapshot.studentsTotal / 2)) : prev.girls_count,
-          staff_men_count: snapshot.staffTotal ? String(Math.floor(snapshot.staffTotal / 2)) : prev.staff_men_count,
-          staff_women_count: snapshot.staffTotal ? String(Math.ceil(snapshot.staffTotal / 2)) : prev.staff_women_count,
+          staff_count: snapshot.staffTotal ? String(snapshot.staffTotal) : prev.staff_count,
           group_type: snapshot.groupType || prev.group_type,
         }));
       } catch {
@@ -347,12 +345,7 @@ export default function GuestForm() {
       const boysCount = Number(form.boys_count) || 0;
       const girlsCount = Number(form.girls_count) || 0;
       const studentsTotal = boysCount + girlsCount;
-      const staffMen = Number(form.staff_men_count) || 0;
-      const staffWomen = Number(form.staff_women_count) || 0;
-      const securityCount = Number(form.security_count) || 0;
-      const driversCount = Number(form.drivers_count) || 0;
-      const othersCount = Number(form.others_count) || 0;
-      const staffTotal = staffMen + staffWomen + securityCount + driversCount + othersCount;
+      const staffTotal = Number(form.staff_count) || 0;
       const derivedTotal = studentsTotal + staffTotal;
 
       // Build sleeping notes for tent_distribution_notes field
@@ -875,74 +868,25 @@ export default function GuestForm() {
               <div className="space-y-4 border border-gray-200 rounded-xl p-5">
                 <h3 className="text-base font-bold text-gray-800">צוות / מלווים / אחרים</h3>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-700">גברים</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.staff_men_count}
-                      onChange={e => set('staff_men_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">נשים</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.staff_women_count}
-                      onChange={e => set('staff_women_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">אבטחה</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.security_count}
-                      onChange={e => set('security_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">נהגים</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.drivers_count}
-                      onChange={e => set('drivers_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">אחרים</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.others_count}
-                      onChange={e => set('others_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
+                <div>
+                  <Label className="text-gray-700">מספר אנשי צוות / מלווים / אחרים</Label>
+                  <p className="text-xs text-muted-foreground mb-1">(אבטחה, נהגים, מלווים, אחרים)</p>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.staff_count}
+                    onChange={e => set('staff_count', e.target.value)}
+                    placeholder="0"
+                    className="mt-1 max-w-[200px]"
+                    onFocus={e => e.target.select()}
+                  />
                 </div>
 
                 {/* Staff subtotal */}
                 <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
                   <span className="text-gray-600">סה״כ צוות / מלווים / אחרים</span>
                   <strong className="text-gray-800 text-base">
-                    {(Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.security_count) || 0) + (Number(form.drivers_count) || 0) + (Number(form.others_count) || 0)}
+                    {Number(form.staff_count) || 0}
                   </strong>
                 </div>
 
@@ -961,7 +905,7 @@ export default function GuestForm() {
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex justify-between items-center">
                 <span className="text-gray-700 font-medium">סה״כ מגיעים</span>
                 <strong className="text-blue-800 text-lg">
-                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.security_count) || 0) + (Number(form.drivers_count) || 0) + (Number(form.others_count) || 0)}
+                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0)}
                 </strong>
               </div>
 
@@ -1011,27 +955,41 @@ export default function GuestForm() {
                     </div>
                   </div>
 
-                  {/* Location select */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      איפה?
-                    </Label>
-                    <Select value={item.location} onValueChange={v => updateScheduleItem(item.id, 'location', v)}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="בחרו מיקום..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LOCATION_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {item.location === 'offsite' && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        פעילות מחוץ לחווה – לא דורשת הקצאת מתחם פנימי
-                      </p>
-                    )}
+                  {/* Location + Participants row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        איפה?
+                      </Label>
+                      <Select value={item.location} onValueChange={v => updateScheduleItem(item.id, 'location', v)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="בחרו מיקום..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LOCATION_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {item.location === 'offsite' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          לא דורשת מתחם פנימי
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">מספר משתתפים</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={item.participantCount}
+                        onChange={e => updateScheduleItem(item.id, 'participantCount', e.target.value)}
+                        placeholder="0"
+                        className="mt-1"
+                        onFocus={e => e.target.select()}
+                      />
+                    </div>
                   </div>
 
                   {/* Activity name (optional) */}
