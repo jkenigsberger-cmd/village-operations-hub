@@ -780,23 +780,12 @@ export default function GuestForm() {
           {/* ========== STEP 3: Participant Breakdown & Sleeping Needs ========== */}
           {logicalStep === 3 && (
             <div className="space-y-6">
-              {/* Participant breakdown */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-800">פירוט משתתפים</h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-700">בנות</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.girls_count}
-                      onChange={e => set('girls_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
+              {/* A) תלמידים */}
+              <div className="space-y-4 border border-gray-200 rounded-xl p-5">
+                <h3 className="text-base font-bold text-gray-800">תלמידים</h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-700">בנים</Label>
                     <Input
@@ -810,35 +799,26 @@ export default function GuestForm() {
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-700">אנשי צוות / מלווים / אחרים</Label>
+                    <Label className="text-gray-700">בנות</Label>
                     <Input
                       type="number"
                       min={0}
-                      value={form.other_members_count}
-                      onChange={e => set('other_members_count', e.target.value)}
+                      value={form.girls_count}
+                      onChange={e => set('girls_count', e.target.value)}
                       placeholder="0"
                       className="mt-1"
                       onFocus={e => e.target.select()}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">(אבטחה, נהגים, מלווים, אחרים)</p>
                   </div>
                 </div>
 
-                {/* Derived total */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
-                  <span className="text-gray-700">סה״כ משתתפים: </span>
-                  <strong className="text-blue-800 text-base">
-                    {(Number(form.girls_count) || 0) + (Number(form.boys_count) || 0) + (Number(form.other_members_count) || 0)}
+                {/* Students subtotal */}
+                <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
+                  <span className="text-gray-600">סה״כ תלמידים</span>
+                  <strong className="text-gray-800 text-base">
+                    {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0)}
                   </strong>
                 </div>
-              </div>
-
-              {/* Special sleeping needs */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-800">צרכים מיוחדים בלינה</h3>
-                <p className="text-sm text-muted-foreground">
-                  החלוקה לאוהלים תתבצע על ידי הצוות שלנו בהתאם לזמינות ולצרכים שציינתם.
-                </p>
 
                 <div>
                   <Label className="text-gray-700">צרכים מיוחדים בלינה – תלמידים</Label>
@@ -848,6 +828,82 @@ export default function GuestForm() {
                     placeholder="לדוגמה: 2 תלמידים שצריכים להיות לבד באוהל"
                     className="mt-1 min-h-[80px]"
                   />
+                </div>
+              </div>
+
+              {/* B) צוות / מלווים / אחרים */}
+              <div className="space-y-4 border border-gray-200 rounded-xl p-5">
+                <h3 className="text-base font-bold text-gray-800">צוות / מלווים / אחרים</h3>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-gray-700">גברים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_men_count}
+                      onChange={e => set('staff_men_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נשים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_women_count}
+                      onChange={e => set('staff_women_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">אבטחה</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.security_count}
+                      onChange={e => set('security_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נהגים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.drivers_count}
+                      onChange={e => set('drivers_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">אחרים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.others_count}
+                      onChange={e => set('others_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                </div>
+
+                {/* Staff subtotal */}
+                <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
+                  <span className="text-gray-600">סה״כ צוות / מלווים / אחרים</span>
+                  <strong className="text-gray-800 text-base">
+                    {(Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.security_count) || 0) + (Number(form.drivers_count) || 0) + (Number(form.others_count) || 0)}
+                  </strong>
                 </div>
 
                 <div>
@@ -860,6 +916,18 @@ export default function GuestForm() {
                   />
                 </div>
               </div>
+
+              {/* C) Grand total */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex justify-between items-center">
+                <span className="text-gray-700 font-medium">סה״כ מגיעים</span>
+                <strong className="text-blue-800 text-lg">
+                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.security_count) || 0) + (Number(form.drivers_count) || 0) + (Number(form.others_count) || 0)}
+                </strong>
+              </div>
+
+              <p className="text-sm text-muted-foreground text-center">
+                החלוקה לאוהלים תתבצע על ידי הצוות שלנו בהתאם לזמינות ולצרכים שציינתם.
+              </p>
             </div>
           )}
 
