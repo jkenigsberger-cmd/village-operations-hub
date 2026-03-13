@@ -1,32 +1,31 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Fix: Activity Type Selector Hidden for Adults Audience
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## Problem
+When selecting "מבוגרים" (adults) as the audience, the "סוג פעילות" (activity type) dropdown disappears because of a conditional render on line 704: `{editPricing.audience === 'students' && (`. The activity type should be visible for both audiences.
 
 ## Solution
+**File**: `src/pages/AdminQuotes.tsx`
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+1. **Remove the `students`-only guard** around the activity type selector (line 704-716). Show it for both audiences.
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
+2. **Update `handleAudienceChange`** (line ~259): Keep `activityType` for adults too instead of setting it to `undefined`. Default to `'midweek_lodging'` if not set.
 
-### Technical Details
+3. **Update accommodation pricing logic**: When audience is `adults` AND activity type is `day_activity`, no tent pricing applies. For lodging types, keep the existing tent pricing (`tent3`/`tent68`). This means the activity type drives the pricing model for both audiences.
 
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
+4. **Update `handleActivityTypeChange`**: For adults, adjust accommodation pricing based on activity type (tent prices for lodging, no accommodation for day activity). For students, keep current per-person pricing from `STUDENT_PRICES`.
 
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
+### Key change
+```tsx
+// Before (line 704):
+{editPricing.audience === 'students' && (
 
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+// After — always show:
+<div>
+  <Label>סוג פעילות</Label>
+  <Select ...>
+```
+
+The accommodation pricing section below (lines 720+) already branches on `audience` for students vs adults pricing inputs, so that stays as-is. The activity type just needs to persist across audience changes.
 
