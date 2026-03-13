@@ -267,9 +267,10 @@ export default function GuestForm() {
           client_org: client.clientOrg || prev.client_org,
           client_phone: client.clientPhone || prev.client_phone,
           client_email: client.clientEmail || prev.client_email,
-          total_pax: snapshot.totalPax ? String(snapshot.totalPax) : prev.total_pax,
-          staff_count: snapshot.staffTotal ? String(snapshot.staffTotal) : prev.staff_count,
-          participant_count: snapshot.studentsTotal ? String(snapshot.studentsTotal) : prev.participant_count,
+          boys_count: snapshot.studentsTotal ? String(Math.floor(snapshot.studentsTotal / 2)) : prev.boys_count,
+          girls_count: snapshot.studentsTotal ? String(Math.ceil(snapshot.studentsTotal / 2)) : prev.girls_count,
+          staff_men_count: snapshot.staffTotal ? String(Math.floor(snapshot.staffTotal / 2)) : prev.staff_men_count,
+          staff_women_count: snapshot.staffTotal ? String(Math.ceil(snapshot.staffTotal / 2)) : prev.staff_women_count,
           group_type: snapshot.groupType || prev.group_type,
         }));
       } catch {
