@@ -955,27 +955,41 @@ export default function GuestForm() {
                     </div>
                   </div>
 
-                  {/* Location select */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      איפה?
-                    </Label>
-                    <Select value={item.location} onValueChange={v => updateScheduleItem(item.id, 'location', v)}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="בחרו מיקום..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LOCATION_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {item.location === 'offsite' && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        פעילות מחוץ לחווה – לא דורשת הקצאת מתחם פנימי
-                      </p>
-                    )}
+                  {/* Location + Participants row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        איפה?
+                      </Label>
+                      <Select value={item.location} onValueChange={v => updateScheduleItem(item.id, 'location', v)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="בחרו מיקום..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LOCATION_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {item.location === 'offsite' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          לא דורשת מתחם פנימי
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">מספר משתתפים</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={item.participantCount}
+                        onChange={e => updateScheduleItem(item.id, 'participantCount', e.target.value)}
+                        placeholder="0"
+                        className="mt-1"
+                        onFocus={e => e.target.select()}
+                      />
+                    </div>
                   </div>
 
                   {/* Activity name (optional) */}
