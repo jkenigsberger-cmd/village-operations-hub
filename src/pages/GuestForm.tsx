@@ -132,12 +132,15 @@ export default function GuestForm() {
     client_org: '',
     client_phone: '',
     client_email: '',
-    total_pax: '',
-    staff_count: '',
-    participant_count: '',
+    // Student breakdown
     boys_count: '',
     girls_count: '',
-    other_members_count: '',
+    // Staff/escorts breakdown
+    staff_men_count: '',
+    staff_women_count: '',
+    security_count: '',
+    drivers_count: '',
+    others_count: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
@@ -264,9 +267,10 @@ export default function GuestForm() {
           client_org: client.clientOrg || prev.client_org,
           client_phone: client.clientPhone || prev.client_phone,
           client_email: client.clientEmail || prev.client_email,
-          total_pax: snapshot.totalPax ? String(snapshot.totalPax) : prev.total_pax,
-          staff_count: snapshot.staffTotal ? String(snapshot.staffTotal) : prev.staff_count,
-          participant_count: snapshot.studentsTotal ? String(snapshot.studentsTotal) : prev.participant_count,
+          boys_count: snapshot.studentsTotal ? String(Math.floor(snapshot.studentsTotal / 2)) : prev.boys_count,
+          girls_count: snapshot.studentsTotal ? String(Math.ceil(snapshot.studentsTotal / 2)) : prev.girls_count,
+          staff_men_count: snapshot.staffTotal ? String(Math.floor(snapshot.staffTotal / 2)) : prev.staff_men_count,
+          staff_women_count: snapshot.staffTotal ? String(Math.ceil(snapshot.staffTotal / 2)) : prev.staff_women_count,
           group_type: snapshot.groupType || prev.group_type,
         }));
       } catch {
@@ -297,11 +301,17 @@ export default function GuestForm() {
         mealPreferences: isSleepingGroup ? mealPrefs : undefined,
       };
 
-      // Derive total participants
-      const girlsCount = Number(form.girls_count) || 0;
+      // Derive totals from new breakdown
       const boysCount = Number(form.boys_count) || 0;
-      const otherMembersCount = Number(form.other_members_count) || 0;
-      const derivedTotal = girlsCount + boysCount + otherMembersCount;
+      const girlsCount = Number(form.girls_count) || 0;
+      const studentsTotal = boysCount + girlsCount;
+      const staffMen = Number(form.staff_men_count) || 0;
+      const staffWomen = Number(form.staff_women_count) || 0;
+      const securityCount = Number(form.security_count) || 0;
+      const driversCount = Number(form.drivers_count) || 0;
+      const othersCount = Number(form.others_count) || 0;
+      const staffTotal = staffMen + staffWomen + securityCount + driversCount + othersCount;
+      const derivedTotal = studentsTotal + staffTotal;
 
       // Build sleeping notes for tent_distribution_notes field
       const sleepingNotesParts = [
@@ -320,9 +330,9 @@ export default function GuestForm() {
             client_org: form.client_org,
             client_phone: form.client_phone,
             client_email: form.client_email,
-            total_pax: derivedTotal || (form.total_pax ? Number(form.total_pax) : null),
-            staff_count: otherMembersCount || (form.staff_count ? Number(form.staff_count) : null),
-            participant_count: (girlsCount + boysCount) || (form.participant_count ? Number(form.participant_count) : null),
+            total_pax: derivedTotal || null,
+            staff_count: staffTotal || null,
+            participant_count: studentsTotal || null,
             boys_count: boysCount || null,
             girls_count: girlsCount || null,
             group_type: form.group_type,
@@ -516,15 +526,11 @@ export default function GuestForm() {
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-700">סה"כ משתתפים</Label>
-                  <Input type="number" value={form.total_pax} onChange={e => set('total_pax', e.target.value)} placeholder="מספר" className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
                   <Label className="text-gray-700">אפיון קבוצה</Label>
                   <Input value={form.group_type} onChange={e => set('group_type', e.target.value)} placeholder='למשל: תנועת נוער, בי"ס, חברה...' className="mt-1" />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-700">שם איש קשר</Label>
                   <Input
@@ -536,18 +542,18 @@ export default function GuestForm() {
                     disabled={!!prefillFields.client_name}
                   />
                 </div>
-              </div>
-              <div>
-                <Label className="text-gray-700">טלפון</Label>
-                <Input
-                  type="tel"
-                  value={form.client_phone}
-                  onChange={e => set('client_phone', e.target.value)}
-                  placeholder="050-0000000"
-                  className="mt-1"
-                  readOnly={!!prefillFields.client_phone}
-                  disabled={!!prefillFields.client_phone}
-                />
+                <div>
+                  <Label className="text-gray-700">טלפון</Label>
+                  <Input
+                    type="tel"
+                    value={form.client_phone}
+                    onChange={e => set('client_phone', e.target.value)}
+                    placeholder="050-0000000"
+                    className="mt-1"
+                    readOnly={!!prefillFields.client_phone}
+                    disabled={!!prefillFields.client_phone}
+                  />
+                </div>
               </div>
 
               <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -581,26 +587,6 @@ export default function GuestForm() {
                         readOnly={!!prefillFields.client_email}
                         disabled={!!prefillFields.client_email}
                       />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-700">צוות / מדריכים</Label>
-                      <Input type="number" value={form.staff_count} onChange={e => set('staff_count', e.target.value)} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">משתתפים (ללא צוות)</Label>
-                      <Input type="number" value={form.participant_count} onChange={e => set('participant_count', e.target.value)} className="mt-1" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-700">גברים</Label>
-                      <Input type="number" value={form.boys_count} onChange={e => set('boys_count', e.target.value)} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">נשים</Label>
-                      <Input type="number" value={form.girls_count} onChange={e => set('girls_count', e.target.value)} className="mt-1" />
                     </div>
                   </div>
                 </CollapsibleContent>
@@ -792,23 +778,12 @@ export default function GuestForm() {
           {/* ========== STEP 3: Participant Breakdown & Sleeping Needs ========== */}
           {logicalStep === 3 && (
             <div className="space-y-6">
-              {/* Participant breakdown */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-800">פירוט משתתפים</h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-700">בנות</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.girls_count}
-                      onChange={e => set('girls_count', e.target.value)}
-                      placeholder="0"
-                      className="mt-1"
-                      onFocus={e => e.target.select()}
-                    />
-                  </div>
+              {/* A) תלמידים */}
+              <div className="space-y-4 border border-gray-200 rounded-xl p-5">
+                <h3 className="text-base font-bold text-gray-800">תלמידים</h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-700">בנים</Label>
                     <Input
@@ -822,35 +797,26 @@ export default function GuestForm() {
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-700">אנשי צוות / מלווים / אחרים</Label>
+                    <Label className="text-gray-700">בנות</Label>
                     <Input
                       type="number"
                       min={0}
-                      value={form.other_members_count}
-                      onChange={e => set('other_members_count', e.target.value)}
+                      value={form.girls_count}
+                      onChange={e => set('girls_count', e.target.value)}
                       placeholder="0"
                       className="mt-1"
                       onFocus={e => e.target.select()}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">(אבטחה, נהגים, מלווים, אחרים)</p>
                   </div>
                 </div>
 
-                {/* Derived total */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
-                  <span className="text-gray-700">סה״כ משתתפים: </span>
-                  <strong className="text-blue-800 text-base">
-                    {(Number(form.girls_count) || 0) + (Number(form.boys_count) || 0) + (Number(form.other_members_count) || 0)}
+                {/* Students subtotal */}
+                <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
+                  <span className="text-gray-600">סה״כ תלמידים</span>
+                  <strong className="text-gray-800 text-base">
+                    {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0)}
                   </strong>
                 </div>
-              </div>
-
-              {/* Special sleeping needs */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-800">צרכים מיוחדים בלינה</h3>
-                <p className="text-sm text-muted-foreground">
-                  החלוקה לאוהלים תתבצע על ידי הצוות שלנו בהתאם לזמינות ולצרכים שציינתם.
-                </p>
 
                 <div>
                   <Label className="text-gray-700">צרכים מיוחדים בלינה – תלמידים</Label>
@@ -860,6 +826,82 @@ export default function GuestForm() {
                     placeholder="לדוגמה: 2 תלמידים שצריכים להיות לבד באוהל"
                     className="mt-1 min-h-[80px]"
                   />
+                </div>
+              </div>
+
+              {/* B) צוות / מלווים / אחרים */}
+              <div className="space-y-4 border border-gray-200 rounded-xl p-5">
+                <h3 className="text-base font-bold text-gray-800">צוות / מלווים / אחרים</h3>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-gray-700">גברים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_men_count}
+                      onChange={e => set('staff_men_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נשים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_women_count}
+                      onChange={e => set('staff_women_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">אבטחה</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.security_count}
+                      onChange={e => set('security_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נהגים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.drivers_count}
+                      onChange={e => set('drivers_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">אחרים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.others_count}
+                      onChange={e => set('others_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                </div>
+
+                {/* Staff subtotal */}
+                <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
+                  <span className="text-gray-600">סה״כ צוות / מלווים / אחרים</span>
+                  <strong className="text-gray-800 text-base">
+                    {(Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.security_count) || 0) + (Number(form.drivers_count) || 0) + (Number(form.others_count) || 0)}
+                  </strong>
                 </div>
 
                 <div>
@@ -872,6 +914,18 @@ export default function GuestForm() {
                   />
                 </div>
               </div>
+
+              {/* C) Grand total */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex justify-between items-center">
+                <span className="text-gray-700 font-medium">סה״כ מגיעים</span>
+                <strong className="text-blue-800 text-lg">
+                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.security_count) || 0) + (Number(form.drivers_count) || 0) + (Number(form.others_count) || 0)}
+                </strong>
+              </div>
+
+              <p className="text-sm text-muted-foreground text-center">
+                החלוקה לאוהלים תתבצע על ידי הצוות שלנו בהתאם לזמינות ולצרכים שציינתם.
+              </p>
             </div>
           )}
 
