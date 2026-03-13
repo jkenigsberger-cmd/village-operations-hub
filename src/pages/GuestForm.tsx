@@ -176,7 +176,29 @@ export default function GuestForm() {
     generatedMeals: [],
   });
 
-  const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  // Schedule items state
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
+
+  const addScheduleItem = () => {
+    setScheduleItems(prev => [...prev, {
+      id: crypto.randomUUID(),
+      date: stayStartDate || '',
+      startTime: '',
+      endTime: '',
+      location: '',
+      activityName: '',
+      notes: '',
+    }]);
+  };
+
+  const updateScheduleItem = (id: string, field: keyof ScheduleItem, value: string) => {
+    setScheduleItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const removeScheduleItem = (id: string) => {
+    setScheduleItems(prev => prev.filter(item => item.id !== id));
+  };
+
 
   // Derive dates from quote
   const stayStartDate = quoteData?.snapshot?.startDate || '';
