@@ -199,6 +199,7 @@ export default function GuestForm() {
     setScheduleItems(prev => prev.filter(item => item.id !== id));
   };
 
+  const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
   // Derive dates from quote
   const stayStartDate = quoteData?.snapshot?.startDate || '';
