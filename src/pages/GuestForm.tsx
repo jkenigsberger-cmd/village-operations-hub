@@ -380,7 +380,7 @@ export default function GuestForm() {
             group_type: form.group_type,
             special_diets: specialDietsPayload,
             tent_distribution_notes: sleepingNotesParts || null,
-            schedule_notes: form.schedule_notes,
+            schedule_notes: JSON.stringify({ items: scheduleItems, freeText: form.schedule_notes }),
             general_notes: form.general_notes,
             quote_id: quoteId || null,
           }),
