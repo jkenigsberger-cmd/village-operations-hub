@@ -177,6 +177,7 @@ export default function GuestForm() {
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
 
   const addScheduleItem = () => {
+    const currentTotal = (Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0);
     setScheduleItems(prev => [...prev, {
       id: crypto.randomUUID(),
       date: stayStartDate || '',
@@ -185,6 +186,7 @@ export default function GuestForm() {
       location: '',
       activityName: '',
       notes: '',
+      participantCount: String(currentTotal || ''),
     }]);
   };
 
