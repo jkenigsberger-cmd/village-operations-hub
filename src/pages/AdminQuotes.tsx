@@ -712,19 +712,17 @@ const AdminQuotes = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {editPricing.audience === 'students' && (
-                  <div>
-                    <Label>סוג פעילות</Label>
-                    <Select value={editPricing.activityType || 'midweek_lodging'} onValueChange={(v) => handleActivityTypeChange(v as StudentActivityType)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(ACTIVITY_TYPE_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div>
+                  <Label>סוג פעילות</Label>
+                  <Select value={editPricing.activityType || 'midweek_lodging'} onValueChange={(v) => handleActivityTypeChange(v as StudentActivityType)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ACTIVITY_TYPE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Accommodation pricing inline */}
