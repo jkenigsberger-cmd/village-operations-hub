@@ -526,15 +526,11 @@ export default function GuestForm() {
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-700">סה"כ משתתפים</Label>
-                  <Input type="number" value={form.total_pax} onChange={e => set('total_pax', e.target.value)} placeholder="מספר" className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
                   <Label className="text-gray-700">אפיון קבוצה</Label>
                   <Input value={form.group_type} onChange={e => set('group_type', e.target.value)} placeholder='למשל: תנועת נוער, בי"ס, חברה...' className="mt-1" />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-700">שם איש קשר</Label>
                   <Input
@@ -546,18 +542,18 @@ export default function GuestForm() {
                     disabled={!!prefillFields.client_name}
                   />
                 </div>
-              </div>
-              <div>
-                <Label className="text-gray-700">טלפון</Label>
-                <Input
-                  type="tel"
-                  value={form.client_phone}
-                  onChange={e => set('client_phone', e.target.value)}
-                  placeholder="050-0000000"
-                  className="mt-1"
-                  readOnly={!!prefillFields.client_phone}
-                  disabled={!!prefillFields.client_phone}
-                />
+                <div>
+                  <Label className="text-gray-700">טלפון</Label>
+                  <Input
+                    type="tel"
+                    value={form.client_phone}
+                    onChange={e => set('client_phone', e.target.value)}
+                    placeholder="050-0000000"
+                    className="mt-1"
+                    readOnly={!!prefillFields.client_phone}
+                    disabled={!!prefillFields.client_phone}
+                  />
+                </div>
               </div>
 
               <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -593,26 +589,8 @@ export default function GuestForm() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-700">צוות / מדריכים</Label>
-                      <Input type="number" value={form.staff_count} onChange={e => set('staff_count', e.target.value)} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">משתתפים (ללא צוות)</Label>
-                      <Input type="number" value={form.participant_count} onChange={e => set('participant_count', e.target.value)} className="mt-1" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-700">גברים</Label>
-                      <Input type="number" value={form.boys_count} onChange={e => set('boys_count', e.target.value)} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">נשים</Label>
-                      <Input type="number" value={form.girls_count} onChange={e => set('girls_count', e.target.value)} className="mt-1" />
-                    </div>
-                  </div>
+                </CollapsibleContent>
+              </Collapsible>
                 </CollapsibleContent>
               </Collapsible>
             </div>
