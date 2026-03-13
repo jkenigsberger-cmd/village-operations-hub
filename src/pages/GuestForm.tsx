@@ -20,17 +20,8 @@ const STEPS = [
   'פרטי קבוצה',
   'העדפות מזון',
   'תפריט ארוחות',
-  'חלוקת אוהלים',
+  'משתתפים ולינה',
   'לוח פעילויות',
-];
-
-// ---- Constants ----
-
-const TENT_TYPES = [
-  { type: 'staff', label: 'אוהלי צוות', beds: 3, maxTents: 10, emoji: '🏕️' },
-  { type: 'chevruta', label: 'אוהלי חברותא', beds: 8, maxTents: 31, emoji: '⛺' },
-  { type: 'group', label: 'אוהלי קבוצה', beds: 6, maxTents: 9, emoji: '🎪' },
-  { type: 'accessible', label: 'אוהל נגיש', beds: 3, maxTents: 1, emoji: '♿' },
 ];
 
 const DIET_OPTIONS = [
@@ -146,11 +137,12 @@ export default function GuestForm() {
     participant_count: '',
     boys_count: '',
     girls_count: '',
+    other_members_count: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
-    tent_distribution: TENT_TYPES.map(t => ({ type: t.type, girls: 0, boys: 0 })),
-    tent_distribution_notes: '',
+    student_sleeping_notes: '',
+    other_sleeping_notes: '',
     schedule_notes: '',
     general_notes: '',
   });
@@ -305,6 +297,18 @@ export default function GuestForm() {
         mealPreferences: isSleepingGroup ? mealPrefs : undefined,
       };
 
+      // Derive total participants
+      const girlsCount = Number(form.girls_count) || 0;
+      const boysCount = Number(form.boys_count) || 0;
+      const otherMembersCount = Number(form.other_members_count) || 0;
+      const derivedTotal = girlsCount + boysCount + otherMembersCount;
+
+      // Build sleeping notes for tent_distribution_notes field
+      const sleepingNotesParts = [
+        form.student_sleeping_notes ? `צרכי לינה תלמידים: ${form.student_sleeping_notes}` : null,
+        form.other_sleeping_notes ? `צרכי לינה צוות/מלווים: ${form.other_sleeping_notes}` : null,
+      ].filter(Boolean).join('\n');
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/submit-guest-form`,
         {
@@ -316,22 +320,14 @@ export default function GuestForm() {
             client_org: form.client_org,
             client_phone: form.client_phone,
             client_email: form.client_email,
-            total_pax: form.total_pax ? Number(form.total_pax) : null,
-            staff_count: form.staff_count ? Number(form.staff_count) : null,
-            participant_count: form.participant_count ? Number(form.participant_count) : null,
-            boys_count: form.boys_count ? Number(form.boys_count) : null,
-            girls_count: form.girls_count ? Number(form.girls_count) : null,
+            total_pax: derivedTotal || (form.total_pax ? Number(form.total_pax) : null),
+            staff_count: otherMembersCount || (form.staff_count ? Number(form.staff_count) : null),
+            participant_count: (girlsCount + boysCount) || (form.participant_count ? Number(form.participant_count) : null),
+            boys_count: boysCount || null,
+            girls_count: girlsCount || null,
             group_type: form.group_type,
             special_diets: specialDietsPayload,
-            tent_distribution_notes: [
-              ...form.tent_distribution.map((row, i) => {
-                const t = TENT_TYPES[i];
-                const total = row.boys + row.girls;
-                if (total === 0) return null;
-                return `${t.label} (${t.beds} מיטות): ${row.girls} נשים, ${row.boys} גברים (סה"כ ${total})`;
-              }).filter(Boolean),
-              form.tent_distribution_notes ? `הערות: ${form.tent_distribution_notes}` : null,
-            ].filter(Boolean).join('\n') || null,
+            tent_distribution_notes: sleepingNotesParts || null,
             schedule_notes: form.schedule_notes,
             general_notes: form.general_notes,
             quote_id: quoteId || null,
@@ -793,77 +789,88 @@ export default function GuestForm() {
             </div>
           )}
 
-          {/* ========== STEP 3: Tent Distribution ========== */}
+          {/* ========== STEP 3: Participant Breakdown & Sleeping Needs ========== */}
           {logicalStep === 3 && (
-            <div className="space-y-5">
-              <div className="bg-gray-100 rounded-xl p-4 text-sm text-gray-600 space-y-1">
-                <p className="font-semibold text-gray-700 mb-2">סוגי האוהלים הזמינים:</p>
-                {TENT_TYPES.map(t => (
-                  <p key={t.type}>{t.emoji} {t.label} — {t.beds} מיטות באוהל (עד {t.maxTents} אוהלים)</p>
-                ))}
-              </div>
+            <div className="space-y-6">
+              {/* Participant breakdown */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold text-gray-800">פירוט משתתפים</h3>
 
-              <p className="text-sm text-gray-500 text-center">נא לציין כמה אוהלים מכל סוג עבור גברים ונשים</p>
-
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
-                  <div className="p-3">סוג האוהל</div>
-                  <div className="p-3 text-center">מס׳ אוהלים — נשים</div>
-                  <div className="p-3 text-center">מס׳ אוהלים — גברים</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-gray-700">בנות</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.girls_count}
+                      onChange={e => set('girls_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">בנים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.boys_count}
+                      onChange={e => set('boys_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">אנשי צוות / מלווים / אחרים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.other_members_count}
+                      onChange={e => set('other_members_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">(אבטחה, נהגים, מלווים, אחרים)</p>
+                  </div>
                 </div>
-                {TENT_TYPES.map((t, idx) => {
-                  const row = form.tent_distribution[idx];
-                  const otherGender = (gender: 'boys' | 'girls') => gender === 'boys' ? row.girls : row.boys;
-                  return (
-                    <div key={t.type} className={`grid grid-cols-3 items-center border-b border-gray-100 last:border-b-0 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
-                      <div className="p-3 text-sm font-medium text-gray-700">
-                        {t.emoji} {t.label} ({t.beds} מיטות)
-                      </div>
-                      <div className="p-3 flex justify-center">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={t.maxTents - otherGender('girls')}
-                          className="text-center bg-white max-w-[70px]"
-                          value={String(row.girls || '0')}
-                          onChange={e => {
-                            const val = Math.max(0, Math.min(Number(e.target.value) || 0, t.maxTents - row.boys));
-                            const updated = [...form.tent_distribution];
-                            updated[idx] = { ...row, girls: val };
-                            set('tent_distribution', updated);
-                          }}
-                          onFocus={e => e.target.select()}
-                        />
-                      </div>
-                      <div className="p-3 flex justify-center">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={t.maxTents - otherGender('boys')}
-                          className="text-center bg-white max-w-[70px]"
-                          value={String(row.boys || '0')}
-                          onChange={e => {
-                            const val = Math.max(0, Math.min(Number(e.target.value) || 0, t.maxTents - row.girls));
-                            const updated = [...form.tent_distribution];
-                            updated[idx] = { ...row, boys: val };
-                            set('tent_distribution', updated);
-                          }}
-                          onFocus={e => e.target.select()}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+
+                {/* Derived total */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
+                  <span className="text-gray-700">סה״כ משתתפים: </span>
+                  <strong className="text-blue-800 text-base">
+                    {(Number(form.girls_count) || 0) + (Number(form.boys_count) || 0) + (Number(form.other_members_count) || 0)}
+                  </strong>
+                </div>
               </div>
 
-              <div>
-                <Label className="text-gray-700">הערות נוספות לגבי חלוקת אוהלים</Label>
-                <Textarea
-                  value={form.tent_distribution_notes}
-                  onChange={e => set('tent_distribution_notes', e.target.value)}
-                  placeholder="למשל: הפרדה מיוחדת, דרישות נגישות נוספות..."
-                  className="min-h-[80px] mt-1"
-                />
+              {/* Special sleeping needs */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold text-gray-800">צרכים מיוחדים בלינה</h3>
+                <p className="text-sm text-muted-foreground">
+                  החלוקה לאוהלים תתבצע על ידי הצוות שלנו בהתאם לזמינות ולצרכים שציינתם.
+                </p>
+
+                <div>
+                  <Label className="text-gray-700">צרכים מיוחדים בלינה – תלמידים</Label>
+                  <Textarea
+                    value={form.student_sleeping_notes}
+                    onChange={e => set('student_sleeping_notes', e.target.value)}
+                    placeholder="לדוגמה: 2 תלמידים שצריכים להיות לבד באוהל"
+                    className="mt-1 min-h-[80px]"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-gray-700">צרכים מיוחדים בלינה – צוות / מלווים / אחרים</Label>
+                  <Textarea
+                    value={form.other_sleeping_notes}
+                    onChange={e => set('other_sleeping_notes', e.target.value)}
+                    placeholder="לדוגמה: המנהלת צריכה לישון לבד באוהל"
+                    className="mt-1 min-h-[80px]"
+                  />
+                </div>
               </div>
             </div>
           )}
