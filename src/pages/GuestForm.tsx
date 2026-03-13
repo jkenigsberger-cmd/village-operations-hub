@@ -301,17 +301,17 @@ export default function GuestForm() {
         mealPreferences: isSleepingGroup ? mealPrefs : undefined,
       };
 
-      // Derive total participants
-      const girlsCount = Number(form.girls_count) || 0;
+      // Derive totals from new breakdown
       const boysCount = Number(form.boys_count) || 0;
-      const otherMembersCount = Number(form.other_members_count) || 0;
-      const derivedTotal = girlsCount + boysCount + otherMembersCount;
-
-      // Build sleeping notes for tent_distribution_notes field
-      const sleepingNotesParts = [
-        form.student_sleeping_notes ? `צרכי לינה תלמידים: ${form.student_sleeping_notes}` : null,
-        form.other_sleeping_notes ? `צרכי לינה צוות/מלווים: ${form.other_sleeping_notes}` : null,
-      ].filter(Boolean).join('\n');
+      const girlsCount = Number(form.girls_count) || 0;
+      const studentsTotal = boysCount + girlsCount;
+      const staffMen = Number(form.staff_men_count) || 0;
+      const staffWomen = Number(form.staff_women_count) || 0;
+      const securityCount = Number(form.security_count) || 0;
+      const driversCount = Number(form.drivers_count) || 0;
+      const othersCount = Number(form.others_count) || 0;
+      const staffTotal = staffMen + staffWomen + securityCount + driversCount + othersCount;
+      const derivedTotal = studentsTotal + staffTotal;
 
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/submit-guest-form`,
