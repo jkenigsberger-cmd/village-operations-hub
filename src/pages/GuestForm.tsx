@@ -591,9 +591,8 @@ export default function GuestForm() {
                   </div>
                 </CollapsibleContent>
               </Collapsible>
-                </CollapsibleContent>
-              </Collapsible>
             </div>
+          )}
           )}
 
           {/* ========== STEP 1: Diet Preferences ========== */}
