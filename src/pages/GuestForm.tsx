@@ -11,7 +11,8 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown, AlertTriangle, Sandwich, UtensilsCrossed } from 'lucide-react';
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, ChevronDown, AlertTriangle, Sandwich, UtensilsCrossed, Plus, Trash2, MapPin } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 
 // ---- Steps ----
