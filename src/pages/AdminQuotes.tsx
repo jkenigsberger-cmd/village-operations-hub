@@ -253,15 +253,16 @@ const AdminQuotes = () => {
         toast({ title: `הוסרו ${removedCount} תכנים שאינם זמינים לקהל שנבחר` });
       }
 
+      const activityType = prev.activityType || 'midweek_lodging';
       return {
         ...prev,
         audience,
-        activityType: audience === 'students' ? (prev.activityType || 'midweek_lodging') : undefined,
+        activityType,
         accommodationPricePerPerson: audience === 'students'
-          ? STUDENT_PRICES[prev.activityType || 'midweek_lodging']
+          ? STUDENT_PRICES[activityType]
           : undefined,
-        accommodationPriceTent3: audience === 'adults' ? ADULT_TENT_PRICES.tent3 : undefined,
-        accommodationPriceTent68: audience === 'adults' ? ADULT_TENT_PRICES.tent68 : undefined,
+        accommodationPriceTent3: (audience === 'adults' && activityType !== 'day_activity') ? ADULT_TENT_PRICES.tent3 : undefined,
+        accommodationPriceTent68: (audience === 'adults' && activityType !== 'day_activity') ? ADULT_TENT_PRICES.tent68 : undefined,
         workshops: updatedWorkshops,
       };
     });
