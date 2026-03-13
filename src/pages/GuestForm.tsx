@@ -297,6 +297,18 @@ export default function GuestForm() {
         mealPreferences: isSleepingGroup ? mealPrefs : undefined,
       };
 
+      // Derive total participants
+      const girlsCount = Number(form.girls_count) || 0;
+      const boysCount = Number(form.boys_count) || 0;
+      const otherMembersCount = Number(form.other_members_count) || 0;
+      const derivedTotal = girlsCount + boysCount + otherMembersCount;
+
+      // Build sleeping notes for tent_distribution_notes field
+      const sleepingNotesParts = [
+        form.student_sleeping_notes ? `צרכי לינה תלמידים: ${form.student_sleeping_notes}` : null,
+        form.other_sleeping_notes ? `צרכי לינה צוות/מלווים: ${form.other_sleeping_notes}` : null,
+      ].filter(Boolean).join('\n');
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/submit-guest-form`,
         {
@@ -308,22 +320,14 @@ export default function GuestForm() {
             client_org: form.client_org,
             client_phone: form.client_phone,
             client_email: form.client_email,
-            total_pax: form.total_pax ? Number(form.total_pax) : null,
-            staff_count: form.staff_count ? Number(form.staff_count) : null,
-            participant_count: form.participant_count ? Number(form.participant_count) : null,
-            boys_count: form.boys_count ? Number(form.boys_count) : null,
-            girls_count: form.girls_count ? Number(form.girls_count) : null,
+            total_pax: derivedTotal || (form.total_pax ? Number(form.total_pax) : null),
+            staff_count: otherMembersCount || (form.staff_count ? Number(form.staff_count) : null),
+            participant_count: (girlsCount + boysCount) || (form.participant_count ? Number(form.participant_count) : null),
+            boys_count: boysCount || null,
+            girls_count: girlsCount || null,
             group_type: form.group_type,
             special_diets: specialDietsPayload,
-            tent_distribution_notes: [
-              ...form.tent_distribution.map((row, i) => {
-                const t = TENT_TYPES[i];
-                const total = row.boys + row.girls;
-                if (total === 0) return null;
-                return `${t.label} (${t.beds} מיטות): ${row.girls} נשים, ${row.boys} גברים (סה"כ ${total})`;
-              }).filter(Boolean),
-              form.tent_distribution_notes ? `הערות: ${form.tent_distribution_notes}` : null,
-            ].filter(Boolean).join('\n') || null,
+            tent_distribution_notes: sleepingNotesParts || null,
             schedule_notes: form.schedule_notes,
             general_notes: form.general_notes,
             quote_id: quoteId || null,
