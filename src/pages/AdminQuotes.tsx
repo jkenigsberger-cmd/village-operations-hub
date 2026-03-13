@@ -269,11 +269,21 @@ const AdminQuotes = () => {
   };
 
   const handleActivityTypeChange = (type: StudentActivityType) => {
-    setEditPricing(prev => ({
-      ...prev,
-      activityType: type,
-      accommodationPricePerPerson: STUDENT_PRICES[type],
-    }));
+    setEditPricing(prev => {
+      if (prev.audience === 'adults') {
+        return {
+          ...prev,
+          activityType: type,
+          accommodationPriceTent3: type !== 'day_activity' ? ADULT_TENT_PRICES.tent3 : undefined,
+          accommodationPriceTent68: type !== 'day_activity' ? ADULT_TENT_PRICES.tent68 : undefined,
+        };
+      }
+      return {
+        ...prev,
+        activityType: type,
+        accommodationPricePerPerson: STUDENT_PRICES[type],
+      };
+    });
   };
 
   // Workshop helpers - catalog based
