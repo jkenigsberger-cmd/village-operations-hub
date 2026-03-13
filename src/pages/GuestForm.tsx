@@ -50,6 +50,24 @@ interface GeneratedMeal {
   sandwichInstead: boolean;
 }
 
+type LocationType = 'classroom' | 'outdoor' | 'offsite';
+
+const LOCATION_OPTIONS: { value: LocationType; label: string }[] = [
+  { value: 'classroom', label: 'כיתה' },
+  { value: 'outdoor', label: 'מתחם חוץ' },
+  { value: 'offsite', label: 'מחוץ לחווה' },
+];
+
+interface ScheduleItem {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: LocationType | '';
+  activityName: string;
+  notes: string;
+}
+
 interface MealPreferences {
   arrivalLunch: boolean;
   departureLunch: boolean;
