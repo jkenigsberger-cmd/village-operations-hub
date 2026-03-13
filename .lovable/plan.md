@@ -1,32 +1,23 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Simplify Staff Section — Remove Detailed Breakdown
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## Change
+In the "צוות / מלווים / אחרים" sub-section of Step 3, replace the 5 separate fields (גברים, נשים, אבטחה, נהגים, אחרים) with a single numeric field for total staff/escorts count.
 
-## Solution
+## File: `src/pages/GuestForm.tsx`
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+1. **State**: Remove `staff_men_count`, `staff_women_count`, `security_count`, `drivers_count`, `others_count`. Add single `staff_count` field.
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
+2. **Prefill**: Map `snapshot.staffTotal` directly to `staff_count` instead of splitting across men/women.
 
-### Technical Details
+3. **UI (Step 3, Staff section)**: Replace the 5 input fields with one field labeled "מספר אנשי צוות / מלווים / אחרים" with helper text "(אבטחה, נהגים, מלווים, אחרים)".
 
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
+4. **Derived totals**: 
+   - `סה״כ צוות = staff_count`
+   - `סה״כ מגיעים = boys + girls + staff_count`
 
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
+5. **Submission**: Update the submit payload to use `staff_count` instead of the 5 separate fields. Map to `staff_count` in the edge function call.
 
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+6. **Schedule auto-fill**: Update `addScheduleItem` to use `boys + girls + staff_count` for participant count default.
 
