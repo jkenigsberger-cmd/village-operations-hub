@@ -974,22 +974,115 @@ export default function GuestForm() {
           {/* ========== STEP 4: Activities Schedule ========== */}
           {logicalStep === 4 && (
             <div className="space-y-5">
-              <div>
-                <Label className="text-gray-700">העדפות לוח זמנים / פעילויות</Label>
-                <Textarea
-                  value={form.schedule_notes}
-                  onChange={e => set('schedule_notes', e.target.value)}
-                  placeholder="למשל: שעות פעילות מועדפות, פעילויות מבוקשות..."
-                  className="min-h-[110px] mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-gray-700">הערות כלליות</Label>
+              <p className="text-sm text-muted-foreground">
+                הוסיפו את הפעילויות המתוכננות כדי שנוכל לתכנן את השימוש בכיתות ובמתחמים.
+              </p>
+
+              {scheduleItems.map((item) => (
+                <Card key={item.id} className={`p-4 space-y-3 border ${item.location === 'offsite' ? 'border-dashed border-muted-foreground/30 bg-muted/20' : 'border-border'}`}>
+                  {/* Date + Times row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">תאריך</Label>
+                      <Input
+                        type="date"
+                        value={item.date}
+                        onChange={e => updateScheduleItem(item.id, 'date', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">שעת התחלה</Label>
+                      <Input
+                        type="time"
+                        value={item.startTime}
+                        onChange={e => updateScheduleItem(item.id, 'startTime', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">שעת סיום</Label>
+                      <Input
+                        type="time"
+                        value={item.endTime}
+                        onChange={e => updateScheduleItem(item.id, 'endTime', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Location select */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      איפה?
+                    </Label>
+                    <Select value={item.location} onValueChange={v => updateScheduleItem(item.id, 'location', v)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="בחרו מיקום..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LOCATION_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.location === 'offsite' && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        פעילות מחוץ לחווה – לא דורשת הקצאת מתחם פנימי
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Activity name (optional) */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">שם הפעילות (אופציונלי)</Label>
+                    <Input
+                      value={item.activityName}
+                      onChange={e => updateScheduleItem(item.id, 'activityName', e.target.value)}
+                      placeholder="למשל: סדנת בישול, הרצאה..."
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">הערות / בקשות מיוחדות</Label>
+                    <Textarea
+                      value={item.notes}
+                      onChange={e => updateScheduleItem(item.id, 'notes', e.target.value)}
+                      placeholder="ציוד מיוחד, דרישות חשמל..."
+                      className="mt-1 min-h-[60px]"
+                    />
+                  </div>
+
+                  {/* Remove */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeScheduleItem(item.id)}
+                    className="text-destructive hover:text-destructive/80 gap-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    הסר פעילות
+                  </Button>
+                </Card>
+              ))}
+
+              <Button type="button" variant="outline" onClick={addScheduleItem} className="w-full gap-2">
+                <Plus className="w-4 h-4" />
+                הוסף פעילות
+              </Button>
+
+              {/* General notes */}
+              <div className="border-t pt-4">
+                <Label className="text-foreground">הערות כלליות</Label>
                 <Textarea
                   value={form.general_notes}
                   onChange={e => set('general_notes', e.target.value)}
                   placeholder="כל דבר נוסף שחשוב שנדע..."
-                  className="min-h-[110px] mt-1"
+                  className="min-h-[90px] mt-1"
                 />
               </div>
             </div>
