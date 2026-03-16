@@ -506,8 +506,6 @@ const AdminQuotes = () => {
             </div>
           )}
 
-          {/* Availability Calendar */}
-          <QuoteAvailabilityCalendar />
         </div>
       </AdminLayout>
     );
