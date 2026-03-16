@@ -693,6 +693,12 @@ const AdminQuotes = () => {
               </>
             )}
           </div>
+
+          {/* Availability Calendar in edit view */}
+          <QuoteAvailabilityCalendar
+            highlightStart={editSnapshot.arrivalDate || undefined}
+            highlightEnd={editSnapshot.departureDate || undefined}
+          />
         </div>
 
         {/* ========== RIGHT COLUMN: Form blocks ========== */}
