@@ -309,7 +309,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
   <div class="header">
     <img src="${getBaseUrl()}/assets/quote-logo.png" alt="בית הדור הבא" class="header-logo" onerror="this.style.display='none'">
     <h1>בית הדור הבא – חוות אהרונסון</h1>
-    <div class="subtitle">הצעת מחיר</div>
+    
   </div>
 
   <div class="intro-section">
