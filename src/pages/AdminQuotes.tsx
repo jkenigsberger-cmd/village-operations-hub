@@ -70,6 +70,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { NumericInput } from '@/components/NumericInput';
+import { QuoteAvailabilityCalendar } from '@/components/QuoteAvailabilityCalendar';
 
 import { he } from 'date-fns/locale';
 
@@ -501,6 +502,9 @@ const AdminQuotes = () => {
               })}
             </div>
           )}
+
+          {/* Availability Calendar */}
+          <QuoteAvailabilityCalendar />
         </div>
       </AdminLayout>
     );
@@ -689,6 +693,12 @@ const AdminQuotes = () => {
               </>
             )}
           </div>
+
+          {/* Availability Calendar in edit view */}
+          <QuoteAvailabilityCalendar
+            highlightStart={editSnapshot.startDate || undefined}
+            highlightEnd={editSnapshot.endDate || undefined}
+          />
         </div>
 
         {/* ========== RIGHT COLUMN: Form blocks ========== */}
