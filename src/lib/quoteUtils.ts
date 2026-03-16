@@ -312,6 +312,23 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
     <div class="subtitle">הצעת מחיר</div>
   </div>
 
+  <div class="intro-section">
+    <div class="intro-subtitle">הצעת מחיר לסמינרים וימי עיון לצוותי חינוך</div>
+    <p class="intro-paragraph">בית הדור הבא מציע מרחב לחיבור, העמקה ודיאלוג. בהמשך לשיחתנו, להלן הצעתנו עבור פעילות לצוותי חינוך:</p>
+    <h3>עקרונות החוויה בבית הדור הבא:</h3>
+    <ul>
+      <li>חיבור בין עשייה להעמקה — שילוב בין פעילות מעשית לשיח משמעותי</li>
+      <li>מרחב לקול האישי — יצירת הזדמנויות לביטוי אישי ולהקשבה</li>
+      <li>רב-מימדיות — שילוב מגוון החושים ליצירת חוויה עמוקה ועוצמתית</li>
+      <li>חיבור לערכי הליבה — אהבת המדינה ואנשיה, זיקה ליהדות וערכים ליברליים</li>
+    </ul>
+    <h3>יש לנו שלושה מסלולי תוכן אפשריים:</h3>
+    <div class="track-item"><span class="track-name">שיבולת</span> — תוכן מלא של הגוף המתארח, השתלבות בסדר היום של בית הדור הבא</div>
+    <div class="track-item"><span class="track-name">אלומה</span> — תוכן של הגוף המתארח, עם סדנה מלאה אחת של בית הדור הבא ביום, והשתלבות בסדר היום של בית הדור הבא</div>
+    <div class="track-item"><span class="track-name">שדה</span> — תוכן מלא ומותאם אישית של בית הדור הבא</div>
+    <div class="transition-line">עלויות פעילות:</div>
+  </div>
+
   <h2>פרטי לקוח</h2>
   <table>
     <tr><td><strong>שם לקוח:</strong></td><td>${c.clientName}</td></tr>
