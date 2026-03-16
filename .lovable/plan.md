@@ -1,14 +1,32 @@
 
 
-# Move Availability Calendar to the Top
+# Fix Admin Mobile Navigation Layout
 
-## Changes in `src/pages/AdminQuotes.tsx`
+## Problems Identified
+1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
+2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
 
-### 1. List View (lines ~416-508)
-Move `<QuoteAvailabilityCalendar />` from the bottom (line 507) to right after the action buttons (after line ~435), so it appears at the top of the page before the quotes list.
+## Solution
 
-### 2. Edit View (lines ~697-701)
-The calendar is currently at the bottom of the left sidebar (line 697-701). Move it to the top of the sidebar, right after the sticky top actions bar — before the summary/actions cards. This way the booking person sees availability first when creating/editing a quote.
+### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
+- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
+- Increase horizontal padding on mobile for better touch targets and readability
+- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
 
-Both moves are simple cut-paste of the existing JSX — no logic changes.
+### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
+- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
+- Reduce text size on mobile for breadcrumbs so they fit better
+
+### Technical Details
+
+**AdminLayout.tsx** - Update the nav tab styles:
+- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
+- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
+- Slightly increase padding for mobile readability
+
+**BreadcrumbNav.tsx** - Update breadcrumb container:
+- Add `flex-wrap` so items wrap instead of overlapping
+- Add smaller text on mobile with `text-base md:text-lg`
+
+These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
 

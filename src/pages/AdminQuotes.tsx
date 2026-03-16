@@ -434,6 +434,9 @@ const AdminQuotes = () => {
             </Select>
           </div>
 
+          {/* Availability Calendar */}
+          <QuoteAvailabilityCalendar />
+
           {/* Quotes list */}
           {quotes.length === 0 ? (
             <Card>
@@ -503,8 +506,6 @@ const AdminQuotes = () => {
             </div>
           )}
 
-          {/* Availability Calendar */}
-          <QuoteAvailabilityCalendar />
         </div>
       </AdminLayout>
     );
@@ -532,6 +533,12 @@ const AdminQuotes = () => {
 
         {/* ========== LEFT COLUMN: Basket + Summary + Total + Actions ========== */}
         <div className="w-full lg:w-[33%] space-y-5 lg:sticky lg:top-20 lg:self-start">
+
+          {/* Availability Calendar in edit view */}
+          <QuoteAvailabilityCalendar
+            highlightStart={editSnapshot.startDate || undefined}
+            highlightEnd={editSnapshot.endDate || undefined}
+          />
 
           {/* Selected content basket */}
           <Card className="rounded-2xl shadow-sm">
@@ -694,11 +701,6 @@ const AdminQuotes = () => {
             )}
           </div>
 
-          {/* Availability Calendar in edit view */}
-          <QuoteAvailabilityCalendar
-            highlightStart={editSnapshot.startDate || undefined}
-            highlightEnd={editSnapshot.endDate || undefined}
-          />
         </div>
 
         {/* ========== RIGHT COLUMN: Form blocks ========== */}
