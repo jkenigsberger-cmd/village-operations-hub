@@ -198,6 +198,16 @@ const commonStyles = `
     .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
     .postcard-img { width: 100%; height: 200px; object-fit: contain; background: transparent; padding: 0; border-radius: 0; border: none; box-shadow: none; }
     .pricing-section { page-break-inside: avoid; }
+    .intro-section { margin-bottom: 28px; }
+    .intro-section .intro-subtitle { font-size: 16px; color: #0b2fd6; font-weight: bold; margin-bottom: 10px; text-align: center; }
+    .intro-section .intro-paragraph { font-size: 13px; margin-bottom: 14px; line-height: 1.8; }
+    .intro-section h3 { font-size: 14px; color: #0b2fd6; margin-bottom: 8px; margin-top: 14px; }
+    .intro-section ul { list-style: none; padding: 0; margin: 0 0 10px 0; }
+    .intro-section ul li { font-size: 13px; line-height: 1.8; padding-right: 12px; position: relative; }
+    .intro-section ul li::before { content: "–"; position: absolute; right: 0; color: #0b2fd6; }
+    .intro-section .track-item { font-size: 13px; line-height: 1.8; margin-bottom: 2px; }
+    .intro-section .track-name { font-weight: bold; color: #0b2fd6; }
+    .intro-section .transition-line { font-size: 14px; font-weight: bold; color: #0b2fd6; margin-top: 16px; }
     .terms { margin-top: 32px; page-break-before: always; }
     .terms h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
     .terms h3 { font-size: 14px; margin-top: 14px; margin-bottom: 6px; font-weight: bold; }
