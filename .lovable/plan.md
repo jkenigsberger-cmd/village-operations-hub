@@ -1,26 +1,32 @@
 
 
-# Add Introductory Text to Client Quote PDF
+# Fix Admin Mobile Navigation Layout
 
-## What
-Insert the provided Hebrew introductory text block into the client-facing quote PDF, between the header (logo + title) and the "פרטי לקוח" section.
+## Problems Identified
+1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
+2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
 
-## File: `src/lib/quoteUtils.ts`
+## Solution
 
-### Change (lines ~303-304 in `buildClientDocHTML`)
+### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
+- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
+- Increase horizontal padding on mobile for better touch targets and readability
+- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
 
-After the closing `</div>` of the `.header` block (line 303) and before `<h2>פרטי לקוח</h2>` (line 305), insert a new styled `<div>` containing:
+### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
+- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
+- Reduce text size on mobile for breadcrumbs so they fit better
 
-1. **Subtitle**: "הצעת מחיר לסמינרים וימי עיון לצוותי חינוך"
-2. **Intro paragraph**: "בית הדור הבא מציע מרחב לחיבור..."
-3. **Principles section** ("עקרונות החוויה בבית הדור הבא") as a styled list with 4 items
-4. **Content tracks section** ("יש לנו שלושה מסלולי תוכן אפשריים") with 3 items (שיבולת, אלומה, שדה) — each with bold name + description
-5. **Transition line**: "עלויות פעילות:" as a lead-in to the existing pricing section
+### Technical Details
 
-### Styling
-- Use existing theme colors (`#0b2fd6` for headings)
-- Compact spacing to avoid excessive page length
-- Principles as a clean list with em-dash or bullet styling
-- Content tracks as bold name + dash + description
-- Add minimal CSS for `.intro-section` inline in `commonStyles` or scoped within the div
+**AdminLayout.tsx** - Update the nav tab styles:
+- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
+- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
+- Slightly increase padding for mobile readability
+
+**BreadcrumbNav.tsx** - Update breadcrumb container:
+- Add `flex-wrap` so items wrap instead of overlapping
+- Add smaller text on mobile with `text-base md:text-lg`
+
+These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
 

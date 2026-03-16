@@ -198,6 +198,16 @@ const commonStyles = `
     .postcard-label { font-size: 13px; color: #888; margin-bottom: 6px; }
     .postcard-img { width: 100%; height: 200px; object-fit: contain; background: transparent; padding: 0; border-radius: 0; border: none; box-shadow: none; }
     .pricing-section { page-break-inside: avoid; }
+    .intro-section { margin-bottom: 28px; }
+    .intro-section .intro-subtitle { font-size: 16px; color: #0b2fd6; font-weight: bold; margin-bottom: 10px; text-align: center; }
+    .intro-section .intro-paragraph { font-size: 13px; margin-bottom: 14px; line-height: 1.8; }
+    .intro-section h3 { font-size: 14px; color: #0b2fd6; margin-bottom: 8px; margin-top: 14px; }
+    .intro-section ul { list-style: none; padding: 0; margin: 0 0 10px 0; }
+    .intro-section ul li { font-size: 13px; line-height: 1.8; padding-right: 12px; position: relative; }
+    .intro-section ul li::before { content: "–"; position: absolute; right: 0; color: #0b2fd6; }
+    .intro-section .track-item { font-size: 13px; line-height: 1.8; margin-bottom: 2px; }
+    .intro-section .track-name { font-weight: bold; color: #0b2fd6; }
+    .intro-section .transition-line { font-size: 14px; font-weight: bold; color: #0b2fd6; margin-top: 16px; }
     .terms { margin-top: 32px; page-break-before: always; }
     .terms h2 { font-size: 18px; color: #0b2fd6; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #7a9be6; padding-bottom: 4px; }
     .terms h3 { font-size: 14px; margin-top: 14px; margin-bottom: 6px; font-weight: bold; }
@@ -300,6 +310,23 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
     <img src="${getBaseUrl()}/assets/quote-logo.png" alt="בית הדור הבא" class="header-logo" onerror="this.style.display='none'">
     <h1>בית הדור הבא – חוות אהרונסון</h1>
     <div class="subtitle">הצעת מחיר</div>
+  </div>
+
+  <div class="intro-section">
+    <div class="intro-subtitle">הצעת מחיר לסמינרים וימי עיון לצוותי חינוך</div>
+    <p class="intro-paragraph">בית הדור הבא מציע מרחב לחיבור, העמקה ודיאלוג. בהמשך לשיחתנו, להלן הצעתנו עבור פעילות לצוותי חינוך:</p>
+    <h3>עקרונות החוויה בבית הדור הבא:</h3>
+    <ul>
+      <li>חיבור בין עשייה להעמקה — שילוב בין פעילות מעשית לשיח משמעותי</li>
+      <li>מרחב לקול האישי — יצירת הזדמנויות לביטוי אישי ולהקשבה</li>
+      <li>רב-מימדיות — שילוב מגוון החושים ליצירת חוויה עמוקה ועוצמתית</li>
+      <li>חיבור לערכי הליבה — אהבת המדינה ואנשיה, זיקה ליהדות וערכים ליברליים</li>
+    </ul>
+    <h3>יש לנו שלושה מסלולי תוכן אפשריים:</h3>
+    <div class="track-item"><span class="track-name">שיבולת</span> — תוכן מלא של הגוף המתארח, השתלבות בסדר היום של בית הדור הבא</div>
+    <div class="track-item"><span class="track-name">אלומה</span> — תוכן של הגוף המתארח, עם סדנה מלאה אחת של בית הדור הבא ביום, והשתלבות בסדר היום של בית הדור הבא</div>
+    <div class="track-item"><span class="track-name">שדה</span> — תוכן מלא ומותאם אישית של בית הדור הבא</div>
+    <div class="transition-line">עלויות פעילות:</div>
   </div>
 
   <h2>פרטי לקוח</h2>
