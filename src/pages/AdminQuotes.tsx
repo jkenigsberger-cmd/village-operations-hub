@@ -434,8 +434,6 @@ const AdminQuotes = () => {
             </Select>
           </div>
 
-          {/* Availability Calendar */}
-          <QuoteAvailabilityCalendar />
 
           {/* Quotes list */}
           {quotes.length === 0 ? (
