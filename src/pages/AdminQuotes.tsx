@@ -696,8 +696,8 @@ const AdminQuotes = () => {
 
           {/* Availability Calendar in edit view */}
           <QuoteAvailabilityCalendar
-            highlightStart={editSnapshot.arrivalDate || undefined}
-            highlightEnd={editSnapshot.departureDate || undefined}
+            highlightStart={editSnapshot.startDate || undefined}
+            highlightEnd={editSnapshot.endDate || undefined}
           />
         </div>
 
