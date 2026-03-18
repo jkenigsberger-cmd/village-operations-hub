@@ -625,7 +625,7 @@ const AdminQuotes = () => {
                 {computedTotals.workshopsSubtotal > 0 && <div className="flex justify-between"><span>סדנאות</span><span>{fc(computedTotals.workshopsSubtotal)}</span></div>}
                 {computedTotals.lecturesSubtotal > 0 && <div className="flex justify-between"><span>הרצאות</span><span>{fc(computedTotals.lecturesSubtotal)}</span></div>}
                 {computedTotals.lecturesVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>מע״מ על הרצאות</span><span>{fc(computedTotals.lecturesVatAmount)}</span></div>}
-                {computedTotals.coffeeCornerSubtotal > 0 && <div className="flex justify-between"><span>פינת קפה</span><span>{fc(computedTotals.coffeeCornerSubtotal)}</span></div>}
+                {computedTotals.coffeeCornerSubtotal > 0 && <div className="flex justify-between"><span>פינת קפה ועוגיות</span><span>{fc(computedTotals.coffeeCornerSubtotal)}</span></div>}
                 {computedTotals.addonsSubtotal > 0 && <div className="flex justify-between"><span>תוספות</span><span>{fc(computedTotals.addonsSubtotal)}</span></div>}
                 {computedTotals.customAdjustmentsSubtotal !== 0 && <div className="flex justify-between"><span>התאמות</span><span>{fc(computedTotals.customAdjustmentsSubtotal)}</span></div>}
                 <Separator />
@@ -841,9 +841,18 @@ const AdminQuotes = () => {
                 <div>
                   <Label>ח.פ / ע.מ</Label>
                   <Input
+                    value={editClientDetails.clientTaxId || ''}
+                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientTaxId: e.target.value }))}
+                    placeholder="מספר עוסק"
+                  />
+                </div>
+                <div>
+                  <Label>אימייל</Label>
+                  <Input
+                    type="email"
                     value={editClientDetails.clientEmail || ''}
                     onChange={e => setEditClientDetails(prev => ({ ...prev, clientEmail: e.target.value }))}
-                    placeholder="מספר עוסק"
+                    placeholder="email@example.com"
                   />
                 </div>
                 <div>
@@ -1071,7 +1080,7 @@ const AdminQuotes = () => {
                     coffeeCorner: { enabled: v, pricePerPerson: prev.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON },
                   }))}
                 />
-                <Label>פינת קפה ({fc(editPricing.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON)} לאדם)</Label>
+                <Label>פינת קפה ועוגיות ({fc(editPricing.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON)} לאדם)</Label>
                 {editPricing.coffeeCorner?.enabled && (
                   <NumericInput
                     value={editPricing.coffeeCorner.pricePerPerson}

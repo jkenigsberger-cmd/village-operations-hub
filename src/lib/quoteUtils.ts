@@ -280,7 +280,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
 
   const coffeeRow = p.coffeeCorner?.enabled ? `
     <tr>
-      <td>פינת קפה</td>
+      <td>פינת קפה ועוגיות</td>
       <td>${s.totalPax}</td>
       <td>${formatCurrency(p.coffeeCorner.pricePerPerson)}</td>
       <td>${formatCurrency(t.coffeeCornerSubtotal)}</td>
@@ -467,7 +467,7 @@ const buildOperationalDocHTML = (quote: QuoteRecord): string => {
     ${!p.workshops.length && !p.lectures.length ? '<tr><td colspan="3">לא הוגדרו תכנים</td></tr>' : ''}
   </table>
 
-  ${p.coffeeCorner?.enabled ? '<h3>✓ פינת קפה</h3>' : ''}
+  ${p.coffeeCorner?.enabled ? '<h3>✓ פינת קפה ועוגיות</h3>' : ''}
 
   ${p.addons.length > 0 ? `
   <h2>תוספות</h2>

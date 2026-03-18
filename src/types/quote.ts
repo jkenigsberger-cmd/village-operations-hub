@@ -49,6 +49,7 @@ export interface QuoteClientDetails {
   clientOrg?: string;
   clientPhone?: string;
   clientEmail?: string;
+  clientTaxId?: string;
   contactPerson?: string;
 }
 
