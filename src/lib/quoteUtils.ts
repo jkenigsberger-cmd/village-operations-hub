@@ -103,7 +103,7 @@ export const computeQuoteTotals = (
   }
 
   const coffeeCornerSubtotal = pricing.coffeeCorner?.enabled
-    ? (pricing.coffeeCorner.pricePerPerson * snapshot.totalPax)
+    ? (pricing.coffeeCorner.pricePerPerson * (snapshot.staffTotal || 0))
     : 0;
 
   const addonsSubtotal = pricing.addons.reduce(
