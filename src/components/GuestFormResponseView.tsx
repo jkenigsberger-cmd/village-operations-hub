@@ -195,7 +195,10 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
 
             {/* Staff card */}
             <ParticipantGroupCard title="צוות / מלווים" subtotal={staffCount}>
-              <CountRow label="צוות / מלווים" value={staffCount} />
+              <div className="grid grid-cols-2 gap-3">
+                <CountRow label="גברים" value={staffMen} />
+                <CountRow label="נשים" value={staffWomen} />
+              </div>
               {lodgingNotes.staff && (
                 <NoteBlock text={lodgingNotes.staff} />
               )}
