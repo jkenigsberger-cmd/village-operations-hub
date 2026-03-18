@@ -310,7 +310,7 @@ export default function GuestForm() {
           client_name: client.contactPerson || client.clientName || prev.client_name,
           client_org: client.clientOrg || prev.client_org,
           client_phone: client.clientPhone || prev.client_phone,
-          client_email: client.clientEmail || prev.client_email,
+          // Do NOT prefill email from quote — leave blank for client to fill
           boys_count: snapshot.studentsTotal ? String(Math.floor(snapshot.studentsTotal / 2)) : prev.boys_count,
           girls_count: snapshot.studentsTotal ? String(Math.ceil(snapshot.studentsTotal / 2)) : prev.girls_count,
           staff_count: snapshot.staffTotal ? String(snapshot.staffTotal) : prev.staff_count,
