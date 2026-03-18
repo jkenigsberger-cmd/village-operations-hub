@@ -90,11 +90,13 @@ const AdminQuotes = () => {
   const { quotes, isLoading: quotesLoading, createQuote, updateQuote, createNewVersion, deleteQuote } = useQuotes();
   const { groups, activeGroups } = useAdminGroups();
   const { allocations } = useSupabaseAllocations();
+  const { submissions } = useGuestFormSubmissions();
 
   // State
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [responseViewQuote, setResponseViewQuote] = useState<{ id: string; groupName: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Edit form state
