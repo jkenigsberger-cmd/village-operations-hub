@@ -926,6 +926,16 @@ export default function GuestForm() {
                     {Number(form.drivers_security_count) || 0}
                   </strong>
                 </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-amber-700 mb-1">צרכים מיוחדים בלינה – נהגים / אבטחה / אחרים</h4>
+                  <Textarea
+                    value={form.drivers_security_lodging_notes || ''}
+                    onChange={e => set('drivers_security_lodging_notes', e.target.value)}
+                    placeholder="לדוגמה: הנהג צריך חדר נפרד"
+                    className="mt-1 min-h-[80px]"
+                  />
+                </div>
               </div>
 
               {/* D) Grand total */}
