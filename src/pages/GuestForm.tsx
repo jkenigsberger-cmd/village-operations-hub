@@ -655,7 +655,7 @@ export default function GuestForm() {
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                 <h3 className="text-base font-bold text-gray-800 text-center mb-3">תוספות בתשלום</h3>
                 <label className="flex items-center justify-center gap-3 cursor-pointer">
-                  <span className="text-sm text-gray-700">☕ פינת קפה משודרגת</span>
+                  <span className="text-sm text-gray-700">☕ פינת קפה ועוגיות</span>
                   <Checkbox
                     checked={!!form.special_diets['upgraded_coffee']}
                     onCheckedChange={v => set('special_diets', { ...form.special_diets, upgraded_coffee: v })}
