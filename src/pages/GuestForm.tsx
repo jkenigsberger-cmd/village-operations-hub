@@ -159,6 +159,7 @@ export default function GuestForm() {
     staff_count: '',
     // Drivers, security, others
     drivers_security_count: '',
+    drivers_security_lodging_notes: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
