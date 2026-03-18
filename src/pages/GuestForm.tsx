@@ -342,11 +342,15 @@ export default function GuestForm() {
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
-      // Build special_diets payload with meal preferences included
+      // Build special_diets payload with meal preferences and gender breakdown
       const specialDietsPayload = {
         ...form.special_diets,
         notes: form.diet_notes,
         mealPreferences: isSleepingGroup ? mealPrefs : undefined,
+        staffMen: Number(form.staff_men_count) || 0,
+        staffWomen: Number(form.staff_women_count) || 0,
+        driversMen: Number(form.drivers_men_count) || 0,
+        driversWomen: Number(form.drivers_women_count) || 0,
       };
 
       // Derive totals from new breakdown
