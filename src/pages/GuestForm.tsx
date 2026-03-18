@@ -157,8 +157,12 @@ export default function GuestForm() {
     girls_count: '',
     // Staff/escorts
     staff_count: '',
+    staff_men_count: '',
+    staff_women_count: '',
     // Drivers, security, others
     drivers_security_count: '',
+    drivers_men_count: '',
+    drivers_women_count: '',
     drivers_security_lodging_notes: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
@@ -181,7 +185,7 @@ export default function GuestForm() {
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
 
   const addScheduleItem = () => {
-    const currentTotal = (Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0) + (Number(form.drivers_security_count) || 0);
+    const currentTotal = (Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.drivers_men_count) || 0) + (Number(form.drivers_women_count) || 0);
     setScheduleItems(prev => [...prev, {
       id: crypto.randomUUID(),
       date: stayStartDate || '',
@@ -314,7 +318,8 @@ export default function GuestForm() {
           // Do NOT prefill email from quote — leave blank for client to fill
           boys_count: snapshot.studentsTotal ? String(Math.floor(snapshot.studentsTotal / 2)) : prev.boys_count,
           girls_count: snapshot.studentsTotal ? String(Math.ceil(snapshot.studentsTotal / 2)) : prev.girls_count,
-          staff_count: snapshot.staffTotal ? String(snapshot.staffTotal) : prev.staff_count,
+          staff_men_count: snapshot.staffTotal ? String(Math.floor(snapshot.staffTotal / 2)) : prev.staff_men_count,
+          staff_women_count: snapshot.staffTotal ? String(Math.ceil(snapshot.staffTotal / 2)) : prev.staff_women_count,
           group_type: snapshot.groupType || prev.group_type,
         }));
       } catch {
@@ -338,19 +343,27 @@ export default function GuestForm() {
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
-      // Build special_diets payload with meal preferences included
+      // Build special_diets payload with meal preferences and gender breakdown
       const specialDietsPayload = {
         ...form.special_diets,
         notes: form.diet_notes,
         mealPreferences: isSleepingGroup ? mealPrefs : undefined,
+        staffMen: Number(form.staff_men_count) || 0,
+        staffWomen: Number(form.staff_women_count) || 0,
+        driversMen: Number(form.drivers_men_count) || 0,
+        driversWomen: Number(form.drivers_women_count) || 0,
       };
 
       // Derive totals from new breakdown
       const boysCount = Number(form.boys_count) || 0;
       const girlsCount = Number(form.girls_count) || 0;
       const studentsTotal = boysCount + girlsCount;
-      const staffTotal = Number(form.staff_count) || 0;
-      const driversSecurityTotal = Number(form.drivers_security_count) || 0;
+      const staffMen = Number(form.staff_men_count) || 0;
+      const staffWomen = Number(form.staff_women_count) || 0;
+      const staffTotal = staffMen + staffWomen;
+      const driversMen = Number(form.drivers_men_count) || 0;
+      const driversWomen = Number(form.drivers_women_count) || 0;
+      const driversSecurityTotal = driversMen + driversWomen;
       const derivedTotal = studentsTotal + staffTotal + driversSecurityTotal;
 
       // Build sleeping notes for tent_distribution_notes field
@@ -873,24 +886,38 @@ export default function GuestForm() {
               <div className="space-y-4 border border-gray-200 rounded-xl p-5">
                 <h3 className="text-base font-bold text-gray-800">צוות / מלווים</h3>
 
-                <div>
-                  <Label className="text-gray-700">מספר אנשי צוות / מלווים</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={form.staff_count}
-                    onChange={e => set('staff_count', e.target.value)}
-                    placeholder="0"
-                    className="mt-1 max-w-[200px]"
-                    onFocus={e => e.target.select()}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-700">גברים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_men_count}
+                      onChange={e => set('staff_men_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נשים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_women_count}
+                      onChange={e => set('staff_women_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
                 </div>
 
                 {/* Staff subtotal */}
                 <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
                   <span className="text-gray-600">סה״כ צוות / מלווים</span>
                   <strong className="text-gray-800 text-base">
-                    {Number(form.staff_count) || 0}
+                    {(Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0)}
                   </strong>
                 </div>
 
@@ -909,23 +936,37 @@ export default function GuestForm() {
               <div className="space-y-4 border border-gray-200 rounded-xl p-5">
                 <h3 className="text-base font-bold text-gray-800">נהגים, אבטחה ואחרים</h3>
 
-                <div>
-                  <Label className="text-gray-700">מספר נהגים / אבטחה / אחרים</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={form.drivers_security_count}
-                    onChange={e => set('drivers_security_count', e.target.value)}
-                    placeholder="0"
-                    className="mt-1 max-w-[200px]"
-                    onFocus={e => e.target.select()}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-700">גברים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.drivers_men_count}
+                      onChange={e => set('drivers_men_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נשים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.drivers_women_count}
+                      onChange={e => set('drivers_women_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
                 </div>
 
                 <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
                   <span className="text-gray-600">סה״כ נהגים / אבטחה / אחרים</span>
                   <strong className="text-gray-800 text-base">
-                    {Number(form.drivers_security_count) || 0}
+                    {(Number(form.drivers_men_count) || 0) + (Number(form.drivers_women_count) || 0)}
                   </strong>
                 </div>
 
@@ -944,7 +985,7 @@ export default function GuestForm() {
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex justify-between items-center">
                 <span className="text-gray-700 font-medium">סה״כ מגיעים</span>
                 <strong className="text-blue-800 text-lg">
-                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0) + (Number(form.drivers_security_count) || 0)}
+                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.drivers_men_count) || 0) + (Number(form.drivers_women_count) || 0)}
                 </strong>
               </div>
 
