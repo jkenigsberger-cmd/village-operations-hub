@@ -841,9 +841,18 @@ const AdminQuotes = () => {
                 <div>
                   <Label>ח.פ / ע.מ</Label>
                   <Input
+                    value={editClientDetails.clientTaxId || ''}
+                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientTaxId: e.target.value }))}
+                    placeholder="מספר עוסק"
+                  />
+                </div>
+                <div>
+                  <Label>אימייל</Label>
+                  <Input
+                    type="email"
                     value={editClientDetails.clientEmail || ''}
                     onChange={e => setEditClientDetails(prev => ({ ...prev, clientEmail: e.target.value }))}
-                    placeholder="מספר עוסק"
+                    placeholder="email@example.com"
                   />
                 </div>
                 <div>
