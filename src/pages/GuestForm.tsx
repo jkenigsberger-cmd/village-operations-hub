@@ -885,24 +885,38 @@ export default function GuestForm() {
               <div className="space-y-4 border border-gray-200 rounded-xl p-5">
                 <h3 className="text-base font-bold text-gray-800">צוות / מלווים</h3>
 
-                <div>
-                  <Label className="text-gray-700">מספר אנשי צוות / מלווים</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={form.staff_count}
-                    onChange={e => set('staff_count', e.target.value)}
-                    placeholder="0"
-                    className="mt-1 max-w-[200px]"
-                    onFocus={e => e.target.select()}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-700">גברים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_men_count}
+                      onChange={e => set('staff_men_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">נשים</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.staff_women_count}
+                      onChange={e => set('staff_women_count', e.target.value)}
+                      placeholder="0"
+                      className="mt-1"
+                      onFocus={e => e.target.select()}
+                    />
+                  </div>
                 </div>
 
                 {/* Staff subtotal */}
                 <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
                   <span className="text-gray-600">סה״כ צוות / מלווים</span>
                   <strong className="text-gray-800 text-base">
-                    {Number(form.staff_count) || 0}
+                    {(Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0)}
                   </strong>
                 </div>
 
