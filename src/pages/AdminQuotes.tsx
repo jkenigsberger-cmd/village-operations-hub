@@ -625,7 +625,7 @@ const AdminQuotes = () => {
                 {computedTotals.workshopsSubtotal > 0 && <div className="flex justify-between"><span>סדנאות</span><span>{fc(computedTotals.workshopsSubtotal)}</span></div>}
                 {computedTotals.lecturesSubtotal > 0 && <div className="flex justify-between"><span>הרצאות</span><span>{fc(computedTotals.lecturesSubtotal)}</span></div>}
                 {computedTotals.lecturesVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>מע״מ על הרצאות</span><span>{fc(computedTotals.lecturesVatAmount)}</span></div>}
-                {computedTotals.coffeeCornerSubtotal > 0 && <div className="flex justify-between"><span>פינת קפה</span><span>{fc(computedTotals.coffeeCornerSubtotal)}</span></div>}
+                {computedTotals.coffeeCornerSubtotal > 0 && <div className="flex justify-between"><span>פינת קפה ועוגיות</span><span>{fc(computedTotals.coffeeCornerSubtotal)}</span></div>}
                 {computedTotals.addonsSubtotal > 0 && <div className="flex justify-between"><span>תוספות</span><span>{fc(computedTotals.addonsSubtotal)}</span></div>}
                 {computedTotals.customAdjustmentsSubtotal !== 0 && <div className="flex justify-between"><span>התאמות</span><span>{fc(computedTotals.customAdjustmentsSubtotal)}</span></div>}
                 <Separator />
