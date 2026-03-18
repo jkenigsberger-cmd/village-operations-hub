@@ -945,11 +945,23 @@ export default function GuestForm() {
           {/* ========== STEP 4: Activities Schedule ========== */}
           {logicalStep === 4 && (
             <div className="space-y-5">
+              {/* Arrival time */}
+              <div className="border border-gray-200 rounded-xl p-5 space-y-2">
+                <Label className="text-gray-700 font-semibold">🕐 שעת הגעה משוערת</Label>
+                <Input
+                  type="time"
+                  value={form.arrival_time}
+                  onChange={e => set('arrival_time', e.target.value)}
+                  className="max-w-[200px]"
+                />
+                {stayStartDate && (
+                  <p className="text-xs text-muted-foreground">ביום {formatDateHe(stayStartDate)}</p>
+                )}
+              </div>
+
               <p className="text-sm text-muted-foreground">
                 הוסיפו את הפעילויות המתוכננות כדי שנוכל לתכנן את השימוש בכיתות ובמתחמים.
               </p>
-
-              {scheduleItems.map((item) => (
                 <Card key={item.id} className={`p-4 space-y-3 border ${item.location === 'offsite' ? 'border-dashed border-muted-foreground/30 bg-muted/20' : 'border-border'}`}>
                   {/* Date + Times row */}
                   <div className="grid grid-cols-3 gap-3">
