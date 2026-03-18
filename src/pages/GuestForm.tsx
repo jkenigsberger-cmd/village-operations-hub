@@ -357,6 +357,7 @@ export default function GuestForm() {
       const sleepingNotesParts = [
         form.student_sleeping_notes ? `צרכי לינה תלמידים: ${form.student_sleeping_notes}` : null,
         form.other_sleeping_notes ? `צרכי לינה צוות/מלווים: ${form.other_sleeping_notes}` : null,
+        form.drivers_security_lodging_notes ? `צרכי לינה נהגים/אבטחה/אחרים: ${form.drivers_security_lodging_notes}` : null,
       ].filter(Boolean).join('\n');
 
       const res = await fetch(
