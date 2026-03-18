@@ -159,9 +159,6 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
         </div>
       </div>
 
