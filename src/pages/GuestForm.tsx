@@ -159,6 +159,7 @@ export default function GuestForm() {
     staff_count: '',
     // Drivers, security, others
     drivers_security_count: '',
+    drivers_security_lodging_notes: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
@@ -356,6 +357,7 @@ export default function GuestForm() {
       const sleepingNotesParts = [
         form.student_sleeping_notes ? `צרכי לינה תלמידים: ${form.student_sleeping_notes}` : null,
         form.other_sleeping_notes ? `צרכי לינה צוות/מלווים: ${form.other_sleeping_notes}` : null,
+        form.drivers_security_lodging_notes ? `צרכי לינה נהגים/אבטחה/אחרים: ${form.drivers_security_lodging_notes}` : null,
       ].filter(Boolean).join('\n');
 
       const res = await fetch(
@@ -925,6 +927,16 @@ export default function GuestForm() {
                   <strong className="text-gray-800 text-base">
                     {Number(form.drivers_security_count) || 0}
                   </strong>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-amber-700 mb-1">צרכים מיוחדים בלינה – נהגים / אבטחה / אחרים</h4>
+                  <Textarea
+                    value={form.drivers_security_lodging_notes || ''}
+                    onChange={e => set('drivers_security_lodging_notes', e.target.value)}
+                    placeholder="לדוגמה: הנהג צריך חדר נפרד"
+                    className="mt-1 min-h-[80px]"
+                  />
                 </div>
               </div>
 
