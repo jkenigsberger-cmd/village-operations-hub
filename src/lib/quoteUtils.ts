@@ -280,7 +280,7 @@ const buildClientDocHTML = (quote: QuoteRecord): string => {
 
   const coffeeRow = p.coffeeCorner?.enabled ? `
     <tr>
-      <td>פינת קפה</td>
+      <td>פינת קפה ועוגיות</td>
       <td>${s.totalPax}</td>
       <td>${formatCurrency(p.coffeeCorner.pricePerPerson)}</td>
       <td>${formatCurrency(t.coffeeCornerSubtotal)}</td>
