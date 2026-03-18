@@ -867,13 +867,12 @@ export default function GuestForm() {
                 </div>
               </div>
 
-              {/* B) צוות / מלווים / אחרים */}
+              {/* B) צוות / מלווים */}
               <div className="space-y-4 border border-gray-200 rounded-xl p-5">
-                <h3 className="text-base font-bold text-gray-800">צוות / מלווים / אחרים</h3>
+                <h3 className="text-base font-bold text-gray-800">צוות / מלווים</h3>
 
                 <div>
-                  <Label className="text-gray-700">מספר אנשי צוות / מלווים / אחרים</Label>
-                  <p className="text-xs text-muted-foreground mb-1">(אבטחה, נהגים, מלווים, אחרים)</p>
+                  <Label className="text-gray-700">מספר אנשי צוות / מלווים</Label>
                   <Input
                     type="number"
                     min={0}
@@ -887,14 +886,14 @@ export default function GuestForm() {
 
                 {/* Staff subtotal */}
                 <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
-                  <span className="text-gray-600">סה״כ צוות / מלווים / אחרים</span>
+                  <span className="text-gray-600">סה״כ צוות / מלווים</span>
                   <strong className="text-gray-800 text-base">
                     {Number(form.staff_count) || 0}
                   </strong>
                 </div>
 
                 <div>
-                  <Label className="text-gray-700">צרכים מיוחדים בלינה – צוות / מלווים / אחרים</Label>
+                  <Label className="text-gray-700">צרכים מיוחדים בלינה – צוות / מלווים</Label>
                   <Textarea
                     value={form.other_sleeping_notes}
                     onChange={e => set('other_sleeping_notes', e.target.value)}
@@ -904,11 +903,36 @@ export default function GuestForm() {
                 </div>
               </div>
 
-              {/* C) Grand total */}
+              {/* C) נהגים, אבטחה ואחרים */}
+              <div className="space-y-4 border border-gray-200 rounded-xl p-5">
+                <h3 className="text-base font-bold text-gray-800">נהגים, אבטחה ואחרים</h3>
+
+                <div>
+                  <Label className="text-gray-700">מספר נהגים / אבטחה / אחרים</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.drivers_security_count}
+                    onChange={e => set('drivers_security_count', e.target.value)}
+                    placeholder="0"
+                    className="mt-1 max-w-[200px]"
+                    onFocus={e => e.target.select()}
+                  />
+                </div>
+
+                <div className="bg-gray-50 rounded-lg px-4 py-2.5 text-sm flex justify-between items-center">
+                  <span className="text-gray-600">סה״כ נהגים / אבטחה / אחרים</span>
+                  <strong className="text-gray-800 text-base">
+                    {Number(form.drivers_security_count) || 0}
+                  </strong>
+                </div>
+              </div>
+
+              {/* D) Grand total */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex justify-between items-center">
                 <span className="text-gray-700 font-medium">סה״כ מגיעים</span>
                 <strong className="text-blue-800 text-lg">
-                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0)}
+                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0) + (Number(form.drivers_security_count) || 0)}
                 </strong>
               </div>
 
