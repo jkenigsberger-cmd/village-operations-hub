@@ -1,32 +1,34 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Polish GuestFormResponseView Design
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## Goal
+Redesign the response viewer to match the guest form's visual language — bordered rounded cards with subtotal bars, consistent spacing, and the same structural feel as the form's Step 3 (participants) layout.
 
-## Solution
+## Changes — `src/components/GuestFormResponseView.tsx` only
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+### 1. Participants section — match form's card-per-group style
+Replace the flat 4-column grid with 3 bordered card groups matching the form:
+- **תלמידים** card: boys + girls counts side-by-side, subtotal bar below, lodging notes if present
+- **צוות / מלווים** card: staff count, subtotal bar, lodging notes
+- **נהגים, אבטחה ואחרים** card: count, subtotal bar, lodging notes
+- **Grand total** bar: blue bg, same style as form's `bg-blue-50 border border-blue-200 rounded-xl`
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
+Parse `tent_distribution_notes` to extract per-group notes (they're stored with prefixes like "צרכי לינה תלמידים:").
 
-### Technical Details
+### 2. Section cards — use rounded-xl with amber accent divider
+- Keep `SectionCard` but add the amber accent line (`h-0.5 w-12 bg-amber-500`) under section title, matching form's step header style
+- Use `border-gray-200` consistently
 
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
+### 3. ReadOnlyField — styled like form inputs
+Render read-only fields with a light `bg-gray-50 rounded-lg px-4 py-2.5` container (similar to form's subtotal bars) so they look like disabled form fields rather than plain text.
 
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
+### 4. CountField — use subtotal bar style
+Replace the centered box style with the form's `bg-gray-50 rounded-lg px-4 py-2.5 flex justify-between` pattern showing label on the right and value on the left.
 
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+### 5. Overall container
+- Match max-width (`max-w-2xl`) to form
+- Card wrapper with `shadow-md` like the form's `Card` component
+
+No data/logic changes. Same fields, same parsing, same sections.
 
