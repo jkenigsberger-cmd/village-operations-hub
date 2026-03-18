@@ -349,7 +349,8 @@ export default function GuestForm() {
       const girlsCount = Number(form.girls_count) || 0;
       const studentsTotal = boysCount + girlsCount;
       const staffTotal = Number(form.staff_count) || 0;
-      const derivedTotal = studentsTotal + staffTotal;
+      const driversSecurityTotal = Number(form.drivers_security_count) || 0;
+      const derivedTotal = studentsTotal + staffTotal + driversSecurityTotal;
 
       // Build sleeping notes for tent_distribution_notes field
       const sleepingNotesParts = [
