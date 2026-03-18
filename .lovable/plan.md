@@ -1,18 +1,32 @@
 
 
-# Fix: Download blocked after saving new quote
+# Fix Admin Mobile Navigation Layout
 
-## Problem
-After creating a new quote, `selectedQuoteId` is set immediately, but `selectedQuote` (derived from `quotes.find(...)`) remains `null` until the realtime subscription refreshes the quotes array. Clicking download in that window shows "יש לשמור את ההצעה לפני הורדה".
+## Problems Identified
+1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
+2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
 
 ## Solution
-In `handleDownload`, fall back to constructing the quote data from form state when `selectedQuote` isn't available yet but `selectedQuoteId` exists.
 
-## Change
-**`src/pages/AdminQuotes.tsx`** — Update `handleDownload`:
-- Check `selectedQuoteId` instead of `selectedQuote`
-- When `selectedQuote` is null but `selectedQuoteId` exists, build the download data from form state (`editSnapshot`, `editClientDetails`, `editPricing`, `computedTotals`, etc.)
-- This covers the race condition between save and realtime refresh
+### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
+- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
+- Increase horizontal padding on mobile for better touch targets and readability
+- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
 
-Single function change, ~10 lines modified.
+### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
+- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
+- Reduce text size on mobile for breadcrumbs so they fit better
+
+### Technical Details
+
+**AdminLayout.tsx** - Update the nav tab styles:
+- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
+- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
+- Slightly increase padding for mobile readability
+
+**BreadcrumbNav.tsx** - Update breadcrumb container:
+- Add `flex-wrap` so items wrap instead of overlapping
+- Add smaller text on mobile with `text-base md:text-lg`
+
+These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
 

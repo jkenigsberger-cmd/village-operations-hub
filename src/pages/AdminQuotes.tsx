@@ -211,16 +211,34 @@ const AdminQuotes = () => {
 
   // Download documents
   const handleDownload = useCallback((type: 'client' | 'operational') => {
-    if (!selectedQuote) {
+    if (!selectedQuoteId) {
       toast({ title: 'יש לשמור את ההצעה לפני הורדה', variant: 'destructive' });
       return;
     }
-    const quoteWithTotals = { ...selectedQuote, totals: computedTotals };
+    // Use selectedQuote if available, otherwise build from form state (covers race condition after save)
+    const quoteData: QuoteRecord = selectedQuote || {
+      id: selectedQuoteId,
+      groupId: editGroupId,
+      version: 1,
+      status: 'draft' as QuoteStatus,
+      currency: 'ILS',
+      title: editTitle || null,
+      snapshot: editSnapshot,
+      clientDetails: editClientDetails,
+      pricing: editPricing,
+      totals: computedTotals,
+      docClientHtml: null,
+      docOperationalHtml: null,
+      createdBy: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const quoteWithTotals = { ...quoteData, totals: computedTotals };
     const html = buildQuoteDocHTML(type, quoteWithTotals);
     const prefix = type === 'client' ? 'הצעת-מחיר' : 'דף-תפעול';
     const name = editSnapshot.groupName || editTitle || 'ללא-שם';
-    downloadDocPDF(html, `${prefix}-${name}-v${selectedQuote.version}`);
-  }, [selectedQuote, computedTotals, editSnapshot.groupName, editTitle]);
+    downloadDocPDF(html, `${prefix}-${name}-v${quoteData.version}`);
+  }, [selectedQuoteId, selectedQuote, computedTotals, editSnapshot, editClientDetails, editPricing, editGroupId, editTitle]);
 
   // Delete
   const handleDelete = useCallback(async () => {
