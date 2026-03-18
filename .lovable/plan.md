@@ -1,32 +1,38 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Add Gender Breakdown to Staff & Drivers Groups
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## Problem
+Currently only the Students group has boys/girls (גברים/נשים) breakdown. Staff and Drivers/Security groups only have a total count.
 
-## Solution
+## Approach
+Since the DB schema only has `boys_count` and `girls_count` columns (for students), we'll store staff and drivers gender breakdown in the `special_diets` JSON payload (already used as a flexible data bag) under keys like `staffMen`, `staffWomen`, `driversMen`, `driversWomen`.
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+## Changes
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
+### 1. `src/pages/GuestForm.tsx` — Form state + UI + submission
 
-### Technical Details
+**Form state**: Add 4 new fields:
+- `staff_men_count`, `staff_women_count`
+- `drivers_men_count`, `drivers_women_count`
 
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
+**UI (Step 3)**: For both Staff and Drivers/Security cards, after the total count input, add a gender row identical to the Students card pattern:
+- Two side-by-side inputs: "גברים" and "נשים"
+- The total count input becomes read-only and auto-computes from men + women
+- Subtotal bar shows the sum
 
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
+**Submission**: Store gender breakdown in `special_diets` JSON:
+```json
+{ "staffMen": 5, "staffWomen": 3, "driversMen": 2, "driversWomen": 1, ... }
+```
 
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+Also update `staff_count` to be `staffMen + staffWomen` and drivers total in `general_notes` to use sum of `driversMen + driversWomen`.
+
+### 2. `src/components/GuestFormResponseView.tsx` — Response viewer
+
+In the Staff and Drivers/Security `ParticipantGroupCard`s, extract gender counts from `special_diets` JSON and display them as two `CountRow`s ("גברים" / "נשים") matching the Students card layout.
+
+### 3. `supabase/functions/submit-guest-form/index.ts`
+
+No changes needed — `special_diets` is already passed through as JSON.
 
