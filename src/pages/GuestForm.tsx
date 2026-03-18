@@ -624,8 +624,6 @@ export default function GuestForm() {
                         onChange={e => set('client_email', e.target.value)}
                         placeholder="email@example.com"
                         className="mt-1"
-                        readOnly={!!prefillFields.client_email}
-                        disabled={!!prefillFields.client_email}
                       />
                     </div>
                   </div>
