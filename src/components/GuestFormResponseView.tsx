@@ -42,6 +42,19 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   reviewed: { label: 'נבדק', className: 'bg-blue-100 text-blue-800' },
 };
 
+// Parse tent_distribution_notes into per-group notes
+function parseLodgingNotes(raw: string | null): { students: string; staff: string; drivers: string } {
+  const result = { students: '', staff: '', drivers: '' };
+  if (!raw) return result;
+  const lines = raw.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('צרכי לינה תלמידים:')) result.students = line.replace('צרכי לינה תלמידים:', '').trim();
+    else if (line.startsWith('צרכי לינה צוות/מלווים:')) result.staff = line.replace('צרכי לינה צוות/מלווים:', '').trim();
+    else if (line.startsWith('צרכי לינה נהגים/אבטחה/אחרים:')) result.drivers = line.replace('צרכי לינה נהגים/אבטחה/אחרים:', '').trim();
+  }
+  return result;
+}
+
 export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
   quoteId,
   groupName,
@@ -68,7 +81,7 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">טוען תשובת לקוח...</p>
       </div>
     );
@@ -89,11 +102,9 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
     .filter(d => d.count > 0);
   const dietNotes = specialDiets.notes || '';
 
-  // Parse meal preferences
   const mealPreferences = specialDiets.mealPreferences || null;
   const generatedMeals: any[] = mealPreferences?.generatedMeals || [];
 
-  // Parse schedule
   let scheduleData: { items?: any[]; freeText?: string; arrivalTime?: string } = {};
   try {
     if (submission.schedule_notes) {
@@ -106,8 +117,8 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
   const scheduleFreeText = scheduleData.freeText || '';
   const arrivalTime = scheduleData.arrivalTime || '';
 
-  // Parse drivers/security from general_notes
   const generalNotes = submission.general_notes || '';
+  const lodgingNotes = parseLodgingNotes(submission.tent_distribution_notes);
 
   const formatDate = (dateStr: string) => {
     try { return format(parseISO(dateStr), 'EEEE, d בMMMM', { locale: he }); } catch { return dateStr; }
@@ -118,18 +129,24 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
 
   const statusConfig = STATUS_LABELS[submission.status] || STATUS_LABELS.submitted;
 
-  // Group meals by date
   const mealsByDate = new Map<string, any[]>();
   generatedMeals.forEach((m: any) => {
     if (!mealsByDate.has(m.date)) mealsByDate.set(m.date, []);
     mealsByDate.get(m.date)!.push(m);
   });
 
+  const boysCount = submission.boys_count || 0;
+  const girlsCount = submission.girls_count || 0;
+  const studentTotal = boysCount + girlsCount;
+  const staffCount = submission.staff_count || 0;
+  const driversCount = (submission.total_pax || 0) - studentTotal - staffCount;
+  const totalPax = submission.total_pax || 0;
+
   return (
-    <div className="min-h-[60vh] bg-gray-50" dir="rtl">
+    <div className="min-h-[60vh] bg-muted/30" dir="rtl">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="bg-background border-b sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src={hadorHabaLogo} alt="הדור הבא" className="h-10" />
             <div>
@@ -148,10 +165,10 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Section 1: Client & Group Details */}
-        <SectionCard icon={<Users className="w-5 h-5 text-blue-600" />} title="פרטי לקוח / קבוצה">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SectionCard icon={<Users className="w-5 h-5 text-primary" />} title="פרטי לקוח / קבוצה">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <ReadOnlyField label="שם קבוצה" value={submission.group_name} />
             <ReadOnlyField label="סוג קבוצה" value={submission.group_type} />
             <ReadOnlyField label="שם איש קשר" value={submission.client_name} />
@@ -163,23 +180,46 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
 
         {/* Section 2: Participants & Lodging */}
         <SectionCard icon={<Users className="w-5 h-5 text-green-600" />} title="משתתפים ולינה">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <CountField label="בנים" value={submission.boys_count} />
-            <CountField label="בנות" value={submission.girls_count} />
-            <CountField label="צוות / מלווים" value={submission.staff_count} />
-            <CountField label="סה״כ משתתפים" value={submission.total_pax} highlight />
-          </div>
-          {submission.tent_distribution_notes && (
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-amber-800 mb-1">הערות לינה</p>
-              <p className="text-sm text-amber-900 whitespace-pre-line">{submission.tent_distribution_notes}</p>
+          <div className="space-y-4">
+            {/* Students card */}
+            <ParticipantGroupCard title="תלמידים" subtotal={studentTotal}>
+              <div className="grid grid-cols-2 gap-3">
+                <CountRow label="בנים" value={boysCount} />
+                <CountRow label="בנות" value={girlsCount} />
+              </div>
+              {lodgingNotes.students && (
+                <NoteBlock text={lodgingNotes.students} />
+              )}
+            </ParticipantGroupCard>
+
+            {/* Staff card */}
+            <ParticipantGroupCard title="צוות / מלווים" subtotal={staffCount}>
+              <CountRow label="צוות / מלווים" value={staffCount} />
+              {lodgingNotes.staff && (
+                <NoteBlock text={lodgingNotes.staff} />
+              )}
+            </ParticipantGroupCard>
+
+            {/* Drivers/Security card */}
+            {(driversCount > 0 || lodgingNotes.drivers) && (
+              <ParticipantGroupCard title="נהגים, אבטחה ואחרים" subtotal={driversCount > 0 ? driversCount : undefined}>
+                {driversCount > 0 && <CountRow label="נהגים / אבטחה / אחרים" value={driversCount} />}
+                {lodgingNotes.drivers && (
+                  <NoteBlock text={lodgingNotes.drivers} />
+                )}
+              </ParticipantGroupCard>
+            )}
+
+            {/* Grand total */}
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl px-5 py-3 flex items-center justify-between">
+              <span className="font-bold text-blue-900">סה״כ משתתפים</span>
+              <span className="text-2xl font-bold text-blue-700">{totalPax}</span>
             </div>
-          )}
+          </div>
         </SectionCard>
 
         {/* Section 3: Food & Meals */}
         <SectionCard icon={<UtensilsCrossed className="w-5 h-5 text-orange-600" />} title="ארוחות והעדפות מזון">
-          {/* Dietary requirements */}
           {dietEntries.length > 0 && (
             <div className="mb-4">
               <p className="text-sm font-medium mb-2 text-muted-foreground">דרישות תזונה מיוחדות</p>
@@ -200,7 +240,6 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
             </div>
           )}
 
-          {/* Coffee corner */}
           {specialDiets.coffeeCorner && (
             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-flex items-center gap-2">
               <span>☕</span>
@@ -208,19 +247,18 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
             </div>
           )}
 
-          {/* Meal plan */}
           {generatedMeals.length > 0 && (
             <div>
               <p className="text-sm font-medium mb-2 text-muted-foreground">תפריט ארוחות</p>
               {mealPreferences?.arrivalLunch && (
-                <p className="text-xs text-blue-600 mb-1">✓ ארוחת צהריים ביום הגעה</p>
+                <p className="text-xs text-primary mb-1">✓ ארוחת צהריים ביום הגעה</p>
               )}
               {mealPreferences?.departureLunch && (
-                <p className="text-xs text-blue-600 mb-2">✓ ארוחת צהריים ביום עזיבה</p>
+                <p className="text-xs text-primary mb-2">✓ ארוחת צהריים ביום עזיבה</p>
               )}
               <div className="space-y-3">
                 {Array.from(mealsByDate.entries()).map(([date, meals]) => (
-                  <div key={date} className="bg-white border rounded-lg p-3">
+                  <div key={date} className="bg-background border border-border rounded-xl p-4">
                     <p className="text-sm font-semibold mb-2">{formatDate(date)}</p>
                     <div className="flex flex-wrap gap-2">
                       {meals.map((m: any, i: number) => (
@@ -251,7 +289,7 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
         {/* Section 4: Schedule */}
         <SectionCard icon={<Clock className="w-5 h-5 text-purple-600" />} title="לוח זמנים">
           {arrivalTime && (
-            <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg px-4 py-2 inline-flex items-center gap-2">
+            <div className="mb-4 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 inline-flex items-center gap-2">
               <Calendar className="w-4 h-4 text-purple-600" />
               <span className="text-sm font-medium text-purple-800">שעת הגעה: {arrivalTime}</span>
             </div>
@@ -259,12 +297,12 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
           {scheduleItems.length > 0 ? (
             <div className="space-y-3">
               {scheduleItems.map((item: any, idx: number) => (
-                <div key={idx} className="bg-white border rounded-lg p-4">
+                <div key={idx} className="bg-background border border-border rounded-xl p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         {item.startTime && (
-                          <span className="text-sm font-mono bg-gray-100 px-2 py-0.5 rounded">
+                          <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">
                             {item.startTime}{item.endTime ? ` – ${item.endTime}` : ''}
                           </span>
                         )}
@@ -300,7 +338,7 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
             )
           )}
           {scheduleFreeText && (
-            <div className="mt-3 bg-gray-50 border rounded-lg p-3">
+            <div className="mt-3 bg-muted/50 border border-border rounded-xl p-3">
               <p className="text-sm whitespace-pre-line">{scheduleFreeText}</p>
             </div>
           )}
@@ -308,7 +346,7 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
 
         {/* Section 5: Notes */}
         {generalNotes && (
-          <SectionCard icon={<MessageSquare className="w-5 h-5 text-gray-600" />} title="הערות / בקשות מיוחדות">
+          <SectionCard icon={<MessageSquare className="w-5 h-5 text-muted-foreground" />} title="הערות / בקשות מיוחדות">
             <p className="text-sm whitespace-pre-line">{generalNotes}</p>
           </SectionCard>
         )}
@@ -320,31 +358,54 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
 // ---- Helper components ----
 
 const SectionCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
-  <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-    <div className="flex items-center gap-2 px-6 py-4 border-b bg-gray-50/50">
-      {icon}
-      <h2 className="text-base font-bold">{title}</h2>
+  <div className="bg-background rounded-xl border border-border shadow-md overflow-hidden">
+    <div className="px-6 py-4 border-b border-border">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="text-base font-bold">{title}</h2>
+      </div>
+      <div className="h-0.5 w-12 bg-amber-500 rounded-full mt-2" />
     </div>
-    <div className="px-6 py-4">{children}</div>
+    <div className="px-6 py-5">{children}</div>
+  </div>
+);
+
+const ParticipantGroupCard: React.FC<{ title: string; subtotal?: number; children: React.ReactNode }> = ({ title, subtotal, children }) => (
+  <div className="border border-border rounded-xl overflow-hidden">
+    <div className="bg-muted/40 px-4 py-2.5 border-b border-border">
+      <span className="text-sm font-bold">{title}</span>
+    </div>
+    <div className="px-4 py-3 space-y-2">
+      {children}
+    </div>
+    {subtotal != null && (
+      <div className="bg-muted/60 border-t border-border px-4 py-2 flex items-center justify-between">
+        <span className="text-sm text-muted-foreground font-medium">סה״כ {title}</span>
+        <span className="text-lg font-bold">{subtotal}</span>
+      </div>
+    )}
+  </div>
+);
+
+const CountRow: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+  <div className="bg-muted/30 rounded-lg px-4 py-2.5 flex items-center justify-between">
+    <span className="text-sm text-muted-foreground">{label}</span>
+    <span className="text-base font-bold">{value}</span>
+  </div>
+);
+
+const NoteBlock: React.FC<{ text: string }> = ({ text }) => (
+  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-1">
+    <p className="text-sm text-amber-900 whitespace-pre-line">{text}</p>
   </div>
 );
 
 const ReadOnlyField: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => {
   if (!value) return null;
   return (
-    <div>
+    <div className="bg-muted/30 rounded-lg px-4 py-2.5">
       <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
       <p className="text-sm font-medium">{value}</p>
-    </div>
-  );
-};
-
-const CountField: React.FC<{ label: string; value?: number | null; highlight?: boolean }> = ({ label, value, highlight }) => {
-  if (value == null && !highlight) return null;
-  return (
-    <div className={`text-center rounded-lg px-3 py-2 ${highlight ? 'bg-blue-50 border-2 border-blue-300' : 'bg-gray-50 border border-gray-200'}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-xl font-bold ${highlight ? 'text-blue-700' : ''}`}>{value ?? 0}</p>
     </div>
   );
 };
