@@ -5,6 +5,7 @@ export interface GuestFormSubmission {
   id: string;
   group_id: string | null;
   group_name: string | null;
+  quote_id: string | null;
   status: string;
   client_name: string | null;
   client_org: string | null;
