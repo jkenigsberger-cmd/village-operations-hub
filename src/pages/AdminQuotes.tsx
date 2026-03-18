@@ -1080,7 +1080,7 @@ const AdminQuotes = () => {
                     coffeeCorner: { enabled: v, pricePerPerson: prev.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON },
                   }))}
                 />
-                <Label>פינת קפה ({fc(editPricing.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON)} לאדם)</Label>
+                <Label>פינת קפה ועוגיות ({fc(editPricing.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON)} לאדם)</Label>
                 {editPricing.coffeeCorner?.enabled && (
                   <NumericInput
                     value={editPricing.coffeeCorner.pricePerPerson}
