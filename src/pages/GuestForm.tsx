@@ -962,6 +962,8 @@ export default function GuestForm() {
               <p className="text-sm text-muted-foreground">
                 הוסיפו את הפעילויות המתוכננות כדי שנוכל לתכנן את השימוש בכיתות ובמתחמים.
               </p>
+
+              {scheduleItems.map((item) => (
                 <Card key={item.id} className={`p-4 space-y-3 border ${item.location === 'offsite' ? 'border-dashed border-muted-foreground/30 bg-muted/20' : 'border-border'}`}>
                   {/* Date + Times row */}
                   <div className="grid grid-cols-3 gap-3">
