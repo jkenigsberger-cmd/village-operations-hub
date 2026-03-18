@@ -155,8 +155,10 @@ export default function GuestForm() {
     // Student breakdown
     boys_count: '',
     girls_count: '',
-    // Staff/escorts — single count
+    // Staff/escorts
     staff_count: '',
+    // Drivers, security, others
+    drivers_security_count: '',
     group_type: '',
     special_diets: {} as Record<string, boolean | string>,
     diet_notes: '',
@@ -164,6 +166,7 @@ export default function GuestForm() {
     other_sleeping_notes: '',
     schedule_notes: '',
     general_notes: '',
+    arrival_time: '',
   });
 
   // Meal preferences state (separate for clarity)
