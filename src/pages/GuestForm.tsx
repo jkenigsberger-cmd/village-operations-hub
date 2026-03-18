@@ -377,8 +377,10 @@ export default function GuestForm() {
             group_type: form.group_type,
             special_diets: specialDietsPayload,
             tent_distribution_notes: sleepingNotesParts || null,
-            schedule_notes: JSON.stringify({ items: scheduleItems, freeText: form.schedule_notes }),
-            general_notes: form.general_notes,
+            schedule_notes: JSON.stringify({ items: scheduleItems, freeText: form.schedule_notes, arrivalTime: form.arrival_time }),
+            general_notes: form.general_notes
+              ? `${form.general_notes}${driversSecurityTotal > 0 ? `\nנהגים/אבטחה/אחרים: ${driversSecurityTotal}` : ''}`
+              : (driversSecurityTotal > 0 ? `נהגים/אבטחה/אחרים: ${driversSecurityTotal}` : null),
             quote_id: quoteId || null,
           }),
         }
