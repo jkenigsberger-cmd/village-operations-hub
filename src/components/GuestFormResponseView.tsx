@@ -138,8 +138,12 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
   const boysCount = submission.boys_count || 0;
   const girlsCount = submission.girls_count || 0;
   const studentTotal = boysCount + girlsCount;
-  const staffCount = submission.staff_count || 0;
-  const driversCount = (submission.total_pax || 0) - studentTotal - staffCount;
+  const staffMen = Number(specialDiets.staffMen) || 0;
+  const staffWomen = Number(specialDiets.staffWomen) || 0;
+  const staffCount = staffMen + staffWomen || submission.staff_count || 0;
+  const driversMen = Number(specialDiets.driversMen) || 0;
+  const driversWomen = Number(specialDiets.driversWomen) || 0;
+  const driversCount = driversMen + driversWomen || ((submission.total_pax || 0) - studentTotal - staffCount);
   const totalPax = submission.total_pax || 0;
 
   return (

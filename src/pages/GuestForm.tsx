@@ -984,7 +984,7 @@ export default function GuestForm() {
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex justify-between items-center">
                 <span className="text-gray-700 font-medium">סה״כ מגיעים</span>
                 <strong className="text-blue-800 text-lg">
-                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_count) || 0) + (Number(form.drivers_security_count) || 0)}
+                  {(Number(form.boys_count) || 0) + (Number(form.girls_count) || 0) + (Number(form.staff_men_count) || 0) + (Number(form.staff_women_count) || 0) + (Number(form.drivers_men_count) || 0) + (Number(form.drivers_women_count) || 0)}
                 </strong>
               </div>
 
