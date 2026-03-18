@@ -207,7 +207,12 @@ export const GuestFormResponseView: React.FC<GuestFormResponseViewProps> = ({
             {/* Drivers/Security card */}
             {(driversCount > 0 || lodgingNotes.drivers) && (
               <ParticipantGroupCard title="נהגים, אבטחה ואחרים" subtotal={driversCount > 0 ? driversCount : undefined}>
-                {driversCount > 0 && <CountRow label="נהגים / אבטחה / אחרים" value={driversCount} />}
+                {driversCount > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <CountRow label="גברים" value={driversMen} />
+                    <CountRow label="נשים" value={driversWomen} />
+                  </div>
+                )}
                 {lodgingNotes.drivers && (
                   <NoteBlock text={lodgingNotes.drivers} />
                 )}
