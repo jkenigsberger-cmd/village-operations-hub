@@ -478,8 +478,7 @@ export default function GuestForm() {
     client_name: !!(quoteData.client_details?.contactPerson || quoteData.client_details?.clientName),
     client_org: !!quoteData.client_details?.clientOrg,
     client_phone: !!quoteData.client_details?.clientPhone,
-    client_email: !!quoteData.client_details?.clientEmail,
-  } : {};
+  } : {} as any;
 
   const quoteBanner = isFromQuote ? (
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm text-blue-800">
