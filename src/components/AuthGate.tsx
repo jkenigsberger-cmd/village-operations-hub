@@ -6,6 +6,9 @@ import glowLogo from '@/assets/glow-logo.png';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
+// Flip to false (or say "הפעל אימות") to restore authentication
+const PUBLIC_MODE = true;
+
 interface AuthGateProps {
   children: React.ReactNode;
 }
@@ -14,6 +17,8 @@ export default function AuthGate({ children }: AuthGateProps) {
   const { user, isAllowed, isLoading } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
+
+  if (PUBLIC_MODE) return <>{children}</>;
 
   // Loading state
   if (isLoading) {
