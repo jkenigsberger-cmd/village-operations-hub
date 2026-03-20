@@ -1,32 +1,21 @@
 
 
-# Fix Admin Mobile Navigation Layout
+# Generate Database Architecture PDF
 
-## Problems Identified
-1. **Admin sub-navigation tabs** (הכנסות, הוצאות, עובדים חיצוניים, etc.) are squeezed together with overlapping text on mobile. The tabs don't have enough spacing and the horizontal scroll isn't working properly.
-2. **Breadcrumb navigation** at the top has items crowding together on mobile screens.
+## What
+Create a downloadable PDF document containing the complete database architecture of this project.
 
-## Solution
+## Content (already gathered)
+1. **22 Tables** — each with all columns, data types, defaults, and relationships
+2. **14 Custom Enums** — allocation_type, app_role, bed_status, bed_type, cleaning_status, facility_gender, facility_type, meal_location, meal_type, reservation_type, task_status, task_type, tent_gender, working_status
+3. **6 Database Functions** — has_role, is_allowed_email, handle_new_user, cleanup_stale_vip_tents, create_activity_reservation_safe, update_updated_at_column
+4. **3 Edge Functions** — verify-password, submit-guest-form, get-quote-for-form
+5. **RLS Policies Summary** — standard pattern + exceptions
+6. **Auth & Roles** — allowlist, role assignment, profile sync
 
-### 1. Fix Admin Sub-Navigation Tabs (AdminLayout.tsx)
-- Add `flex-shrink-0` to each tab button so they maintain their full width instead of compressing
-- Increase horizontal padding on mobile for better touch targets and readability
-- Ensure the scrollable container works properly with `min-w-max` on the inner flex container
+## Implementation
+Run a Python script using reportlab to generate a formatted PDF to `/mnt/documents/Database_Architecture.pdf`. The script is already written and ready to execute.
 
-### 2. Fix Breadcrumb Navigation (BreadcrumbNav.tsx)
-- Add `flex-wrap` to allow breadcrumb items to wrap on narrow screens
-- Reduce text size on mobile for breadcrumbs so they fit better
-
-### Technical Details
-
-**AdminLayout.tsx** - Update the nav tab styles:
-- Add `flex-shrink-0` to each `NavLink` so tabs don't compress
-- Add `min-w-max` to the inner flex container to force horizontal scroll instead of text overlap
-- Slightly increase padding for mobile readability
-
-**BreadcrumbNav.tsx** - Update breadcrumb container:
-- Add `flex-wrap` so items wrap instead of overlapping
-- Add smaller text on mobile with `text-base md:text-lg`
-
-These are minimal CSS-only changes that follow the existing patterns in the codebase (similar approach used in `MobileBottomNav`).
+## Output
+A single professional PDF document, downloadable from the Files panel.
 
