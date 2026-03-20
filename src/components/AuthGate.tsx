@@ -14,11 +14,11 @@ interface AuthGateProps {
 }
 
 export default function AuthGate({ children }: AuthGateProps) {
-  if (PUBLIC_MODE) return <>{children}</>;
-
   const { user, isAllowed, isLoading } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
+
+  if (PUBLIC_MODE) return <>{children}</>;
 
   // Loading state
   if (isLoading) {
