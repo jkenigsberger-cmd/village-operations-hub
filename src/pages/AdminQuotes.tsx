@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { differenceInCalendarDays, parseISO, addDays, format } from 'date-fns';
+import React, { useState, useMemo, useCallback } from 'react';
+import { parseISO, format } from 'date-fns';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
@@ -9,7 +9,6 @@ import {
   QuoteSnapshot,
   QuoteClientDetails,
   QuotePricing,
-  QuoteTotals,
   QuoteStatus,
   QuoteAudience,
   StudentActivityType,
@@ -20,17 +19,11 @@ import {
   createEmptySnapshot,
   createEmptyClientDetails,
   createEmptyPricing,
-  createEmptyTotals,
   STUDENT_PRICES,
   ADULT_TENT_PRICES,
-  WORKSHOP_PRICES,
   COFFEE_CORNER_PRICE_PER_PERSON,
-  VAT_RATE,
   QUOTE_STATUS_LABELS,
-  AUDIENCE_LABELS,
-  ACTIVITY_TYPE_LABELS,
   WORKSHOP_CATALOG,
-  LECTURE_CATALOG,
 } from '@/types/quote';
 import {
   buildQuoteSnapshotFromSupabase,
@@ -39,12 +32,8 @@ import {
   downloadDocPDF,
 } from '@/lib/quoteUtils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -59,7 +48,6 @@ import {
   Plus,
   Save,
   Send,
-  Download,
   Trash2,
   Copy,
   Loader2,
@@ -70,8 +58,6 @@ import {
 } from 'lucide-react';
 import { QuoteEditorTabs } from '@/components/QuoteEditorTabs';
 import { toast } from '@/hooks/use-toast';
-import { NumericInput } from '@/components/NumericInput';
-import { QuoteAvailabilityCalendar } from '@/components/QuoteAvailabilityCalendar';
 import { GuestFormResponseView } from '@/components/GuestFormResponseView';
 import { useGuestFormSubmissions } from '@/hooks/useGuestFormSubmissions';
 
