@@ -24,6 +24,7 @@ import {
   COFFEE_CORNER_PRICE_PER_PERSON,
   QUOTE_STATUS_LABELS,
   WORKSHOP_CATALOG,
+  LECTURE_CATALOG,
 } from '@/types/quote';
 import {
   buildQuoteSnapshotFromSupabase,
