@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 // Flip to false (or say "הפעל אימות") to restore authentication
-const PUBLIC_MODE = true;
+const PUBLIC_MODE = false;
 
 interface AuthGateProps {
   children: React.ReactNode;
