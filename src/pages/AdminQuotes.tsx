@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { differenceInCalendarDays, parseISO, addDays, format } from 'date-fns';
+import React, { useState, useMemo, useCallback } from 'react';
+import { parseISO, format } from 'date-fns';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useAdminGroups } from '@/hooks/useAdminGroups';
@@ -9,7 +9,6 @@ import {
   QuoteSnapshot,
   QuoteClientDetails,
   QuotePricing,
-  QuoteTotals,
   QuoteStatus,
   QuoteAudience,
   StudentActivityType,
@@ -20,15 +19,10 @@ import {
   createEmptySnapshot,
   createEmptyClientDetails,
   createEmptyPricing,
-  createEmptyTotals,
   STUDENT_PRICES,
   ADULT_TENT_PRICES,
-  WORKSHOP_PRICES,
   COFFEE_CORNER_PRICE_PER_PERSON,
-  VAT_RATE,
   QUOTE_STATUS_LABELS,
-  AUDIENCE_LABELS,
-  ACTIVITY_TYPE_LABELS,
   WORKSHOP_CATALOG,
   LECTURE_CATALOG,
 } from '@/types/quote';
@@ -39,12 +33,8 @@ import {
   downloadDocPDF,
 } from '@/lib/quoteUtils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -59,7 +49,6 @@ import {
   Plus,
   Save,
   Send,
-  Download,
   Trash2,
   Copy,
   Loader2,
@@ -68,9 +57,8 @@ import {
   ClipboardList,
   CheckCircle2,
 } from 'lucide-react';
+import { QuoteEditorTabs } from '@/components/QuoteEditorTabs';
 import { toast } from '@/hooks/use-toast';
-import { NumericInput } from '@/components/NumericInput';
-import { QuoteAvailabilityCalendar } from '@/components/QuoteAvailabilityCalendar';
 import { GuestFormResponseView } from '@/components/GuestFormResponseView';
 import { useGuestFormSubmissions } from '@/hooks/useGuestFormSubmissions';
 
@@ -581,17 +569,10 @@ const AdminQuotes = () => {
         <div className="flex-1" />
       </div>
 
-      {/* 2-column layout: left basket + right form */}
       <div className="flex flex-col-reverse lg:flex-row gap-6">
 
-        {/* ========== LEFT COLUMN: Basket + Summary + Total + Actions ========== */}
-        <div className="w-full lg:w-[33%] space-y-5 lg:sticky lg:top-20 lg:self-start">
-
-          {/* Availability Calendar in edit view */}
-          <QuoteAvailabilityCalendar
-            highlightStart={editSnapshot.startDate || undefined}
-            highlightEnd={editSnapshot.endDate || undefined}
-          />
+        {/* ========== LEFT COLUMN: Summary + Actions ========== */}
+        <div className="w-full lg:w-[30%] space-y-5 lg:sticky lg:top-20 lg:self-start">
 
           {/* Selected content basket */}
           <Card className="rounded-2xl shadow-sm">
@@ -599,7 +580,6 @@ const AdminQuotes = () => {
               <CardTitle className="text-lg">תכנים שנבחרו</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Workshops in basket */}
               {editPricing.workshops.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-muted-foreground mb-2">סדנאות</p>
@@ -611,16 +591,11 @@ const AdminQuotes = () => {
                           <span className="text-xs text-muted-foreground">{fc(w.price)} × {w.quantity}</span>
                         </div>
                         <span className="text-sm font-semibold whitespace-nowrap">{fc(w.price * w.quantity)}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeWorkshop(w.id)}>
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </Button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* Lectures in basket */}
               {editPricing.lectures.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-muted-foreground mb-2">הרצאות</p>
@@ -632,45 +607,17 @@ const AdminQuotes = () => {
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium truncate block">{l.name}</span>
                             <span className="text-xs text-muted-foreground">{l.lecturer} • {fc(lTotal)} × {l.quantity}</span>
-                            {l.includesVat && <Badge variant="outline" className="text-[10px] mt-0.5">כולל מע״מ</Badge>}
                           </div>
                           <span className="text-sm font-semibold whitespace-nowrap">{fc(lTotal * l.quantity)}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeLecture(l.id)}>
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
                         </div>
                       );
                     })}
                   </div>
                 </div>
               )}
-
               {editPricing.workshops.length === 0 && editPricing.lectures.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">לא נבחרו תכנים עדיין</p>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Subtotals summary */}
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">סיכום ביניים</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>אירוח/לינה</span><span>{fc(computedTotals.accommodationSubtotal)}</span></div>
-                {computedTotals.workshopsSubtotal > 0 && <div className="flex justify-between"><span>סדנאות</span><span>{fc(computedTotals.workshopsSubtotal)}</span></div>}
-                {computedTotals.lecturesSubtotal > 0 && <div className="flex justify-between"><span>הרצאות</span><span>{fc(computedTotals.lecturesSubtotal)}</span></div>}
-                {computedTotals.lecturesVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>מע״מ על הרצאות</span><span>{fc(computedTotals.lecturesVatAmount)}</span></div>}
-                {computedTotals.coffeeCornerSubtotal > 0 && <div className="flex justify-between"><span>פינת קפה ועוגיות</span><span>{fc(computedTotals.coffeeCornerSubtotal)}</span></div>}
-                {computedTotals.addonsSubtotal > 0 && <div className="flex justify-between"><span>תוספות</span><span>{fc(computedTotals.addonsSubtotal)}</span></div>}
-                {computedTotals.customAdjustmentsSubtotal !== 0 && <div className="flex justify-between"><span>התאמות</span><span>{fc(computedTotals.customAdjustmentsSubtotal)}</span></div>}
-                <Separator />
-                <div className="flex justify-between font-medium"><span>סה"כ לפני הנחה</span><span>{fc(computedTotals.subtotalBeforeDiscount)}</span></div>
-                {computedTotals.discountAmount > 0 && (
-                  <div className="flex justify-between text-destructive"><span>הנחה ({editPricing.discountPercent}%)</span><span>-{fc(computedTotals.discountAmount)}</span></div>
-                )}
-              </div>
             </CardContent>
           </Card>
 
@@ -730,22 +677,6 @@ const AdminQuotes = () => {
                     סמן כאושר (לקוח אישר)
                   </Button>
                 )}
-                {selectedQuote?.status === 'approved' && (
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2 rounded-xl text-sm border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => {
-                      const base = window.location.hostname.includes('lovableproject.com')
-                        ? 'https://glowhadorhaba.lovable.app'
-                        : window.location.origin;
-                      navigator.clipboard.writeText(`${base}/guest-form?quote=${selectedQuoteId}`);
-                      toast({ title: 'הקישור הועתק! 📋', description: 'שלחו את הקישור ללקוח למילוי שאלון הכנה' });
-                    }}
-                  >
-                    <ClipboardList className="w-4 h-4" />
-                    העתק קישור שאלון לקוח
-                  </Button>
-                )}
                 <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="w-full gap-1 rounded-xl text-sm">
                   <Trash2 className="w-3.5 h-3.5" />
                   מחק
@@ -753,465 +684,39 @@ const AdminQuotes = () => {
               </>
             )}
           </div>
-
         </div>
 
-        {/* ========== RIGHT COLUMN: Form blocks ========== */}
-        <div className="w-full lg:w-[67%] space-y-5">
-
-          {/* A) סוג פעילות */}
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">סוג פעילות</CardTitle>
-              <p className="text-sm text-muted-foreground">בחר את סוג הפעילות וקהל היעד – המחירים יתעדכנו בהתאם</p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>קהל יעד</Label>
-                  <Select value={editPricing.audience} onValueChange={(v) => handleAudienceChange(v as QuoteAudience)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="students">{AUDIENCE_LABELS.students}</SelectItem>
-                      <SelectItem value="adults">{AUDIENCE_LABELS.adults}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>סוג פעילות</Label>
-                  <Select value={editPricing.activityType || 'midweek_lodging'} onValueChange={(v) => handleActivityTypeChange(v as StudentActivityType)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ACTIVITY_TYPE_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Accommodation pricing inline */}
-              <div className="mt-4 pt-4 border-t border-border">
-                {editPricing.audience === 'students' ? (
-                  <div className="max-w-xs">
-                    <Label>מחיר לאדם (אירוח)</Label>
-                    <NumericInput
-                      value={editPricing.accommodationPricePerPerson || 0}
-                      onChange={v => setEditPricing(prev => ({ ...prev, accommodationPricePerPerson: v }))}
-                      min={0}
-                    />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label>אוהל 3 מיטות - כמות</Label>
-                      <NumericInput
-                        value={editSnapshot.tent3Count}
-                        onChange={v => setEditSnapshot(prev => ({ ...prev, tent3Count: v, tentCountsOverride: true }))}
-                        min={0}
-                      />
-                      <Label className="mt-2 block">מחיר ללילה</Label>
-                      <NumericInput
-                        value={editPricing.accommodationPriceTent3 || ADULT_TENT_PRICES.tent3}
-                        onChange={v => setEditPricing(prev => ({ ...prev, accommodationPriceTent3: v }))}
-                        min={0}
-                      />
-                    </div>
-                    <div>
-                      <Label>אוהל 6/8 מיטות - כמות</Label>
-                      <NumericInput
-                        value={editSnapshot.tent68Count}
-                        onChange={v => setEditSnapshot(prev => ({ ...prev, tent68Count: v, tentCountsOverride: true }))}
-                        min={0}
-                      />
-                      <Label className="mt-2 block">מחיר ללילה</Label>
-                      <NumericInput
-                        value={editPricing.accommodationPriceTent68 || ADULT_TENT_PRICES.tent68}
-                        onChange={v => setEditPricing(prev => ({ ...prev, accommodationPriceTent68: v }))}
-                        min={0}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* B) פרטי לקוח */}
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">פרטי לקוח</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!editGroupId && (
-                <div className="mb-4">
-                  <Label>כותרת ההצעה</Label>
-                  <Input
-                    value={editTitle}
-                    onChange={e => setEditTitle(e.target.value)}
-                    placeholder="שם / כותרת ההצעה"
-                  />
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>שם לקוח / ארגון *</Label>
-                  <Input
-                    value={editClientDetails.clientName}
-                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientName: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>איש קשר</Label>
-                  <Input
-                    value={editClientDetails.contactPerson || ''}
-                    onChange={e => setEditClientDetails(prev => ({ ...prev, contactPerson: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>שם לחשבונית</Label>
-                  <Input
-                    value={editClientDetails.clientOrg || ''}
-                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientOrg: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>ח.פ / ע.מ</Label>
-                  <Input
-                    value={editClientDetails.clientTaxId || ''}
-                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientTaxId: e.target.value }))}
-                    placeholder="מספר עוסק"
-                  />
-                </div>
-                <div>
-                  <Label>אימייל</Label>
-                  <Input
-                    type="email"
-                    value={editClientDetails.clientEmail || ''}
-                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientEmail: e.target.value }))}
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div>
-                  <Label>טלפון</Label>
-                  <Input
-                    value={editClientDetails.clientPhone || ''}
-                    onChange={e => setEditClientDetails(prev => ({ ...prev, clientPhone: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              {/* Dates */}
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label>תאריך התחלה</Label>
-                    <Input
-                      type="date"
-                      value={editSnapshot.startDate}
-                      onChange={e => {
-                        const sd = e.target.value;
-                        setEditSnapshot(prev => {
-                          const nights = prev.endDate && sd
-                            ? Math.max(0, differenceInCalendarDays(parseISO(prev.endDate), parseISO(sd)))
-                            : 0;
-                          return { ...prev, startDate: sd, nights };
-                        });
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label>תאריך סיום</Label>
-                    <Input
-                      type="date"
-                      value={editSnapshot.endDate}
-                      onChange={e => {
-                        const ed = e.target.value;
-                        setEditSnapshot(prev => {
-                          const nights = prev.startDate && ed
-                            ? Math.max(0, differenceInCalendarDays(parseISO(ed), parseISO(prev.startDate)))
-                            : 0;
-                          return { ...prev, endDate: ed, nights };
-                        });
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label>מס׳ לילות</Label>
-                    <NumericInput value={editSnapshot.nights} onChange={v => setEditSnapshot(prev => {
-                      const endDate = prev.startDate
-                        ? format(addDays(parseISO(prev.startDate), v), 'yyyy-MM-dd')
-                        : prev.endDate;
-                      return { ...prev, nights: v, endDate };
-                    })} min={0} />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">נמשך מהמערכת – ניתן לעריכה</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* C) מספר משתתפים */}
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">מספר משתתפים</CardTitle>
-              <p className="text-xs text-muted-foreground">נמשך מהמערכת – ניתן לעריכה ידנית</p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>חניכים</Label>
-                  <NumericInput
-                    value={editSnapshot.studentsTotal}
-                    onChange={v => setEditSnapshot(prev => ({ ...prev, studentsTotal: v, totalPax: v + prev.staffTotal, studentsOverride: true }))}
-                    min={0}
-                  />
-                </div>
-                <div>
-                  <Label>צוות</Label>
-                  <NumericInput
-                    value={editSnapshot.staffTotal}
-                    onChange={v => setEditSnapshot(prev => ({ ...prev, staffTotal: v, totalPax: prev.studentsTotal + v, staffOverride: true }))}
-                    min={0}
-                  />
-                </div>
-                <div>
-                  <Label>סה"כ משתתפים</Label>
-                  <NumericInput
-                    value={editSnapshot.totalPax}
-                    onChange={v => setEditSnapshot(prev => ({ ...prev, totalPax: v }))}
-                    min={0}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="mt-3 block">שם קבוצה</Label>
-                <Input
-                  value={editSnapshot.groupName}
-                  onChange={e => setEditSnapshot(prev => ({ ...prev, groupName: e.target.value }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* D) תכנים */}
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">תכנים</CardTitle>
-              <p className="text-sm text-muted-foreground">בחר סדנאות והרצאות מהקטלוג – הפריטים יופיעו בסל משמאל</p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Workshops picker */}
-              <div>
-                <h4 className="font-semibold text-base mb-2">סדנאות</h4>
-                <div className="flex items-center gap-2">
-                  <Select onValueChange={addWorkshopFromCatalog}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="בחר סדנה..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {WORKSHOP_CATALOG.map(item => {
-                        const alreadyAdded = editPricing.workshops.some(w => w.catalogId === item.catalogId);
-                        const unavailable = editPricing.audience === 'adults' && item.adultsPrice === null;
-                        return (
-                          <SelectItem
-                            key={item.catalogId}
-                            value={item.catalogId}
-                            disabled={alreadyAdded || unavailable}
-                          >
-                            {item.name} — {editPricing.audience === 'students' ? fc(item.studentsPrice) : (item.adultsPrice !== null ? fc(item.adultsPrice) : 'לא זמין')}
-                            {alreadyAdded ? ' ✓' : ''}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {/* Inline selected workshops with quantity */}
-                {editPricing.workshops.length > 0 && (
-                  <div className="mt-3 space-y-1.5">
-                    {editPricing.workshops.map(w => (
-                      <div key={w.id} className="flex items-center gap-3 rounded-lg border bg-muted/20 px-3 py-2">
-                        <span className="flex-1 text-sm font-medium">{w.name}</span>
-                        <span className="text-sm text-muted-foreground">{fc(w.price)}</span>
-                        <div className="w-16">
-                          <NumericInput value={w.quantity} onChange={v => updateWorkshop(w.id, { quantity: v })} min={1} />
-                        </div>
-                        <span className="text-sm font-semibold w-16 text-left">{fc(w.price * w.quantity)}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeWorkshop(w.id)}>
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Lectures picker */}
-              <div>
-                <h4 className="font-semibold text-base mb-2">הרצאות</h4>
-                <div className="flex items-center gap-2">
-                  <Select onValueChange={addLectureFromCatalog}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="בחר הרצאה..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LECTURE_CATALOG.map(item => {
-                        const alreadyAdded = editPricing.lectures.some(l => l.catalogId === item.catalogId);
-                        return (
-                          <SelectItem
-                            key={item.catalogId}
-                            value={item.catalogId}
-                            disabled={alreadyAdded}
-                          >
-                            {item.name} — {item.lecturer} — {fc(item.totalWithVat)}{item.includesVat ? ' (כולל מע״מ)' : ''}
-                            {alreadyAdded ? ' ✓' : ''}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {editPricing.lectures.length > 0 && (
-                  <div className="mt-3 space-y-1.5">
-                    {editPricing.lectures.map(l => {
-                      const lTotal = l.includesVat ? l.price + (l.price * l.vatRate) : l.price;
-                      return (
-                        <div key={l.id} className="flex items-center gap-3 rounded-lg border bg-muted/20 px-3 py-2">
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium block truncate">{l.name}</span>
-                            <span className="text-xs text-muted-foreground">{l.lecturer}</span>
-                            {l.includesVat && <Badge variant="outline" className="text-[10px] mr-1">כולל מע״מ</Badge>}
-                          </div>
-                          <span className="text-sm text-muted-foreground">{fc(lTotal)}</span>
-                          <div className="w-16">
-                            <NumericInput value={l.quantity} onChange={v => updateLecture(l.id, { quantity: v })} min={1} />
-                          </div>
-                          <span className="text-sm font-semibold w-16 text-left">{fc(lTotal * l.quantity)}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeLecture(l.id)}>
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* E) תוספות והנחות */}
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">תוספות והנחות</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Coffee corner */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <Switch
-                  checked={editPricing.coffeeCorner?.enabled || false}
-                  onCheckedChange={v => setEditPricing(prev => ({
-                    ...prev,
-                    coffeeCorner: { enabled: v, pricePerPerson: prev.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON },
-                  }))}
-                />
-                <Label>פינת קפה ועוגיות ({fc(editPricing.coffeeCorner?.pricePerPerson || COFFEE_CORNER_PRICE_PER_PERSON)} לאדם)</Label>
-                {editPricing.coffeeCorner?.enabled && (
-                  <NumericInput
-                    value={editPricing.coffeeCorner.pricePerPerson}
-                    onChange={v => setEditPricing(prev => ({
-                      ...prev,
-                      coffeeCorner: { ...prev.coffeeCorner!, pricePerPerson: v },
-                    }))}
-                    min={0}
-                    className="w-28"
-                  />
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Addons */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-base">תוספות</h4>
-                  <Button variant="outline" size="sm" onClick={addAddon} className="gap-1 rounded-lg">
-                    <Plus className="w-3 h-3" /> הוסף
-                  </Button>
-                </div>
-                {editPricing.addons.map(a => (
-                  <div key={a.id} className="flex items-end gap-3 mb-2">
-                    <div className="flex-1">
-                      <Input placeholder="שם תוספת" value={a.name} onChange={e => updateAddon(a.id, { name: e.target.value })} />
-                    </div>
-                    <div className="w-24">
-                      <NumericInput value={a.pricePerPerson} onChange={v => updateAddon(a.id, { pricePerPerson: v })} min={0} />
-                    </div>
-                    <div className="w-16">
-                      <NumericInput value={a.quantity} onChange={v => updateAddon(a.id, { quantity: v })} min={1} />
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeAddon(a.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              {/* Custom adjustments */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-base">התאמה מיוחדת</h4>
-                  <Button variant="outline" size="sm" onClick={addAdjustment} className="gap-1 rounded-lg">
-                    <Plus className="w-3 h-3" /> הוסף
-                  </Button>
-                </div>
-                {editPricing.customAdjustments.map(adj => (
-                  <div key={adj.id} className="flex items-end gap-3 mb-2">
-                    <div className="flex-1">
-                      <Input placeholder="תיאור" value={adj.description} onChange={e => updateAdjustment(adj.id, { description: e.target.value })} />
-                    </div>
-                    <div className="w-28">
-                      <Input
-                        type="number"
-                        value={adj.amount}
-                        onChange={e => updateAdjustment(adj.id, { amount: parseFloat(e.target.value) || 0 })}
-                        placeholder="סכום (+ או -)"
-                      />
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeAdjustment(adj.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              {/* Discount */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>הנחה (%)</Label>
-                  <NumericInput
-                    value={editPricing.discountPercent}
-                    onChange={v => setEditPricing(prev => ({ ...prev, discountPercent: v }))}
-                    min={0}
-                    max={100}
-                  />
-                </div>
-                <div>
-                  <Label>סיבת הנחה</Label>
-                  <Input
-                    value={editPricing.discountReason || ''}
-                    onChange={e => setEditPricing(prev => ({ ...prev, discountReason: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* ========== RIGHT COLUMN: Tabbed form ========== */}
+        <div className="w-full lg:w-[70%]">
+          <QuoteEditorTabs
+            editGroupId={editGroupId}
+            editTitle={editTitle}
+            editSnapshot={editSnapshot}
+            editClientDetails={editClientDetails}
+            editPricing={editPricing}
+            computedTotals={computedTotals}
+            selectedQuoteId={selectedQuoteId}
+            selectedQuoteStatus={selectedQuote?.status}
+            setEditTitle={setEditTitle}
+            setEditSnapshot={setEditSnapshot}
+            setEditClientDetails={setEditClientDetails}
+            setEditPricing={setEditPricing}
+            handleAudienceChange={handleAudienceChange}
+            handleActivityTypeChange={handleActivityTypeChange}
+            addWorkshopFromCatalog={addWorkshopFromCatalog}
+            updateWorkshop={updateWorkshop}
+            removeWorkshop={removeWorkshop}
+            addLectureFromCatalog={addLectureFromCatalog}
+            updateLecture={updateLecture}
+            removeLecture={removeLecture}
+            addAddon={addAddon}
+            updateAddon={updateAddon}
+            removeAddon={removeAddon}
+            addAdjustment={addAdjustment}
+            updateAdjustment={updateAdjustment}
+            removeAdjustment={removeAdjustment}
+            activeGroups={activeGroups}
+          />
         </div>
       </div>
 
