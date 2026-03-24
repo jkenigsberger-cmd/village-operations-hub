@@ -68,6 +68,7 @@ import {
   ClipboardList,
   CheckCircle2,
 } from 'lucide-react';
+import { QuoteEditorTabs } from '@/components/QuoteEditorTabs';
 import { toast } from '@/hooks/use-toast';
 import { NumericInput } from '@/components/NumericInput';
 import { QuoteAvailabilityCalendar } from '@/components/QuoteAvailabilityCalendar';
