@@ -1,10 +1,9 @@
 
 
-# Make App Public (Temporary)
+# הפעל אימות — Restore Google OAuth
 
 ## Change
-**`src/components/AuthGate.tsx`** — Add `const PUBLIC_MODE = true;` at top, and `if (PUBLIC_MODE) return <>{children}</>;` as the first line inside the component, before any auth checks.
+**`src/components/AuthGate.tsx`** — Set `PUBLIC_MODE` from `true` to `false`. This re-enables the Google OAuth login screen, allowlist check, and role-based access.
 
-## To revert later
-Just say **"הפעל אימות"** or **"enable auth"** and I'll flip `PUBLIC_MODE` back to `false`.
+No other files need to change.
 
