@@ -1,65 +1,53 @@
+## Calendars & Synchronization Documentation
 
-
-## Quote & Pricing Logic Documentation
-
-Generate `/mnt/documents/Quote_Pricing_Logic_Documentation.md` — a clean, organized reference covering the full quote system, pricing rules, and the students vs. staff (צוות) distinction.
+Generate `/mnt/documents/Calendars_and_Sync_Documentation.md` — a single reference covering every calendar surface in the app, what each one displays, the data sources behind it, and how the underlying synchronization keeps them all in agreement.
 
 ### Contents
 
-1. **Overview** — Snapshot-based quote architecture (state frozen at creation, separate from live group data), versioning, lifecycle (`draft` → `sent` → `approved` → `rejected`/`expired`).
+1. **Overview** — Calendars are read-only views built on top of three live data streams: lodging (groups + neighborhood reservations + VIP configs), kitchen meals (`kitchen_time_slots`), and common-space bookings (`activity_reservations`). All synchronization is realtime via Supabase subscriptions — no polling.
 
-2. **Audience Model** — The two pricing tracks:
-   - **Students (תלמידים)** → per-person pricing
-   - **Adults / מבוגרים** → per-tent-per-night pricing
-   - How `staff` (צוות) fits in: counted in `staffTotal` and `totalPax` but priced under whichever audience track the quote uses (no separate "staff price" — they share the chosen model).
+2. **Master Calendar** (`MasterCalendar.tsx` + `CalendarMonth/Week/DayView.tsx`)
+   - Three view modes: Month, Week, Day. RTL Hebrew with reversed chevrons.
+   - Shows: lodging stays (Check-in green / Sleeping blue / Check-out orange), VIP allocations, common-space bookings, kitchen meals (amber).
+   - Capacity strip per day from `useCalendarCapacity` (FREE pax = total beds − sleeping guests, computed via `useGroupStays` + Hotel Rule `start ≤ day < end`).
+   - Deduplication: per-group neighborhood reservations are suppressed when a unified group stay is already shown.
+   - Pending allocations (groups without physical assignment) are still rendered.
 
-3. **Accommodation Pricing**:
-   - **Students activity types**:
-     - `day_activity` — 125 ₪/person (no nights)
-     - `midweek_lodging` — 190 ₪/person/night
-     - `weekend_lodging` — 250 ₪/person/night
-   - **Adults tent pricing** (per tent, per night):
-     - 3-bed tent — 340 ₪
-     - 6/8-bed tent — 250 ₪
-   - Nights calculation = `departure_date − arrival_date`
+3. **Sleeping Calendar** (`SleepingCalendar.tsx`) — Lodging-only horizontal date grid driven by `useGroupStays` (aggregates `neighborhood_reservations` + `groups.vip_tent_configs`).
 
-4. **Workshops Catalog** — 9 fixed items, audience-priced:
-   - Students: 750 ₪ each
-   - Adults: 1,500 ₪ each (3 workshops are students-only)
-   - Selected from dropdown, quantity adjustable
+4. **Kitchen Calendars** (`KitchenWeekView.tsx`, `KitchenMonthView.tsx`)
+   - Strictly meal events from `kitchen_time_slots` via `kitchenSlotsToCalendarEvents` (`kitchenCalendarEvents.ts`).
+   - Excludes lodging and spaces. Default meal durations: BREAKFAST 60m, LUNCH/DINNER 90m. Highlights special-diet counts.
 
-5. **Lectures Catalog** — 5 fixed items with lecturer name:
-   - 3 lectures: 2,500 ₪ (no VAT)
-   - 1 lecture: 1,500 ₪ (no VAT)
-   - 1 lecture: 5,000 ₪ + 18% VAT = 5,900 ₪
+5. **Daily Tasks Calendar** (`DailyTasksCalendar.tsx`) — Pulls from `daily_tasks`, separated into Housekeeping vs Maintenance categories.
 
-6. **Add-ons & Extras**:
-   - **Coffee Corner** — 15 ₪/person (toggleable, multiplied by total pax)
-   - **Custom add-ons** — name + per-person price + quantity
-   - **Custom adjustments** — free-text line items (positive = surcharge, negative = discount)
-   - **Discount %** — applied to subtotal with optional reason
+6. **Quote Availability Calendar** (`QuoteAvailabilityCalendar.tsx`) — Decision-support calendar embedded in the Quote create/edit screen; reads same lodging stream and shows monthly bed availability.
 
-7. **Totals & Payment Schedule**:
-   - `subtotalBeforeDiscount` = accommodation + workshops + lectures (incl. VAT) + coffee + addons + adjustments
-   - `discountAmount` = subtotal × discount%
-   - `totalAfterDiscount` = subtotal − discount
-   - **Advance payment** = 30% of total
-   - **Balance payment** = 70% of total
+7. **Activities / Neighborhood / TentDetail mini-calendars** — Date pickers and per-resource availability strips driven by `activity_reservations` and `neighborhood_reservations`.
 
-8. **Students vs. Staff (צוות) — Simple Implementation**:
-   - **Counts**: `studentsTotal` + `staffTotal` = `totalPax`
-   - **Pricing**: Both groups priced together under the chosen audience track
-   - **Override flags**: `studentsOverride`, `staffOverride`, `tentCountsOverride` allow manual edits without recomputing from group data
-   - **Recommendation for clarity**: When staff need different treatment (e.g. free lodging, separate tent count), use a **custom adjustment** line (negative amount for staff discount) rather than a separate price tier — keeps the model simple
+### Synchronization Flows
 
-9. **Snapshot vs. Live Data** — Why pricing is frozen at quote creation (`snapshot` JSONB captures dates, pax counts, tent breakdown, nights) and how new versions are created when data changes.
+8. **Group → Kitchen + Spaces sync** (`src/lib/groupSync.ts`)
+   - `syncGroupToModules(group)` is idempotent: deletes prior rows tagged `source='groupSync'` + `group_id`, then re-inserts.
+   - Meals → `kitchen_time_slots` (mapped via `convertSpecialDiets`, 8 dietary categories).
+   - Schedule items in `BOOKABLE_SPACES` → `activity_reservations` via RPC `create_activity_reservation_safe` (15-min buffer, advisory lock).
+   - `preValidateScheduleConflicts` runs client-side before save; RPC enforces server-side. Dual-layer conflict protection.
+   - `removeSyncedRecordsForGroup(id)` cleans both tables on group deletion.
 
-10. **Document Generation** — Client PDF (blue theme #0b2fd6) and Operational PDF, generated via `window.print()` in Hebrew RTL.
+9. **VIP allocation sync** — Dual write: updates `groups.vip_tent_configs` JSONB (source of truth) AND physical `tents` table; `useVipReservations` does manual `await refetch` to avoid race with realtime.
 
-11. **Quick Reference Table** — One-page cheat sheet of all prices.
+10. **Neighborhood lock automation** — Manual lodging allocation auto-creates/updates a `neighborhood_reservations` row to lock the neighborhood for the date range.
+
+11. **Realtime subscriptions** — `useSupabaseVillage`, `useSupabaseKitchen`, `useSupabaseGroups`, `useSupabaseAllocations` subscribe to `postgres_changes` on their tables. Every calendar re-renders automatically when underlying rows change. No setInterval/polling anywhere.
+
+12. **Maintenance realtime** — Resolving a maintenance task clears facility/tent status across all surfaces (Facilities page, TentDetail, Master Calendar tile counters).
+
+13. **Group cascade cleanup** — Deleting a group asynchronously removes its synced kitchen slots, activity reservations, neighborhood reservations, and allocations (`groupLinkedRecords.ts`).
+
+### Quick Reference Table
+A table mapping each calendar → source tables → sync hook → realtime channel.
 
 ### Technical Details
-- Single Markdown file (~350 lines)
-- Code references: `src/types/quote.ts`, `src/lib/quoteUtils.ts`, `src/hooks/useQuotes.ts`, `src/pages/AdminQuotes.tsx`
-- Includes worked examples: one students quote, one adults quote, showing line-by-line totals
-
+- Single Markdown file (~450 lines)
+- Code references: `MasterCalendar.tsx`, `CalendarMonth/Week/DayView.tsx`, `SleepingCalendar.tsx`, `KitchenWeekView.tsx`, `KitchenMonthView.tsx`, `DailyTasksCalendar.tsx`, `QuoteAvailabilityCalendar.tsx`, `useCalendarCapacity.ts`, `useGroupStays.ts`, `groupSync.ts`, `reservationConflict.ts`, `kitchenCalendarEvents.ts`, `useSupabaseVillage.ts`, `useSupabaseKitchen.ts`, RPC `create_activity_reservation_safe`.
+- Includes one worked example: a group is saved → preValidate → groupSync writes kitchen slots + activity reservations → realtime fires → Master Calendar, Kitchen Week View, and Activities page all refresh without reload.
