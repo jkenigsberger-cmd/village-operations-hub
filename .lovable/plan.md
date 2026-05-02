@@ -1,53 +1,69 @@
-## Calendars & Synchronization Documentation
+## Dashboard, Tabs, Calendars & Neighborhood Maps — Reference Document
 
-Generate `/mnt/documents/Calendars_and_Sync_Documentation.md` — a single reference covering every calendar surface in the app, what each one displays, the data sources behind it, and how the underlying synchronization keeps them all in agreement.
+Generate `/mnt/documents/Dashboard_Tabs_Calendars_Maps_Reference.md`: a single Markdown reference (~600 lines) that exhaustively documents every dashboard surface, every tab, the calendar logic, and the neighborhood visual maps — including the exact logic, data sources, and rules behind them.
 
-### Contents
+### Sections
 
-1. **Overview** — Calendars are read-only views built on top of three live data streams: lodging (groups + neighborhood reservations + VIP configs), kitchen meals (`kitchen_time_slots`), and common-space bookings (`activity_reservations`). All synchronization is realtime via Supabase subscriptions — no polling.
+1. **Overview** — Single-page architecture: navigation between sections is driven by React Router `location.state` (never URL routes for tabs). RTL Hebrew throughout. All data is realtime via Supabase subscriptions, no polling.
 
-2. **Master Calendar** (`MasterCalendar.tsx` + `CalendarMonth/Week/DayView.tsx`)
-   - Three view modes: Month, Week, Day. RTL Hebrew with reversed chevrons.
-   - Shows: lodging stays (Check-in green / Sleeping blue / Check-out orange), VIP allocations, common-space bookings, kitchen meals (amber).
-   - Capacity strip per day from `useCalendarCapacity` (FREE pax = total beds − sleeping guests, computed via `useGroupStays` + Hotel Rule `start ≤ day < end`).
-   - Deduplication: per-group neighborhood reservations are suppressed when a unified group stay is already shown.
-   - Pending allocations (groups without physical assignment) are still rendered.
+2. **Top-level Layout** (`AdminLayout.tsx`, `MobileBottomNav.tsx`, `BreadcrumbNav.tsx`, `GlobalSearch.tsx`)
+   - Sidebar/topbar nav, mobile bottom bar, global Hebrew search index (`searchIndex.ts`).
+   - Auth gating (`AuthGate.tsx`) with Google OAuth + `allowed_users` whitelist.
 
-3. **Sleeping Calendar** (`SleepingCalendar.tsx`) — Lodging-only horizontal date grid driven by `useGroupStays` (aggregates `neighborhood_reservations` + `groups.vip_tent_configs`).
+3. **Today / Home Dashboard** (`pages/Today.tsx`, `Index.tsx`, `DailySummaryCard.tsx`, `ActionTile.tsx`)
+   - Daily summary tile: counts active groups today (excludes archived).
+   - Quick-action tiles routing to Sleeping, Kitchen, Activities, Facilities.
+   - Sleeping dashboard summary (`SleepingDashboard.tsx`): per-day Check-in (green) / Sleeping (blue) / Check-out (orange) sections, filter switches, mini calendar with month counts via `useGroupStays.getMonthCounts`.
 
-4. **Kitchen Calendars** (`KitchenWeekView.tsx`, `KitchenMonthView.tsx`)
-   - Strictly meal events from `kitchen_time_slots` via `kitchenSlotsToCalendarEvents` (`kitchenCalendarEvents.ts`).
-   - Excludes lodging and spaces. Default meal durations: BREAKFAST 60m, LUNCH/DINNER 90m. Highlights special-diet counts.
+4. **Main Tabs / Sections** — for each: purpose, data source hook, key logic.
+   - **Sleeping** (`SleepingDashboard`, `SleepingCalendar`, `SleepingDetailDrawer`, `useGroupStays`, `useSleepingData`) — Hotel Rule (`start ≤ day < end`), unified group stays aggregating `neighborhood_reservations` + `groups.vip_tent_configs`.
+   - **Neighborhoods** (`pages/Neighborhood.tsx`, `NeighborhoodTile`, `NeighborhoodMap`, `NeighborhoodMiniMap`, `NeighborhoodBookingsList`, `NeighborhoodReservationModal`, `NeighborhoodBulkActions`, `NeighborhoodDatePicker`) — 8 neighborhoods, 51 tents, 335 beds; bookings list with dedup; per-neighborhood occupancy prioritizes group total pax over physical bed assignments.
+   - **Tent Detail** (`pages/TentDetail.tsx`, `TentDetailModal`, `BedTile`, `tentColors.ts`) — gender colors (Women green / Men blue / Mixed orange), dual-check visibility gating for tent metadata based on date validity.
+   - **Kitchen** (`pages/Kitchen.tsx`, `KitchenWeekView`, `KitchenMonthView`, `MealSection`, `TimeSlotCard`, `AddTimeSlotModal`, `KitchenEventDetailModal`, `useKitchenData`) — strictly meals, 8 dietary categories, upgraded coffee amber marker.
+   - **Activities** (`pages/Activities.tsx`, `ActivitySpaceReportModal`, `TimeSlotDetailModal`) — common-space bookings via `activity_reservations`, mandatory 15-min gap enforced by RPC `create_activity_reservation_safe` + client `preValidateScheduleConflicts`.
+   - **Facilities** (`pages/Facilities.tsx`, `FacilityCard`, `MaintenancePhotoCapture`, `ReportIssueModal`, `GeneralMaintenanceModal`) — Housekeeping vs Maintenance separation; resolving a task clears status + deletes media everywhere.
+   - **Group Allocation** (`pages/GroupAllocation.tsx`, `ParticipantAllocationTab`, `VIPAllocationTab`, `VIPPlanningPanel`, `VIPTentPlanner`, `PendingAllocationCard`, `DistributionRequirementsPanel`, `useGroupAllocation`, `useVipReservations`, `useVipCleanup`) — manual allocation only for sleeping groups; greedy descending feasibility match; VIP dual-write to JSONB + tents table with manual await refetch; auto-creates `neighborhood_reservations` to lock neighborhood.
+   - **Admin Groups / Group Edit** (`AdminGroups.tsx`, `AdminGroupEdit.tsx`, `GroupItineraryModal`, `useAdminGroups`, `useSupabaseGroups`) — date coherence validation, archive boolean → `status` column, async cascade cleanup on delete (`groupLinkedRecords.ts`).
+   - **Admin Quotes** (`AdminQuotes.tsx`, `QuoteAvailabilityCalendar`, `useQuotes`, `quoteUtils.ts`) — snapshot-based JSON versioning, fixed catalog pricing, night-based student totals, browser `window.print()` PDF.
+   - **Admin Income / Expenses / Outsourced / Reports** (`AdminIncome.tsx`, `AdminExpenses.tsx`, `AdminOutsourced.tsx`, `AdminReports.tsx`, `AdminDateRangeFilter`, `useAdminFinance`, `useSupabaseFinance`).
+   - **Admin Guest Forms** (`AdminGuestForms.tsx`, `GuestFormResponseView`, `useGuestFormSubmissions`) — 4-step prefilled wizard via public `pages/GuestForm.tsx`, JSON-serialized itineraries/diets, hardcoded Lovable base URL.
+   - **Settings & User Management** (`Settings.tsx`, `UserManagement.tsx`) — RBAC admin/viewer via `allowed_users` whitelist + `user_roles`.
 
-5. **Daily Tasks Calendar** (`DailyTasksCalendar.tsx`) — Pulls from `daily_tasks`, separated into Housekeeping vs Maintenance categories.
+5. **Calendar System** — for each calendar surface: file, data source, view modes, color rules, capacity logic.
+   - **Master Calendar** (`MasterCalendar.tsx` + `CalendarMonthView/WeekView/DayView.tsx`) — 3 view modes, RTL reversed chevrons (Right=Forward, Left=Backward), shows lodging stays, VIP allocations, common-space bookings, kitchen meals (amber). Capacity strip from `useCalendarCapacity` (FREE = total beds − sleeping). Pending/unassigned groups visible. Per-group neighborhood reservation suppressed when unified stay shown.
+   - **Sleeping Calendar** (`SleepingCalendar.tsx`) — horizontal date grid driven by `useGroupStays`.
+   - **Kitchen Calendars** (`KitchenWeekView`, `KitchenMonthView`) — strictly `kitchen_time_slots`; default durations BREAKFAST 60m, LUNCH/DINNER 90m; highlights special diets.
+   - **Daily Tasks Calendar** (`DailyTasksCalendar.tsx`) — Housekeeping vs Maintenance.
+   - **Quote Availability Calendar** (`QuoteAvailabilityCalendar.tsx`) — embedded in Quote create/edit; monthly bed availability.
+   - **Mini calendars** in Activities, Neighborhood, TentDetail.
+   - **Capacity rule worked example** showing Hotel Rule application across a multi-day stay.
 
-6. **Quote Availability Calendar** (`QuoteAvailabilityCalendar.tsx`) — Decision-support calendar embedded in the Quote create/edit screen; reads same lodging stream and shows monthly bed availability.
+6. **Neighborhood Visual Maps**
+   - **NeighborhoodMap** (`NeighborhoodMap.tsx`) — generic SVG map of tent nodes; gender-colored fills (women green / men blue / mixed orange / unassigned cream), gender stroke variants, click handlers, `+1` extra-bed badge.
+   - **VIPNeighborhoodMap** (`VIPNeighborhoodMap.tsx`) — fixed VIP layout with central fireplace and 10 numbered cabins (88, 89, 80, 81 / 87, 82 / 86, 85, 84, 83), dashed connection lines, premium cabin SVG with roof + door, Hebrew gender legend.
+   - **MiniMapCircular** + **MiniMapVIP** + **NeighborhoodMiniMap** — compact previews for tiles/cards.
+   - VIP source-of-truth: dynamically derived from `groups.vip_tent_configs`, dual-synced with `tents` table; sorting via numerical extraction.
 
-7. **Activities / Neighborhood / TentDetail mini-calendars** — Date pickers and per-resource availability strips driven by `activity_reservations` and `neighborhood_reservations`.
+7. **Synchronization / Realtime Logic**
+   - `groupSync.syncGroupToModules` idempotent — meals → `kitchen_time_slots`, schedule items in `BOOKABLE_SPACES` → `activity_reservations` via RPC. Dual-layer conflict detection.
+   - VIP allocation dual write + manual `await refetch`.
+   - Neighborhood lock automation via `neighborhood_reservations`.
+   - Realtime hooks: `useSupabaseVillage`, `useSupabaseKitchen`, `useSupabaseGroups`, `useSupabaseAllocations`, `useSupabaseFinance` subscribe to `postgres_changes`. No polling anywhere.
+   - Cascade cleanup on group delete via `groupLinkedRecords.ts` (wildcard whitespace matching).
 
-### Synchronization Flows
+8. **Color & Style Rules**
+   - Booking status: Check-in green / Sleeping blue / Check-out orange.
+   - Gender: Women green / Men blue / Mixed orange.
+   - Main bg `#F7F3ED`. Kitchen meal events amber. Upgraded coffee amber marker.
+   - RTL Hebrew with English exceptions ('CHECK IN', 'CHECK OUT', 'By: Glow Glamping').
 
-8. **Group → Kitchen + Spaces sync** (`src/lib/groupSync.ts`)
-   - `syncGroupToModules(group)` is idempotent: deletes prior rows tagged `source='groupSync'` + `group_id`, then re-inserts.
-   - Meals → `kitchen_time_slots` (mapped via `convertSpecialDiets`, 8 dietary categories).
-   - Schedule items in `BOOKABLE_SPACES` → `activity_reservations` via RPC `create_activity_reservation_safe` (15-min buffer, advisory lock).
-   - `preValidateScheduleConflicts` runs client-side before save; RPC enforces server-side. Dual-layer conflict protection.
-   - `removeSyncedRecordsForGroup(id)` cleans both tables on group deletion.
-
-9. **VIP allocation sync** — Dual write: updates `groups.vip_tent_configs` JSONB (source of truth) AND physical `tents` table; `useVipReservations` does manual `await refetch` to avoid race with realtime.
-
-10. **Neighborhood lock automation** — Manual lodging allocation auto-creates/updates a `neighborhood_reservations` row to lock the neighborhood for the date range.
-
-11. **Realtime subscriptions** — `useSupabaseVillage`, `useSupabaseKitchen`, `useSupabaseGroups`, `useSupabaseAllocations` subscribe to `postgres_changes` on their tables. Every calendar re-renders automatically when underlying rows change. No setInterval/polling anywhere.
-
-12. **Maintenance realtime** — Resolving a maintenance task clears facility/tent status across all surfaces (Facilities page, TentDetail, Master Calendar tile counters).
-
-13. **Group cascade cleanup** — Deleting a group asynchronously removes its synced kitchen slots, activity reservations, neighborhood reservations, and allocations (`groupLinkedRecords.ts`).
-
-### Quick Reference Table
-A table mapping each calendar → source tables → sync hook → realtime channel.
+9. **Quick Reference Tables**
+   - Tab → page file → primary hook → main DB tables.
+   - Calendar → source tables → sync hook → realtime channel.
+   - Neighborhood map component → use case.
 
 ### Technical Details
-- Single Markdown file (~450 lines)
-- Code references: `MasterCalendar.tsx`, `CalendarMonth/Week/DayView.tsx`, `SleepingCalendar.tsx`, `KitchenWeekView.tsx`, `KitchenMonthView.tsx`, `DailyTasksCalendar.tsx`, `QuoteAvailabilityCalendar.tsx`, `useCalendarCapacity.ts`, `useGroupStays.ts`, `groupSync.ts`, `reservationConflict.ts`, `kitchenCalendarEvents.ts`, `useSupabaseVillage.ts`, `useSupabaseKitchen.ts`, RPC `create_activity_reservation_safe`.
-- Includes one worked example: a group is saved → preValidate → groupSync writes kitchen slots + activity reservations → realtime fires → Master Calendar, Kitchen Week View, and Activities page all refresh without reload.
+
+- Single Markdown file, ~500–650 lines, written to `/mnt/documents/`.
+- Sources read during exploration: `Today.tsx`, `Index.tsx`, `SleepingDashboard.tsx`, `Neighborhood.tsx`, `NeighborhoodMap.tsx`, `VIPNeighborhoodMap.tsx` (already shown), `MasterCalendar.tsx`, `useCalendarCapacity.ts` (already shown), `useGroupStays.ts`, `groupSync.ts`, plus tab pages enumerated above.
+- No code is modified — this is a documentation-only deliverable. After generation, file is delivered via `<lov-artifact>` tag.
